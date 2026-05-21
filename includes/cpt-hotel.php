@@ -29,7 +29,14 @@ function anex_hotel_meta_keys(): array {
 		'thumb_url'       => '_anex_thumb_url',
 		'synced_at'       => '_anex_synced_at',
 		'sync_error'      => '_anex_sync_error',
+		'photo_skip'      => '_anex_photo_skip',
 	];
+}
+
+function anex_hotel_mark_photo_skip( int $post_id, string $reason ): void {
+	$keys = anex_hotel_meta_keys();
+	update_post_meta( $post_id, $keys['photo_skip'], '1' );
+	update_post_meta( $post_id, $keys['sync_error'], mb_substr( $reason, 0, 500 ) );
 }
 
 function anex_hotel_default_country_ids(): array {
@@ -345,7 +352,7 @@ function anex_fetch_hotel_thumb_from_api( string $hotel_id ): string {
 	}
 	$result = ittour_lab_api_fetch(
 		'hotel/' . $hotel_id . '/hotel-images',
-		[ 'limit_images' => '8' ],
+		[ 'limit_images' => '3' ],
 		'uk'
 	);
 	if ( is_wp_error( $result ) ) {
@@ -385,6 +392,7 @@ function anex_sideload_hotel_thumbnail( int $post_id, string $url = '' ): bool {
 	}
 	$url = trim( $url );
 	if ( $url === '' ) {
+		anex_hotel_mark_photo_skip( $post_id, 'Немає URL фото (API hotel-images)' );
 		return false;
 	}
 
@@ -394,7 +402,7 @@ function anex_sideload_hotel_thumbnail( int $post_id, string $url = '' ): bool {
 
 	$att_id = media_sideload_image( $url, $post_id, null, 'id' );
 	if ( is_wp_error( $att_id ) ) {
-		update_post_meta( $post_id, $keys['sync_error'], $att_id->get_error_message() );
+		anex_hotel_mark_photo_skip( $post_id, 'Sideload: ' . $att_id->get_error_message() );
 		return false;
 	}
 	set_post_thumbnail( $post_id, (int) $att_id );

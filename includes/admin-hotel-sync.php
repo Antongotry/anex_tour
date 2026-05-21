@@ -61,7 +61,7 @@ function anex_ajax_hotel_sync_photos(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_send_json_error( [ 'message' => 'Недостатньо прав.' ] );
 	}
-	$limit  = isset( $_POST['limit'] ) ? max( 1, min( 30, (int) $_POST['limit'] ) ) : 15;
+	$limit  = isset( $_POST['limit'] ) ? max( 1, min( 5, (int) $_POST['limit'] ) ) : 3;
 	$result = Anex_Sync_Hotels::sync_photos_batch( $limit );
 	wp_send_json_success( $result );
 }
@@ -125,9 +125,11 @@ function anex_hotel_sync_admin_page(): void {
 
 		<p>
 			<button type="button" class="button button-primary" id="anex-sync-start">Запустити sync готелів</button>
-			<button type="button" class="button" id="anex-sync-photos">Завантажити всі фото</button>
+			<button type="button" class="button" id="anex-sync-photos">Завантажити фото (по 3)</button>
+			<button type="button" class="button" id="anex-sync-photos-stop" style="display:none">Зупинити</button>
 			<span id="anex-sync-spinner" class="spinner" style="float:none"></span>
 		</p>
+		<p id="anex-photo-progress" class="description" style="max-width:720px"></p>
 
 		<table class="widefat" style="max-width:720px">
 			<tbody>
@@ -184,22 +186,65 @@ function anex_hotel_sync_admin_page(): void {
 			if (res.success) renderStats(res.data);
 		}
 
+		let photoStop = false;
+		const photoProgress = document.getElementById('anex-photo-progress');
+		const photoStopBtn = document.getElementById('anex-sync-photos-stop');
+
+		async function postWithTimeout(action, extra, ms) {
+			const ctrl = new AbortController();
+			const t = setTimeout(() => ctrl.abort(), ms || 90000);
+			try {
+				const body = new URLSearchParams({ action, nonce, ...(extra || {}) });
+				const r = await fetch(ajaxUrl, {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+					body,
+					credentials: 'same-origin',
+					signal: ctrl.signal,
+				});
+				return await r.json();
+			} finally {
+				clearTimeout(t);
+			}
+		}
+
 		async function runAllPhotos() {
+			photoStop = false;
+			photoStopBtn.style.display = 'inline-block';
 			let remaining = 1;
 			let total = 0;
-			while (remaining > 0) {
-				const res = await post('anex_hotel_sync_photos', { limit: '15' });
+			let skipped = 0;
+			let rounds = 0;
+			const maxRounds = 80;
+			while (remaining > 0 && !photoStop && rounds < maxRounds) {
+				rounds++;
+				photoProgress.textContent = 'Завантаження… раунд ' + rounds + ', залишилось ~' + remaining;
+				let res;
+				try {
+					res = await postWithTimeout('anex_hotel_sync_photos', { limit: '3' }, 90000);
+				} catch (e) {
+					alert('Таймаут або мережа. Спробуйте ще раз — вже завантажені фото збережені.');
+					break;
+				}
 				if (!res.success) {
 					alert(res.data?.message || 'Помилка фото');
 					break;
 				}
 				total += res.data.processed|0;
+				skipped += res.data.skipped|0;
 				remaining = res.data.remaining|0;
+				photoProgress.textContent = res.data.message || '';
 				await refreshStats();
-				if (remaining > 0) await new Promise(r => setTimeout(r, 800));
+				if (res.data.done) break;
+				if (remaining > 0) await new Promise(r => setTimeout(r, 1200));
 			}
-			alert('Фото готово. Завантажено за сесію: ' + total + '. Залишилось без фото: ' + remaining);
+			photoStopBtn.style.display = 'none';
+			await refreshStats();
+			const pending = document.getElementById('anex-stats-pending').textContent;
+			alert('Готово. Завантажено: ' + total + ', пропущено: ' + skipped + '. Без фото: ' + pending);
 		}
+
+		photoStopBtn.addEventListener('click', () => { photoStop = true; });
 
 		async function runSteps() {
 			if (running) return;

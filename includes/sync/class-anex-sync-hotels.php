@@ -105,12 +105,12 @@ class Anex_Sync_Hotels {
 		}
 
 		if ( anex_hotel_sync_photos_enabled() && $post_ids !== [] ) {
-			$photo_stats = self::sideload_photos_for_ids( $post_ids, 15 );
+			$photo_stats = self::sideload_photos_for_ids( $post_ids, 5 );
 			Anex_Sync_Log::append(
 				sprintf(
-					'  Фото (крок): +%d, помилок: %d, без прев’ю в WP: %d',
+					'  Фото (крок): +%d, пропущено: %d, без прев’ю в WP: %d',
 					(int) $photo_stats['processed'],
-					(int) $photo_stats['errors'],
+					(int) ( $photo_stats['skipped'] ?? 0 ),
 					(int) $photo_stats['still_pending']
 				)
 			);
@@ -517,30 +517,49 @@ class Anex_Sync_Hotels {
 		return (int) $q->found_posts;
 	}
 
-	public static function count_pending_photos(): int {
+	/**
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function pending_photos_meta_query(): array {
 		$keys = anex_hotel_meta_keys();
-		$q    = new WP_Query(
+		return [
+			'relation' => 'AND',
+			[
+				'key'     => $keys['ittour_hotel_id'],
+				'compare' => 'EXISTS',
+			],
+			[
+				'key'     => $keys['ittour_hotel_id'],
+				'value'   => '',
+				'compare' => '!=',
+			],
+			[
+				'key'     => '_thumbnail_id',
+				'compare' => 'NOT EXISTS',
+			],
+			[
+				'relation' => 'OR',
+				[
+					'key'     => $keys['photo_skip'],
+					'compare' => 'NOT EXISTS',
+				],
+				[
+					'key'     => $keys['photo_skip'],
+					'value'   => '1',
+					'compare' => '!=',
+				],
+			],
+		];
+	}
+
+	public static function count_pending_photos(): int {
+		$q = new WP_Query(
 			[
 				'post_type'      => ANEX_HOTEL_POST_TYPE,
 				'post_status'    => 'publish',
 				'posts_per_page' => 1,
 				'fields'         => 'ids',
-				'meta_query'     => [
-					'relation' => 'AND',
-					[
-						'key'     => $keys['ittour_hotel_id'],
-						'compare' => 'EXISTS',
-					],
-					[
-						'key'     => $keys['ittour_hotel_id'],
-						'value'   => '',
-						'compare' => '!=',
-					],
-					[
-						'key'     => '_thumbnail_id',
-						'compare' => 'NOT EXISTS',
-					],
-				],
+				'meta_query'     => self::pending_photos_meta_query(),
 			]
 		);
 		return (int) $q->found_posts;
@@ -568,9 +587,9 @@ class Anex_Sync_Hotels {
 	 * @param int[] $post_ids
 	 * @return array{processed:int, errors:int, still_pending:int}
 	 */
-	public static function sideload_photos_for_ids( array $post_ids, int $max = 15 ): array {
+	public static function sideload_photos_for_ids( array $post_ids, int $max = 3 ): array {
 		$processed = 0;
-		$errors    = 0;
+		$skipped   = 0;
 		$n         = 0;
 		foreach ( $post_ids as $post_id ) {
 			if ( $n >= $max ) {
@@ -584,59 +603,49 @@ class Anex_Sync_Hotels {
 			if ( anex_sideload_hotel_thumbnail( $post_id ) ) {
 				++$processed;
 			} else {
-				++$errors;
+				++$skipped;
 			}
 		}
 		return [
 			'processed'     => $processed,
-			'errors'        => $errors,
+			'skipped'       => $skipped,
 			'still_pending' => self::count_pending_photos(),
 		];
 	}
 
 	/**
-	 * @return array{processed:int, errors:int, remaining:int, message:string}
+	 * @return array{processed:int, skipped:int, remaining:int, done:bool, message:string}
 	 */
-	public static function sync_photos_batch( int $limit = 15 ): array {
-		$keys = anex_hotel_meta_keys();
-		$q    = new WP_Query(
+	public static function sync_photos_batch( int $limit = 3 ): array {
+		if ( function_exists( 'set_time_limit' ) ) {
+			set_time_limit( 120 );
+		}
+
+		$q = new WP_Query(
 			[
 				'post_type'      => ANEX_HOTEL_POST_TYPE,
 				'post_status'    => 'publish',
 				'posts_per_page' => $limit,
-				'meta_query'     => [
-					'relation' => 'AND',
-					[
-						'key'     => $keys['ittour_hotel_id'],
-						'compare' => 'EXISTS',
-					],
-					[
-						'key'     => $keys['ittour_hotel_id'],
-						'value'   => '',
-						'compare' => '!=',
-					],
-					[
-						'key'     => '_thumbnail_id',
-						'compare' => 'NOT EXISTS',
-					],
-				],
+				'meta_query'     => self::pending_photos_meta_query(),
 				'fields'         => 'ids',
 				'orderby'        => 'ID',
 				'order'          => 'ASC',
 			]
 		);
 
-		$stats = self::sideload_photos_for_ids( array_map( 'intval', $q->posts ), $limit );
+		$stats     = self::sideload_photos_for_ids( array_map( 'intval', $q->posts ), $limit );
 		$remaining = (int) $stats['still_pending'];
+		$done      = $remaining === 0 || ( (int) $stats['processed'] === 0 && (int) $stats['skipped'] === 0 );
 
 		return [
 			'processed' => (int) $stats['processed'],
-			'errors'    => (int) $stats['errors'],
+			'skipped'   => (int) $stats['skipped'],
 			'remaining' => $remaining,
+			'done'      => $done,
 			'message'   => sprintf(
-				'Завантажено: %d, помилок: %d. Залишилось без фото: %d',
+				'OK: %d, пропущено: %d, залишилось: %d',
 				(int) $stats['processed'],
-				(int) $stats['errors'],
+				(int) $stats['skipped'],
 				$remaining
 			),
 		];
