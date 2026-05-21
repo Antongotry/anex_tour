@@ -396,35 +396,78 @@ function anex_pick_image_url_from_list( array $list ): string {
 /**
  * Перше фото з API hotel/{id}/hotel-images або hotel/info.
  */
-function anex_fetch_hotel_thumb_from_api( string $hotel_id ): string {
+function anex_fetch_hotel_thumb_from_api( string $hotel_id, string $country_id = '' ): string {
 	$hotel_id = trim( $hotel_id );
 	if ( $hotel_id === '' || ! ctype_digit( $hotel_id ) || ! function_exists( 'ittour_lab_api_fetch' ) ) {
 		return '';
 	}
 
-	$paths = [
-		[ 'hotel/' . $hotel_id . '/hotel-images', [ 'limit_images' => '12' ] ],
-		[ 'hotel/' . $hotel_id . '/info', [] ],
-	];
+	// hotel/{id}/hotel-images на цьому API часто «Неверный адрес» — фото з search-list.
+	return anex_fetch_hotel_thumb_via_search_list( $hotel_id, $country_id );
+}
 
-	foreach ( $paths as [ $path, $query ] ) {
-		$result = ittour_lab_api_fetch( $path, $query, 'uk' );
-		if ( is_wp_error( $result ) ) {
-			continue;
-		}
-		$data = $result['data'] ?? [];
-		if ( ! is_array( $data ) ) {
-			continue;
-		}
-		if ( ! empty( $data['error'] ) ) {
-			continue;
-		}
-		$url = anex_extract_hotel_thumb_url( $data );
-		if ( $url !== '' ) {
-			return $url;
-		}
+/**
+ * Один search-list по країні, офер з hotel_images (як у каталозі).
+ */
+function anex_fetch_hotel_thumb_via_search_list( string $hotel_id, string $country_id = '' ): string {
+	$hotel_id = trim( $hotel_id );
+	if ( $hotel_id === '' || ! ctype_digit( $hotel_id ) || ! function_exists( 'ittour_lab_api_fetch' ) ) {
+		return '';
 	}
 
+	if ( $country_id === '' ) {
+		$post = anex_find_hotel_post_by_ittour_id( $hotel_id );
+		if ( $post instanceof WP_Post ) {
+			$country_id = (string) get_post_meta( $post->ID, '_anex_country_id', true );
+		}
+	}
+	if ( $country_id === '' ) {
+		return '';
+	}
+
+	$from_offset = 21;
+	$result      = ittour_lab_api_fetch(
+		'module/search-list',
+		[
+			'type'           => '1',
+			'kind'           => '1',
+			'country'        => (string) $country_id,
+			'adult_amount'   => '2',
+			'child_amount'   => '0',
+			'hotel_rating'   => '1:78',
+			'night_from'     => '7',
+			'night_till'     => '14',
+			'date_from'      => wp_date( 'd.m.y', strtotime( '+' . $from_offset . ' days' ) ),
+			'date_till'      => wp_date( 'd.m.y', strtotime( '+' . ( $from_offset + 11 ) . ' days' ) ),
+			'items_per_page' => '120',
+			'hotel_info'     => '1',
+			'hotel_image'    => '1',
+			'currency'       => '2',
+		],
+		'uk'
+	);
+
+	if ( is_wp_error( $result ) ) {
+		return '';
+	}
+	$data = $result['data'] ?? [];
+	if ( ! is_array( $data ) || ! empty( $data['error'] ) ) {
+		return '';
+	}
+	$offers = $data['offers'] ?? [];
+	if ( ! is_array( $offers ) ) {
+		return '';
+	}
+	foreach ( $offers as $offer ) {
+		if ( ! is_array( $offer ) ) {
+			continue;
+		}
+		$oid = (string) ( $offer['hotel_id'] ?? $offer['hotel'] ?? '' );
+		if ( $oid !== $hotel_id ) {
+			continue;
+		}
+		return anex_extract_hotel_thumb_url( $offer );
+	}
 	return '';
 }
 
@@ -437,8 +480,9 @@ function anex_hotel_resolve_thumb_url( int $post_id ): string {
 	if ( $url !== '' ) {
 		return $url;
 	}
-	$hotel_id = (string) get_post_meta( $post_id, $keys['ittour_hotel_id'], true );
-	$url      = anex_fetch_hotel_thumb_from_api( $hotel_id );
+	$hotel_id   = (string) get_post_meta( $post_id, $keys['ittour_hotel_id'], true );
+	$country_id = (string) get_post_meta( $post_id, $keys['country_id'], true );
+	$url        = anex_fetch_hotel_thumb_from_api( $hotel_id, $country_id );
 	if ( $url !== '' ) {
 		update_post_meta( $post_id, $keys['thumb_url'], $url );
 	}

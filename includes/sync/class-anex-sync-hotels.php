@@ -343,18 +343,24 @@ class Anex_Sync_Hotels {
 			if ( isset( $by_id[ $hid ] ) ) {
 				continue;
 			}
-			$row               = array_merge( $offer, [
-				'id'           => $hid,
-				'hotel_id'     => $hid,
-				'name'         => (string) ( $offer['hotel_name'] ?? $offer['hotel'] ?? '' ),
-				'country_id'   => (string) ( $offer['country_id'] ?? $country_id ),
-				'country_name' => (string) ( $offer['country_name'] ?? $country_name ),
-				'region_id'    => (string) ( $offer['region_id'] ?? '' ),
-				'region_name'  => (string) ( $offer['region_name'] ?? $offer['region'] ?? '' ),
-				'hotel_rating' => (string) ( $offer['hotel_rating'] ?? $offer['hotel_stars'] ?? '' ),
-			] );
-			$row['thumb_url_hint'] = anex_extract_hotel_thumb_url( $row );
-			$by_id[ $hid ]         = $row;
+			$row = array_merge(
+				$offer,
+				[
+					'id'           => $hid,
+					'hotel_id'     => $hid,
+					'name'         => (string) ( $offer['hotel_name'] ?? $offer['hotel'] ?? '' ),
+					'country_id'   => (string) ( $offer['country_id'] ?? $country_id ),
+					'country_name' => (string) ( $offer['country_name'] ?? $country_name ),
+					'region_id'    => (string) ( $offer['region_id'] ?? '' ),
+					'region_name'  => (string) ( $offer['region_name'] ?? $offer['region'] ?? '' ),
+					'hotel_rating' => (string) ( $offer['hotel_rating'] ?? $offer['hotel_stars'] ?? '' ),
+				]
+			);
+			$thumb = anex_extract_hotel_thumb_url( $row );
+			if ( $thumb !== '' ) {
+				$row['image'] = $thumb;
+			}
+			$by_id[ $hid ] = $row;
 		}
 		return $by_id;
 	}
