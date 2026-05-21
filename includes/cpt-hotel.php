@@ -7,9 +7,14 @@
 
 defined( 'ABSPATH' ) || exit;
 
-const ANEX_HOTEL_POST_TYPE     = 'anex_hotel';
-const ANEX_HOTEL_SYNC_OPTION   = 'anex_hotel_sync_state';
-const ANEX_HOTEL_COUNTRIES_OPT = 'anex_hotel_sync_countries';
+const ANEX_HOTEL_POST_TYPE      = 'anex_hotel';
+const ANEX_HOTEL_SYNC_OPTION    = 'anex_hotel_sync_state';
+const ANEX_HOTEL_COUNTRIES_OPT  = 'anex_hotel_sync_countries';
+const ANEX_HOTEL_SYNC_PHOTOS_OPT = 'anex_hotel_sync_with_photos';
+
+function anex_hotel_sync_photos_enabled(): bool {
+	return (bool) get_option( ANEX_HOTEL_SYNC_PHOTOS_OPT, true );
+}
 
 function anex_hotel_meta_keys(): array {
 	return [
@@ -301,6 +306,36 @@ function anex_upsert_hotel_from_api_row( array $row ): array {
 	delete_post_meta( $post_id, $keys['sync_error'] );
 
 	return [ 'created' => $created, 'post_id' => $post_id ];
+}
+
+/**
+ * Завантажити прев’ю в медіатеку та встановити featured image.
+ */
+function anex_sideload_hotel_thumbnail( int $post_id, string $url = '' ): bool {
+	if ( has_post_thumbnail( $post_id ) ) {
+		return true;
+	}
+	$keys = anex_hotel_meta_keys();
+	if ( $url === '' ) {
+		$url = (string) get_post_meta( $post_id, $keys['thumb_url'], true );
+	}
+	$url = trim( $url );
+	if ( $url === '' ) {
+		return false;
+	}
+
+	require_once ABSPATH . 'wp-admin/includes/media.php';
+	require_once ABSPATH . 'wp-admin/includes/file.php';
+	require_once ABSPATH . 'wp-admin/includes/image.php';
+
+	$att_id = media_sideload_image( $url, $post_id, null, 'id' );
+	if ( is_wp_error( $att_id ) ) {
+		update_post_meta( $post_id, $keys['sync_error'], $att_id->get_error_message() );
+		return false;
+	}
+	set_post_thumbnail( $post_id, (int) $att_id );
+	delete_post_meta( $post_id, $keys['sync_error'] );
+	return true;
 }
 
 function anex_extract_hotel_thumb_url( array $hotel ): string {
