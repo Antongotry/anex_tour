@@ -19,6 +19,15 @@ class Anex_Sync_Hotels {
 		return wp_date( 'd.m.y', strtotime( '+' . $days_from_now . ' days' ) );
 	}
 
+	/** Вікно пошуку: API дозволяє не більше 12 днів між date_from і date_till (як у каталозі +11). */
+	private static function search_list_date_window(): array {
+		$from_offset = 21;
+		return [
+			'date_from' => self::api_date_offset( $from_offset ),
+			'date_till' => self::api_date_offset( $from_offset + 11 ),
+		];
+	}
+
 	/**
 	 * Process one country from queue; returns updated state.
 	 */
@@ -266,6 +275,7 @@ class Anex_Sync_Hotels {
 			return [];
 		}
 
+		$dates = self::search_list_date_window();
 		$query = [
 			'type'           => '1',
 			'kind'           => '1',
@@ -275,8 +285,8 @@ class Anex_Sync_Hotels {
 			'hotel_rating'   => '1:78',
 			'night_from'     => '7',
 			'night_till'     => '14',
-			'date_from'      => self::api_date_offset( 21 ),
-			'date_till'      => self::api_date_offset( 49 ),
+			'date_from'      => $dates['date_from'],
+			'date_till'      => $dates['date_till'],
 			'items_per_page' => '120',
 			'hotel_info'     => '1',
 			'currency'       => '2',
