@@ -304,6 +304,7 @@ class Anex_Sync_Hotels {
 			'date_till'      => $dates['date_till'],
 			'items_per_page' => '120',
 			'hotel_info'     => '1',
+			'hotel_image'    => '1',
 			'currency'       => '2',
 		];
 
@@ -342,22 +343,18 @@ class Anex_Sync_Hotels {
 			if ( isset( $by_id[ $hid ] ) ) {
 				continue;
 			}
-			$by_id[ $hid ] = [
-				'id'              => $hid,
-				'hotel_id'        => $hid,
-				'name'            => (string) ( $offer['hotel_name'] ?? $offer['hotel'] ?? '' ),
-				'country_id'      => (string) ( $offer['country_id'] ?? $country_id ),
-				'country_name'    => (string) ( $offer['country_name'] ?? $country_name ),
-				'region_id'       => (string) ( $offer['region_id'] ?? '' ),
-				'region_name'     => (string) ( $offer['region_name'] ?? $offer['region'] ?? '' ),
-				'hotel_rating'    => (string) ( $offer['hotel_rating'] ?? $offer['hotel_stars'] ?? '' ),
-				'lat'             => $offer['lat'] ?? $offer['latitude'] ?? '',
-				'lng'             => $offer['lng'] ?? $offer['longitude'] ?? '',
-				'hotel_images'    => $offer['hotel_images'] ?? [],
-				'image'           => is_array( $offer['hotel_images'] ?? null ) && ! empty( $offer['hotel_images'][0] )
-					? ( is_string( $offer['hotel_images'][0] ) ? $offer['hotel_images'][0] : ( $offer['hotel_images'][0]['url'] ?? '' ) )
-					: '',
-			];
+			$row               = array_merge( $offer, [
+				'id'           => $hid,
+				'hotel_id'     => $hid,
+				'name'         => (string) ( $offer['hotel_name'] ?? $offer['hotel'] ?? '' ),
+				'country_id'   => (string) ( $offer['country_id'] ?? $country_id ),
+				'country_name' => (string) ( $offer['country_name'] ?? $country_name ),
+				'region_id'    => (string) ( $offer['region_id'] ?? '' ),
+				'region_name'  => (string) ( $offer['region_name'] ?? $offer['region'] ?? '' ),
+				'hotel_rating' => (string) ( $offer['hotel_rating'] ?? $offer['hotel_stars'] ?? '' ),
+			] );
+			$row['thumb_url_hint'] = anex_extract_hotel_thumb_url( $row );
+			$by_id[ $hid ]         = $row;
 		}
 		return $by_id;
 	}
@@ -531,11 +528,11 @@ class Anex_Sync_Hotels {
 				'meta_query'     => [
 					'relation' => 'AND',
 					[
-						'key'     => $keys['thumb_url'],
+						'key'     => $keys['ittour_hotel_id'],
 						'compare' => 'EXISTS',
 					],
 					[
-						'key'     => $keys['thumb_url'],
+						'key'     => $keys['ittour_hotel_id'],
 						'value'   => '',
 						'compare' => '!=',
 					],
@@ -610,11 +607,11 @@ class Anex_Sync_Hotels {
 				'meta_query'     => [
 					'relation' => 'AND',
 					[
-						'key'     => $keys['thumb_url'],
+						'key'     => $keys['ittour_hotel_id'],
 						'compare' => 'EXISTS',
 					],
 					[
-						'key'     => $keys['thumb_url'],
+						'key'     => $keys['ittour_hotel_id'],
 						'value'   => '',
 						'compare' => '!=',
 					],

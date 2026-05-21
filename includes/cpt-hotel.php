@@ -130,11 +130,15 @@ function anex_hotel_render_column( string $column, int $post_id ): void {
 			echo esc_html( (string) get_post_meta( $post_id, $keys['hotel_rating'], true ) ?: '—' );
 			break;
 		case 'anex_thumb':
+			if ( has_post_thumbnail( $post_id ) ) {
+				echo get_the_post_thumbnail( $post_id, [ 64, 48 ], [ 'style' => 'max-width:64px;max-height:48px;object-fit:cover;border-radius:4px' ] );
+				break;
+			}
 			$url = (string) get_post_meta( $post_id, $keys['thumb_url'], true );
 			if ( $url !== '' ) {
-				echo '<img src="' . esc_url( $url ) . '" alt="" style="max-width:48px;max-height:36px;object-fit:cover;border-radius:3px" />';
+				echo '<img src="' . esc_url( $url ) . '" alt="" style="max-width:64px;max-height:48px;object-fit:cover;border-radius:4px;border:1px solid #ddd" loading="lazy" />';
 			} else {
-				echo '—';
+				echo '<span style="color:#999" title="Натисніть «Завантажити всі фото» на сторінці sync">—</span>';
 			}
 			break;
 		case 'anex_synced':
@@ -311,13 +315,73 @@ function anex_upsert_hotel_from_api_row( array $row ): array {
 /**
  * Завантажити прев’ю в медіатеку та встановити featured image.
  */
+/**
+ * Нормалізація URL з IT-Tour (як fixMediaUrl у каталозі).
+ */
+function anex_fix_media_url( string $value ): string {
+	$url = trim( $value );
+	if ( $url === '' ) {
+		return '';
+	}
+	if ( str_starts_with( $url, '//' ) ) {
+		$url = 'https:' . $url;
+	}
+	if ( str_starts_with( $url, 'http://' ) ) {
+		$url = 'https://' . substr( $url, 7 );
+	}
+	if ( ! preg_match( '#^https?://#i', $url ) ) {
+		$url = 'https://www.ittour.com.ua/' . ltrim( $url, '/' );
+	}
+	return esc_url_raw( $url );
+}
+
+/**
+ * Перше фото з API hotel/{id}/hotel-images.
+ */
+function anex_fetch_hotel_thumb_from_api( string $hotel_id ): string {
+	$hotel_id = trim( $hotel_id );
+	if ( $hotel_id === '' || ! ctype_digit( $hotel_id ) || ! function_exists( 'ittour_lab_api_fetch' ) ) {
+		return '';
+	}
+	$result = ittour_lab_api_fetch(
+		'hotel/' . $hotel_id . '/hotel-images',
+		[ 'limit_images' => '8' ],
+		'uk'
+	);
+	if ( is_wp_error( $result ) ) {
+		return '';
+	}
+	$data = $result['data'] ?? [];
+	if ( ! is_array( $data ) ) {
+		return '';
+	}
+	return anex_extract_hotel_thumb_url( $data );
+}
+
+/**
+ * URL прев’ю для запису готелю (meta або API).
+ */
+function anex_hotel_resolve_thumb_url( int $post_id ): string {
+	$keys = anex_hotel_meta_keys();
+	$url  = (string) get_post_meta( $post_id, $keys['thumb_url'], true );
+	if ( $url !== '' ) {
+		return $url;
+	}
+	$hotel_id = (string) get_post_meta( $post_id, $keys['ittour_hotel_id'], true );
+	$url      = anex_fetch_hotel_thumb_from_api( $hotel_id );
+	if ( $url !== '' ) {
+		update_post_meta( $post_id, $keys['thumb_url'], $url );
+	}
+	return $url;
+}
+
 function anex_sideload_hotel_thumbnail( int $post_id, string $url = '' ): bool {
 	if ( has_post_thumbnail( $post_id ) ) {
 		return true;
 	}
 	$keys = anex_hotel_meta_keys();
 	if ( $url === '' ) {
-		$url = (string) get_post_meta( $post_id, $keys['thumb_url'], true );
+		$url = anex_hotel_resolve_thumb_url( $post_id );
 	}
 	$url = trim( $url );
 	if ( $url === '' ) {
@@ -339,30 +403,59 @@ function anex_sideload_hotel_thumbnail( int $post_id, string $url = '' ): bool {
 }
 
 function anex_extract_hotel_thumb_url( array $hotel ): string {
-	$direct = [ 'image', 'img', 'thumb', 'thumbnail', 'photo', 'photo_url', 'main_image', 'main_photo', 'picture', 'preview' ];
+	if ( ! empty( $hotel['hotel_info'] ) && is_array( $hotel['hotel_info'] ) ) {
+		$nested = anex_extract_hotel_thumb_url( $hotel['hotel_info'] );
+		if ( $nested !== '' ) {
+			return $nested;
+		}
+	}
+
+	$direct = [ 'image', 'img', 'thumb', 'thumbnail', 'photo', 'photo_url', 'main_image', 'main_photo', 'picture', 'preview', 'web', 'full' ];
 	foreach ( $direct as $key ) {
 		if ( ! empty( $hotel[ $key ] ) && is_string( $hotel[ $key ] ) ) {
-			$url = trim( $hotel[ $key ] );
-			if ( $url !== '' ) {
-				return esc_url_raw( $url );
+			$fixed = anex_fix_media_url( $hotel[ $key ] );
+			if ( $fixed !== '' ) {
+				return $fixed;
 			}
 		}
 	}
-	foreach ( [ 'images', 'photos', 'gallery' ] as $list_key ) {
+
+	foreach ( [ 'hotel_images', 'images', 'photos', 'gallery' ] as $list_key ) {
 		if ( empty( $hotel[ $list_key ] ) || ! is_array( $hotel[ $list_key ] ) ) {
 			continue;
 		}
-		$first = $hotel[ $list_key ][0] ?? null;
-		if ( is_string( $first ) && trim( $first ) !== '' ) {
-			return esc_url_raw( trim( $first ) );
-		}
-		if ( is_array( $first ) ) {
-			foreach ( [ 'url', 'src', 'image', 'photo' ] as $k ) {
-				if ( ! empty( $first[ $k ] ) && is_string( $first[ $k ] ) ) {
-					return esc_url_raw( trim( $first[ $k ] ) );
+		foreach ( $hotel[ $list_key ] as $item ) {
+			if ( is_string( $item ) && trim( $item ) !== '' ) {
+				$fixed = anex_fix_media_url( $item );
+				if ( $fixed !== '' ) {
+					return $fixed;
+				}
+			}
+			if ( ! is_array( $item ) ) {
+				continue;
+			}
+			foreach ( [ 'thumb', 'web', 'full', 'url', 'src', 'image', 'photo' ] as $k ) {
+				if ( ! empty( $item[ $k ] ) && is_string( $item[ $k ] ) ) {
+					$fixed = anex_fix_media_url( $item[ $k ] );
+					if ( $fixed !== '' ) {
+						return $fixed;
+					}
 				}
 			}
 		}
 	}
+
+	$single = $hotel['images'] ?? null;
+	if ( is_array( $single ) && ! isset( $single[0] ) ) {
+		foreach ( [ 'thumb', 'web', 'full' ] as $k ) {
+			if ( ! empty( $single[ $k ] ) && is_string( $single[ $k ] ) ) {
+				$fixed = anex_fix_media_url( $single[ $k ] );
+				if ( $fixed !== '' ) {
+					return $fixed;
+				}
+			}
+		}
+	}
+
 	return '';
 }

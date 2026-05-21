@@ -97,7 +97,8 @@ function anex_hotel_sync_admin_page(): void {
 	?>
 	<div class="wrap">
 		<h1>Синхронізація готелів</h1>
-		<p>Картки: <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . ANEX_HOTEL_POST_TYPE ) ); ?>"><strong>Anex Tour → Готелі</strong></a></p>
+		<p>Картки: <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . ANEX_HOTEL_POST_TYPE ) ); ?>"><strong>Anex Tour → Готелі</strong></a> — колонка «Прев’ю» показує <strong>завантажене</strong> фото (після кнопки нижче).</p>
+		<p class="description">Якщо в sync мало готелів (3–11 на країну) — це ліміт одного search-list на країну, не баг. Фото: спочатку з офера, інакше <code>hotel/{id}/hotel-images</code>.</p>
 
 		<table class="widefat" style="max-width:720px;margin:1em 0">
 			<tbody>
