@@ -14,6 +14,11 @@ class Anex_Sync_Hotels {
 	private const SEARCH_PATH     = 'module/search-list';
 	private const MAX_REGION_DEST = 30;
 
+	/** IT-Tour search-list: date_from / date_till у форматі DD.MM.YY */
+	private static function api_date_offset( int $days_from_now ): string {
+		return wp_date( 'd.m.y', strtotime( '+' . $days_from_now . ' days' ) );
+	}
+
 	/**
 	 * Process one country from queue; returns updated state.
 	 */
@@ -270,8 +275,8 @@ class Anex_Sync_Hotels {
 			'hotel_rating'   => '1:78',
 			'night_from'     => '7',
 			'night_till'     => '14',
-			'date_from'      => gmdate( 'Y-m-d', strtotime( '+21 days' ) ),
-			'date_till'      => gmdate( 'Y-m-d', strtotime( '+60 days' ) ),
+			'date_from'      => self::api_date_offset( 21 ),
+			'date_till'      => self::api_date_offset( 49 ),
 			'items_per_page' => '120',
 			'hotel_info'     => '1',
 			'currency'       => '2',
