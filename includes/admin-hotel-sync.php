@@ -61,6 +61,9 @@ function anex_ajax_hotel_sync_photos(): void {
 	if ( ! current_user_can( 'manage_options' ) ) {
 		wp_send_json_error( [ 'message' => 'Недостатньо прав.' ] );
 	}
+	if ( ! empty( $_POST['reset_skips'] ) ) {
+		anex_hotel_reset_all_photo_skips();
+	}
 	$limit  = isset( $_POST['limit'] ) ? max( 1, min( 5, (int) $_POST['limit'] ) ) : 3;
 	$result = Anex_Sync_Hotels::sync_photos_batch( $limit );
 	wp_send_json_success( $result );
@@ -105,7 +108,8 @@ function anex_hotel_sync_admin_page(): void {
 				<tr><th>Всього готелів у WP</th><td id="anex-stats-total"><strong><?php echo (int) $stats['total']; ?></strong></td></tr>
 				<tr><th>З URL прев’ю (meta)</th><td id="anex-stats-url"><?php echo (int) $stats['with_thumb_url']; ?></td></tr>
 				<tr><th>З фото в медіатеці</th><td id="anex-stats-featured"><?php echo (int) $stats['with_featured']; ?></td></tr>
-				<tr><th>Чекають завантаження фото</th><td id="anex-stats-pending"><strong><?php echo (int) $stats['pending_photos']; ?></strong></td></tr>
+				<tr><th>Прев’ю по URL (без медіа)</th><td id="anex-stats-url-only"><?php echo (int) ( $stats['url_only'] ?? 0 ); ?></td></tr>
+				<tr><th>Чекають завантаження</th><td id="anex-stats-pending"><strong><?php echo (int) $stats['pending_photos']; ?></strong></td></tr>
 			</tbody>
 		</table>
 
@@ -178,6 +182,8 @@ function anex_hotel_sync_admin_page(): void {
 			document.getElementById('anex-stats-total').innerHTML = '<strong>' + (s.total|0) + '</strong>';
 			document.getElementById('anex-stats-url').textContent = s.with_thumb_url|0;
 			document.getElementById('anex-stats-featured').textContent = s.with_featured|0;
+			const uo = document.getElementById('anex-stats-url-only');
+			if (uo) uo.textContent = s.url_only|0;
 			document.getElementById('anex-stats-pending').innerHTML = '<strong>' + (s.pending_photos|0) + '</strong>';
 		}
 
@@ -213,9 +219,11 @@ function anex_hotel_sync_admin_page(): void {
 			photoStopBtn.style.display = 'inline-block';
 			let remaining = 1;
 			let total = 0;
+			let urlOnly = 0;
 			let skipped = 0;
 			let rounds = 0;
 			const maxRounds = 80;
+			await postWithTimeout('anex_hotel_sync_photos', { limit: '1', reset_skips: '1' }, 30000).catch(() => null);
 			while (remaining > 0 && !photoStop && rounds < maxRounds) {
 				rounds++;
 				photoProgress.textContent = 'Завантаження… раунд ' + rounds + ', залишилось ~' + remaining;
@@ -231,6 +239,7 @@ function anex_hotel_sync_admin_page(): void {
 					break;
 				}
 				total += res.data.processed|0;
+				urlOnly += res.data.url_only|0;
 				skipped += res.data.skipped|0;
 				remaining = res.data.remaining|0;
 				photoProgress.textContent = res.data.message || '';
@@ -241,7 +250,7 @@ function anex_hotel_sync_admin_page(): void {
 			photoStopBtn.style.display = 'none';
 			await refreshStats();
 			const pending = document.getElementById('anex-stats-pending').textContent;
-			alert('Готово. Завантажено: ' + total + ', пропущено: ' + skipped + '. Без фото: ' + pending);
+			alert('Готово. В медіатеку: ' + total + ', прев’ю по URL: ' + urlOnly + ', без фото: ' + skipped + '. В черзі: ' + pending);
 		}
 
 		photoStopBtn.addEventListener('click', () => { photoStop = true; });

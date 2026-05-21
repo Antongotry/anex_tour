@@ -39,6 +39,28 @@ function anex_hotel_mark_photo_skip( int $post_id, string $reason ): void {
 	update_post_meta( $post_id, $keys['sync_error'], mb_substr( $reason, 0, 500 ) );
 }
 
+function anex_hotel_clear_photo_skip( int $post_id ): void {
+	$keys = anex_hotel_meta_keys();
+	delete_post_meta( $post_id, $keys['photo_skip'] );
+}
+
+/** Скинути «пропуск» для повторної спроби завантаження фото. */
+function anex_hotel_reset_all_photo_skips(): int {
+	$posts = get_posts(
+		[
+			'post_type'      => ANEX_HOTEL_POST_TYPE,
+			'post_status'    => 'any',
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'meta_key'       => anex_hotel_meta_keys()['photo_skip'],
+		]
+	);
+	foreach ( $posts as $post_id ) {
+		anex_hotel_clear_photo_skip( (int) $post_id );
+	}
+	return count( $posts );
+}
+
 function anex_hotel_default_country_ids(): array {
 	return [ 318, 338, 16, 372, 434, 39, 320, 376 ];
 }
@@ -339,30 +361,71 @@ function anex_fix_media_url( string $value ): string {
 	if ( ! preg_match( '#^https?://#i', $url ) ) {
 		$url = 'https://www.ittour.com.ua/' . ltrim( $url, '/' );
 	}
-	return esc_url_raw( $url );
+	return $url;
 }
 
 /**
- * Перше фото з API hotel/{id}/hotel-images.
+ * @param array<int|string, mixed> $list
+ */
+function anex_pick_image_url_from_list( array $list ): string {
+	$main = null;
+	foreach ( $list as $item ) {
+		if ( ! is_array( $item ) ) {
+			continue;
+		}
+		if ( isset( $item['is_main'] ) && ( 1 === (int) $item['is_main'] || '1' === (string) $item['is_main'] ) ) {
+			$main = $item;
+			break;
+		}
+	}
+	$im = $main ?? ( $list[0] ?? null );
+	if ( ! is_array( $im ) ) {
+		return '';
+	}
+	foreach ( [ 'thumb', 'web', 'full', 'url', 'src' ] as $k ) {
+		if ( ! empty( $im[ $k ] ) && is_string( $im[ $k ] ) ) {
+			$fixed = anex_fix_media_url( $im[ $k ] );
+			if ( $fixed !== '' ) {
+				return $fixed;
+			}
+		}
+	}
+	return '';
+}
+
+/**
+ * Перше фото з API hotel/{id}/hotel-images або hotel/info.
  */
 function anex_fetch_hotel_thumb_from_api( string $hotel_id ): string {
 	$hotel_id = trim( $hotel_id );
 	if ( $hotel_id === '' || ! ctype_digit( $hotel_id ) || ! function_exists( 'ittour_lab_api_fetch' ) ) {
 		return '';
 	}
-	$result = ittour_lab_api_fetch(
-		'hotel/' . $hotel_id . '/hotel-images',
-		[ 'limit_images' => '3' ],
-		'uk'
-	);
-	if ( is_wp_error( $result ) ) {
-		return '';
+
+	$paths = [
+		[ 'hotel/' . $hotel_id . '/hotel-images', [ 'limit_images' => '12' ] ],
+		[ 'hotel/' . $hotel_id . '/info', [] ],
+	];
+
+	foreach ( $paths as [ $path, $query ] ) {
+		$result = ittour_lab_api_fetch( $path, $query, 'uk' );
+		if ( is_wp_error( $result ) ) {
+			continue;
+		}
+		$data = $result['data'] ?? [];
+		if ( ! is_array( $data ) ) {
+			continue;
+		}
+		if ( ! empty( $data['error'] ) ) {
+			continue;
+		}
+		$url = anex_extract_hotel_thumb_url( $data );
+		if ( $url !== '' ) {
+			return $url;
+		}
 	}
-	$data = $result['data'] ?? [];
-	if ( ! is_array( $data ) ) {
-		return '';
-	}
-	return anex_extract_hotel_thumb_url( $data );
+
+	return '';
 }
 
 /**
@@ -382,32 +445,111 @@ function anex_hotel_resolve_thumb_url( int $post_id ): string {
 	return $url;
 }
 
-function anex_sideload_hotel_thumbnail( int $post_id, string $url = '' ): bool {
+/**
+ * @return string attached|url_only|failed
+ */
+function anex_sideload_hotel_thumbnail( int $post_id, string $url = '' ): string {
 	if ( has_post_thumbnail( $post_id ) ) {
-		return true;
+		return 'attached';
 	}
 	$keys = anex_hotel_meta_keys();
+	anex_hotel_clear_photo_skip( $post_id );
+
 	if ( $url === '' ) {
 		$url = anex_hotel_resolve_thumb_url( $post_id );
 	}
 	$url = trim( $url );
 	if ( $url === '' ) {
-		anex_hotel_mark_photo_skip( $post_id, 'Немає URL фото (API hotel-images)' );
-		return false;
+		anex_hotel_mark_photo_skip( $post_id, 'Немає URL (hotel-images + info)' );
+		return 'failed';
 	}
+
+	update_post_meta( $post_id, $keys['thumb_url'], $url );
 
 	require_once ABSPATH . 'wp-admin/includes/media.php';
 	require_once ABSPATH . 'wp-admin/includes/file.php';
 	require_once ABSPATH . 'wp-admin/includes/image.php';
 
-	$att_id = media_sideload_image( $url, $post_id, null, 'id' );
-	if ( is_wp_error( $att_id ) ) {
-		anex_hotel_mark_photo_skip( $post_id, 'Sideload: ' . $att_id->get_error_message() );
-		return false;
+	$tmp = anex_download_image_temp_file( $url );
+	if ( is_wp_error( $tmp ) ) {
+		$att_id = media_sideload_image( $url, $post_id, null, 'id' );
+		if ( ! is_wp_error( $att_id ) ) {
+			set_post_thumbnail( $post_id, (int) $att_id );
+			delete_post_meta( $post_id, $keys['sync_error'] );
+			return 'attached';
+		}
+		update_post_meta( $post_id, $keys['sync_error'], 'URL є, медіа: ' . $tmp->get_error_message() );
+		return 'url_only';
 	}
+
+	$path     = wp_parse_url( $url, PHP_URL_PATH );
+	$basename = $path ? basename( (string) $path ) : '';
+	if ( ! $basename || ! preg_match( '/\.(jpe?g|png|gif|webp)$/i', $basename ) ) {
+		$basename = 'hotel-' . (int) get_post_meta( $post_id, $keys['ittour_hotel_id'], true ) . '.jpg';
+	}
+
+	$file_array = [
+		'name'     => sanitize_file_name( $basename ),
+		'tmp_name' => $tmp,
+	];
+	$att_id     = media_handle_sideload( $file_array, $post_id );
+	if ( file_exists( $tmp ) ) {
+		wp_delete_file( $tmp );
+	}
+
+	if ( is_wp_error( $att_id ) ) {
+		update_post_meta( $post_id, $keys['sync_error'], 'URL є, attach: ' . $att_id->get_error_message() );
+		return 'url_only';
+	}
+
 	set_post_thumbnail( $post_id, (int) $att_id );
 	delete_post_meta( $post_id, $keys['sync_error'] );
-	return true;
+	return 'attached';
+}
+
+/**
+ * @return string|WP_Error шлях до тимчасового файлу
+ */
+function anex_download_image_temp_file( string $url ) {
+	$resp = wp_remote_get(
+		$url,
+		[
+			'timeout'     => 45,
+			'redirection' => 5,
+			'headers'     => [
+				'Referer'     => 'https://www.ittour.com.ua/',
+				'Accept'      => 'image/*,*/*;q=0.8',
+				'User-Agent'  => 'Mozilla/5.0 (compatible; AneXTour-WP/' . ( defined( 'ANEX_VERSION' ) ? ANEX_VERSION : '1' ) . ')',
+			],
+		]
+	);
+
+	if ( is_wp_error( $resp ) ) {
+		return $resp;
+	}
+
+	$code = (int) wp_remote_retrieve_response_code( $resp );
+	if ( $code < 200 || $code >= 300 ) {
+		return new WP_Error( 'anex_img_http', 'HTTP ' . $code );
+	}
+
+	$body = wp_remote_retrieve_body( $resp );
+	if ( ! is_string( $body ) || strlen( $body ) < 200 ) {
+		return new WP_Error( 'anex_img_empty', 'Порожня відповідь' );
+	}
+
+	$tmp = wp_tempnam( $url );
+	if ( ! $tmp ) {
+		return new WP_Error( 'anex_img_tmp', 'Не вдалося створити tmp' );
+	}
+
+	// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_file_put_contents
+	if ( false === file_put_contents( $tmp, $body ) ) {
+		wp_delete_file( $tmp );
+		return new WP_Error( 'anex_img_write', 'Не вдалося записати файл' );
+	}
+
+	return $tmp;
 }
 
 function anex_extract_hotel_thumb_url( array $hotel ): string {
@@ -432,24 +574,18 @@ function anex_extract_hotel_thumb_url( array $hotel ): string {
 		if ( empty( $hotel[ $list_key ] ) || ! is_array( $hotel[ $list_key ] ) ) {
 			continue;
 		}
-		foreach ( $hotel[ $list_key ] as $item ) {
-			if ( is_string( $item ) && trim( $item ) !== '' ) {
-				$fixed = anex_fix_media_url( $item );
-				if ( $fixed !== '' ) {
-					return $fixed;
-				}
-			}
-			if ( ! is_array( $item ) ) {
-				continue;
-			}
-			foreach ( [ 'thumb', 'web', 'full', 'url', 'src', 'image', 'photo' ] as $k ) {
-				if ( ! empty( $item[ $k ] ) && is_string( $item[ $k ] ) ) {
-					$fixed = anex_fix_media_url( $item[ $k ] );
-					if ( $fixed !== '' ) {
-						return $fixed;
-					}
-				}
-			}
+		$picked = anex_pick_image_url_from_list( $hotel[ $list_key ] );
+		if ( $picked !== '' ) {
+			return $picked;
+		}
+	}
+
+	// Відповідь API інколи — чистий список зображень.
+	$is_list = array_keys( $hotel ) === range( 0, count( $hotel ) - 1 );
+	if ( $is_list && $hotel !== [] ) {
+		$picked = anex_pick_image_url_from_list( $hotel );
+		if ( $picked !== '' ) {
+			return $picked;
 		}
 	}
 

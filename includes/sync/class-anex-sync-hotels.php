@@ -481,12 +481,15 @@ class Anex_Sync_Hotels {
 	public static function get_hotel_stats(): array {
 		$counts = wp_count_posts( ANEX_HOTEL_POST_TYPE );
 		$total  = (int) ( $counts->publish ?? 0 );
+		$with_url = self::count_hotels_meta_query( 'thumb_url' );
+		$with_feat = self::count_hotels_with_thumbnail();
 		return [
 			'total'           => $total,
-			'with_thumb_url'  => self::count_hotels_meta_query( 'thumb_url' ),
-			'with_featured'   => self::count_hotels_with_thumbnail(),
+			'with_thumb_url'  => $with_url,
+			'with_featured'   => $with_feat,
+			'url_only'        => max( 0, $with_url - $with_feat ),
 			'pending_photos'  => self::count_pending_photos(),
-			'no_thumb_url'    => max( 0, $total - self::count_hotels_meta_query( 'thumb_url' ) ),
+			'no_thumb_url'    => max( 0, $total - $with_url ),
 		];
 	}
 
@@ -540,6 +543,18 @@ class Anex_Sync_Hotels {
 			[
 				'relation' => 'OR',
 				[
+					'key'     => $keys['thumb_url'],
+					'compare' => 'NOT EXISTS',
+				],
+				[
+					'key'     => $keys['thumb_url'],
+					'value'   => '',
+					'compare' => '=',
+				],
+			],
+			[
+				'relation' => 'OR',
+				[
 					'key'     => $keys['photo_skip'],
 					'compare' => 'NOT EXISTS',
 				],
@@ -588,7 +603,8 @@ class Anex_Sync_Hotels {
 	 * @return array{processed:int, errors:int, still_pending:int}
 	 */
 	public static function sideload_photos_for_ids( array $post_ids, int $max = 3 ): array {
-		$processed = 0;
+		$attached  = 0;
+		$url_only  = 0;
 		$skipped   = 0;
 		$n         = 0;
 		foreach ( $post_ids as $post_id ) {
@@ -600,14 +616,18 @@ class Anex_Sync_Hotels {
 				continue;
 			}
 			++$n;
-			if ( anex_sideload_hotel_thumbnail( $post_id ) ) {
-				++$processed;
+			$status = anex_sideload_hotel_thumbnail( $post_id );
+			if ( 'attached' === $status ) {
+				++$attached;
+			} elseif ( 'url_only' === $status ) {
+				++$url_only;
 			} else {
 				++$skipped;
 			}
 		}
 		return [
-			'processed'     => $processed,
+			'processed'     => $attached,
+			'url_only'      => $url_only,
 			'skipped'       => $skipped,
 			'still_pending' => self::count_pending_photos(),
 		];
@@ -639,12 +659,14 @@ class Anex_Sync_Hotels {
 
 		return [
 			'processed' => (int) $stats['processed'],
+			'url_only'  => (int) ( $stats['url_only'] ?? 0 ),
 			'skipped'   => (int) $stats['skipped'],
 			'remaining' => $remaining,
 			'done'      => $done,
 			'message'   => sprintf(
-				'OK: %d, пропущено: %d, залишилось: %d',
+				'В медіа: %d, лише URL (прев’ю в списку): %d, без фото: %d, залишилось в черзі: %d',
 				(int) $stats['processed'],
+				(int) ( $stats['url_only'] ?? 0 ),
 				(int) $stats['skipped'],
 				$remaining
 			),
