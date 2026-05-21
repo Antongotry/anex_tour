@@ -84,7 +84,8 @@ function anex_hotel_sync_admin_page(): void {
 	?>
 	<div class="wrap">
 		<h1>Синхронізація готелів</h1>
-		<p>Джерело: <code>module/params/destinations</code> (не <code>module/search-list</code>). По одній країні за AJAX-крок, пауза 2 с між країнами.</p>
+		<p>Спочатку <code>module/params</code> (регіони) + <code>destinations</code> по назвах курортів. Якщо готелів 0 — <strong>1×</strong> <code>module/search-list</code> на країну (ліміт «Пошук турів»). Крок = 1 країна, пауза 2 с.</p>
+		<p>Картки: <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . ANEX_HOTEL_POST_TYPE ) ); ?>">Anex Tour → Готелі</a></p>
 
 		<form method="post" style="max-width:720px;margin:1em 0;padding:12px;background:#fff;border:1px solid #c3c4c7">
 			<?php wp_nonce_field( 'anex_hotel_sync_settings' ); ?>

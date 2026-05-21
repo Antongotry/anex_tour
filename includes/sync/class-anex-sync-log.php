@@ -17,30 +17,45 @@ class Anex_Sync_Log {
 		return wp_parse_args(
 			$state,
 			[
-				'status'           => 'idle',
-				'started_at'       => '',
-				'finished_at'      => '',
-				'country_ids'      => [],
-				'country_index'    => 0,
-				'current_country'  => '',
-				'created'          => 0,
-				'updated'          => 0,
-				'api_calls'        => 0,
-				'api_errors'       => 0,
-				'last_error'       => '',
-				'log'              => [],
+				'status'          => 'idle',
+				'started_at'      => '',
+				'finished_at'     => '',
+				'country_ids'     => [],
+				'country_index'   => 0,
+				'current_country' => '',
+				'created'         => 0,
+				'updated'         => 0,
+				'api_calls'       => 0,
+				'api_errors'      => 0,
+				'last_error'      => '',
+				'log'             => [],
 			]
 		);
 	}
 
 	public static function save_state( array $state ): void {
-		if ( ! isset( $state['log'] ) || ! is_array( $state['log'] ) ) {
-			$state['log'] = [];
+		$current = self::get_state();
+		if ( ! isset( $state['log'] ) || ! is_array( $state['log'] ) || $state['log'] === [] ) {
+			$state['log'] = $current['log'];
 		}
 		if ( count( $state['log'] ) > 80 ) {
 			$state['log'] = array_slice( $state['log'], -80 );
 		}
 		update_option( ANEX_HOTEL_SYNC_OPTION, $state, false );
+	}
+
+	/**
+	 * Merge patch into persisted state (keeps log unless patch replaces it).
+	 *
+	 * @param array<string, mixed> $patch
+	 */
+	public static function patch( array $patch ): array {
+		$state = self::get_state();
+		foreach ( $patch as $key => $value ) {
+			$state[ $key ] = $value;
+		}
+		self::save_state( $state );
+		return $state;
 	}
 
 	public static function append( string $line ): void {
@@ -66,6 +81,6 @@ class Anex_Sync_Log {
 		];
 		self::save_state( $state );
 		self::append( 'Старт синхронізації. Країн: ' . count( $country_ids ) );
-		return $state;
+		return self::get_state();
 	}
 }

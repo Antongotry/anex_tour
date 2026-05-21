@@ -242,8 +242,18 @@ function anex_find_hotel_post_by_ittour_id( $ittour_id ): ?WP_Post {
 }
 
 function anex_upsert_hotel_from_api_row( array $row ): array {
-	$hotel_id = (string) ( $row['id'] ?? $row['hotel_id'] ?? '' );
-	if ( $hotel_id === '' || ! ctype_digit( $hotel_id ) ) {
+	$hotel_id = '';
+	foreach ( [ 'id', 'hotel_id', 'hotel' ] as $key ) {
+		if ( empty( $row[ $key ] ) ) {
+			continue;
+		}
+		$val = trim( (string) $row[ $key ] );
+		if ( $val !== '' && ctype_digit( $val ) ) {
+			$hotel_id = $val;
+			break;
+		}
+	}
+	if ( $hotel_id === '' ) {
 		return [ 'created' => false, 'post_id' => 0 ];
 	}
 

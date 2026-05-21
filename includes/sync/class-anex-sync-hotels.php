@@ -1,6 +1,6 @@
 <?php
 /**
- * Import hotels via module/params/destinations (not search-list).
+ * Import hotels: module/params (regions) + destinations + search-list fallback.
  *
  * @package AnexTour
  */
@@ -9,9 +9,10 @@ defined( 'ABSPATH' ) || exit;
 
 class Anex_Sync_Hotels {
 
-	private const DEST_PATH = 'module/params/destinations';
-	private const PARAMS_PATH = 'module/params';
-	private const MAX_REGION_QUERIES = 25;
+	private const DEST_PATH       = 'module/params/destinations';
+	private const PARAMS_PATH     = 'module/params';
+	private const SEARCH_PATH     = 'module/search-list';
+	private const MAX_REGION_DEST = 30;
 
 	/**
 	 * Process one country from queue; returns updated state.
@@ -25,33 +26,44 @@ class Anex_Sync_Hotels {
 		$ids   = $state['country_ids'] ?? [];
 		$index = (int) ( $state['country_index'] ?? 0 );
 		if ( ! is_array( $ids ) || $index >= count( $ids ) ) {
-			$state['status']      = 'completed';
-			$state['finished_at'] = current_time( 'mysql' );
-			Anex_Sync_Log::append( 'Завершено. Створено: ' . (int) $state['created'] . ', оновлено: ' . (int) $state['updated'] );
-			Anex_Sync_Log::save_state( $state );
-			return $state;
+			return self::finish_run( $state );
 		}
 
-		$country_id = (int) $ids[ $index ];
-		$names      = self::country_names_map();
+		$country_id   = (int) $ids[ $index ];
+		$names        = self::country_names_map();
 		$country_name = $names[ $country_id ] ?? ( 'Країна #' . $country_id );
 
 		$state['current_country'] = $country_name . ' (' . $country_id . ')';
+		Anex_Sync_Log::patch( [ 'current_country' => $state['current_country'] ] );
 		Anex_Sync_Log::append( 'Країна: ' . $state['current_country'] );
 
-		$hotels = self::fetch_hotels_for_country( $country_id, $country_name, $state );
-		if ( ( $state['status'] ?? '' ) === 'failed' ) {
+		$ctx    = [ 'api_calls' => 0, 'api_errors' => 0, 'failed' => false, 'last_error' => '' ];
+		$hotels = self::collect_hotels_for_country( $country_id, $country_name, $ctx );
+
+		$state = Anex_Sync_Log::get_state();
+		$state['api_calls']  += (int) $ctx['api_calls'];
+		$state['api_errors'] += (int) $ctx['api_errors'];
+
+		if ( $ctx['failed'] ) {
+			$state['status']     = 'failed';
+			$state['last_error'] = (string) $ctx['last_error'];
 			Anex_Sync_Log::save_state( $state );
 			return $state;
 		}
 
-		$seen = [];
+		$before_created = (int) ( $state['created'] ?? 0 );
+		$before_updated = (int) ( $state['updated'] ?? 0 );
+		$seen           = [];
+		$skipped        = 0;
 		foreach ( $hotels as $row ) {
 			if ( ! is_array( $row ) ) {
 				continue;
 			}
-			$hid = (string) ( $row['id'] ?? $row['hotel_id'] ?? '' );
+			$hid = self::normalize_hotel_id( $row );
 			if ( $hid === '' || isset( $seen[ $hid ] ) ) {
+				if ( $hid === '' ) {
+					++$skipped;
+				}
 				continue;
 			}
 			$seen[ $hid ] = true;
@@ -61,6 +73,9 @@ class Anex_Sync_Hotels {
 			if ( empty( $row['country_name'] ) ) {
 				$row['country_name'] = $country_name;
 			}
+			$row['id']       = $hid;
+			$row['hotel_id'] = $hid;
+
 			$result = anex_upsert_hotel_from_api_row( $row );
 			if ( $result['post_id'] > 0 ) {
 				if ( $result['created'] ) {
@@ -68,16 +83,25 @@ class Anex_Sync_Hotels {
 				} else {
 					++$state['updated'];
 				}
+			} else {
+				++$skipped;
 			}
 		}
 
-		Anex_Sync_Log::append( '  Унікальних готелів: ' . count( $seen ) );
+		Anex_Sync_Log::append(
+			sprintf(
+				'  Готелів з API: %d, унікальних: %d, створено: +%d, оновлено: +%d, пропущено: %d',
+				count( $hotels ),
+				count( $seen ),
+				(int) $state['created'] - $before_created,
+				(int) $state['updated'] - $before_updated,
+				$skipped
+			)
+		);
 
 		$state['country_index'] = $index + 1;
 		if ( $state['country_index'] >= count( $ids ) ) {
-			$state['status']      = 'completed';
-			$state['finished_at'] = current_time( 'mysql' );
-			Anex_Sync_Log::append( 'Усі країни оброблено.' );
+			return self::finish_run( $state );
 		}
 
 		Anex_Sync_Log::save_state( $state );
@@ -85,76 +109,269 @@ class Anex_Sync_Hotels {
 	}
 
 	/**
-	 * @param array<string, mixed> $state Passed by reference semantics via return merge — mutated in caller.
+	 * @param array{api_calls:int,api_errors:int,failed:bool,last_error:string} $ctx
 	 * @return array<int, array<string, mixed>>
 	 */
-	private static function fetch_hotels_for_country( int $country_id, string $country_name, array &$state ): array {
-		$all     = [];
-		$regions = [];
+	private static function collect_hotels_for_country( int $country_id, string $country_name, array &$ctx ): array {
+		$by_id = [];
 
-		$payload = self::destinations_query( $country_name, $state );
-		if ( $payload === null ) {
-			return [];
-		}
+		$regions = self::fetch_regions_for_country( $country_id, $ctx );
+		Anex_Sync_Log::append( '  Регіонів у params: ' . count( $regions ) );
 
-		foreach ( $payload['hotels'] ?? [] as $h ) {
-			if ( is_array( $h ) ) {
-				$all[] = $h;
-			}
-		}
-		foreach ( $payload['regions'] ?? [] as $r ) {
-			if ( is_array( $r ) && (int) ( $r['country_id'] ?? 0 ) === $country_id ) {
-				$regions[] = $r;
-			}
-		}
-
-		$queries_done = 1;
-		foreach ( array_slice( $regions, 0, self::MAX_REGION_QUERIES ) as $region ) {
+		$dest_queries = 0;
+		foreach ( array_slice( $regions, 0, self::MAX_REGION_DEST ) as $region ) {
 			$rname = trim( (string) ( $region['name'] ?? '' ) );
 			if ( mb_strlen( $rname ) < 3 ) {
 				continue;
 			}
-			$rp = self::destinations_query( $rname, $state );
-			if ( $rp === null ) {
-				return $all;
+			$payload = self::destinations_query( $rname, $ctx );
+			if ( $payload === null ) {
+				break;
 			}
-			foreach ( $rp['hotels'] ?? [] as $h ) {
-				if ( is_array( $h ) ) {
-					$all[] = $h;
-				}
-			}
-			++$queries_done;
+			++$dest_queries;
+			self::merge_destination_hotels( $by_id, $payload['hotels'] ?? [], $country_id, $country_name );
 		}
 
-		Anex_Sync_Log::append( '  Запитів destinations: ' . $queries_done );
-		return $all;
+		if ( mb_strlen( trim( $country_name ) ) >= 3 ) {
+			$payload = self::destinations_query( trim( $country_name ), $ctx );
+			if ( $payload !== null ) {
+				++$dest_queries;
+				self::merge_destination_hotels( $by_id, $payload['hotels'] ?? [], $country_id, $country_name );
+			}
+		}
+
+		Anex_Sync_Log::append( '  Запитів destinations: ' . $dest_queries . ', знайдено готелів: ' . count( $by_id ) );
+
+		if ( count( $by_id ) === 0 ) {
+			Anex_Sync_Log::append( '  Fallback: 1× module/search-list (ліміт «Пошук турів»)' );
+			$from_search = self::fetch_hotels_via_search_list( $country_id, $country_name, $ctx );
+			foreach ( $from_search as $hid => $row ) {
+				$by_id[ $hid ] = $row;
+			}
+			Anex_Sync_Log::append( '  Після search-list: ' . count( $by_id ) . ' готелів' );
+		}
+
+		return array_values( $by_id );
 	}
 
 	/**
+	 * @param array<int, array<string, mixed>> $by_id
+	 * @param array<int, mixed>                $hotels
+	 */
+	private static function merge_destination_hotels( array &$by_id, array $hotels, int $country_id, string $country_name ): void {
+		foreach ( $hotels as $h ) {
+			if ( ! is_array( $h ) ) {
+				continue;
+			}
+			$hid = self::normalize_hotel_id( $h );
+			if ( $hid === '' ) {
+				continue;
+			}
+			if ( ! isset( $by_id[ $hid ] ) ) {
+				$h['id']       = $hid;
+				$h['hotel_id'] = $hid;
+				if ( empty( $h['country_id'] ) ) {
+					$h['country_id'] = (string) $country_id;
+				}
+				if ( empty( $h['country_name'] ) ) {
+					$h['country_name'] = $country_name;
+				}
+				$by_id[ $hid ] = $h;
+			}
+		}
+	}
+
+	/**
+	 * @param array<string, mixed> $row
+	 */
+	private static function normalize_hotel_id( array $row ): string {
+		foreach ( [ 'id', 'hotel_id', 'hotel' ] as $key ) {
+			if ( ! isset( $row[ $key ] ) ) {
+				continue;
+			}
+			$val = trim( (string) $row[ $key ] );
+			if ( $val !== '' && ctype_digit( $val ) ) {
+				return $val;
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * @param array{api_calls:int,api_errors:int,failed:bool,last_error:string} $ctx
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function fetch_regions_for_country( int $country_id, array &$ctx ): array {
+		if ( ! function_exists( 'ittour_lab_api_fetch' ) ) {
+			$ctx['failed']     = true;
+			$ctx['last_error'] = 'ittour_lab_api_fetch недоступний';
+			return [];
+		}
+
+		++$ctx['api_calls'];
+		$result = ittour_lab_api_fetch( self::PARAMS_PATH, [ 'country' => (string) $country_id ], 'uk' );
+		if ( is_wp_error( $result ) ) {
+			++$ctx['api_errors'];
+			$ctx['failed']     = true;
+			$ctx['last_error'] = $result->get_error_message();
+			Anex_Sync_Log::append( '  params помилка: ' . $ctx['last_error'] );
+			return [];
+		}
+
+		$data = $result['data'] ?? [];
+		if ( ! is_array( $data ) ) {
+			return [];
+		}
+		if ( self::api_payload_error( $data, $ctx ) ) {
+			return [];
+		}
+
+		$list = $data['regions'] ?? [];
+		if ( ! is_array( $list ) ) {
+			return [];
+		}
+
+		$out = [];
+		foreach ( $list as $r ) {
+			if ( ! is_array( $r ) ) {
+				continue;
+			}
+			$id = (string) ( $r['id'] ?? '' );
+			if ( $id === '' ) {
+				continue;
+			}
+			$cid = (int) ( $r['country_id'] ?? 0 );
+			if ( $cid > 0 && $cid !== $country_id ) {
+				continue;
+			}
+			$out[] = [
+				'id'   => $id,
+				'name' => (string) ( $r['name'] ?? '' ),
+			];
+		}
+		return $out;
+	}
+
+	/**
+	 * @param array{api_calls:int,api_errors:int,failed:bool,last_error:string} $ctx
+	 * @return array<string, array<string, mixed>>
+	 */
+	private static function fetch_hotels_via_search_list( int $country_id, string $country_name, array &$ctx ): array {
+		if ( ! function_exists( 'ittour_lab_api_fetch' ) ) {
+			return [];
+		}
+
+		$query = [
+			'type'           => '1',
+			'kind'           => '1',
+			'country'        => (string) $country_id,
+			'adult_amount'   => '2',
+			'child_amount'   => '0',
+			'hotel_rating'   => '1:78',
+			'night_from'     => '7',
+			'night_till'     => '14',
+			'date_from'      => gmdate( 'Y-m-d', strtotime( '+21 days' ) ),
+			'date_till'      => gmdate( 'Y-m-d', strtotime( '+60 days' ) ),
+			'items_per_page' => '120',
+			'hotel_info'     => '1',
+			'currency'       => '2',
+		];
+
+		++$ctx['api_calls'];
+		$result = ittour_lab_api_fetch( self::SEARCH_PATH, $query, 'uk' );
+		if ( is_wp_error( $result ) ) {
+			++$ctx['api_errors'];
+			$ctx['failed']     = true;
+			$ctx['last_error'] = $result->get_error_message();
+			Anex_Sync_Log::append( '  search-list HTTP: ' . $ctx['last_error'] );
+			return [];
+		}
+
+		$data = $result['data'] ?? [];
+		if ( ! is_array( $data ) ) {
+			return [];
+		}
+		if ( self::api_payload_error( $data, $ctx ) ) {
+			return [];
+		}
+
+		$offers = $data['offers'] ?? [];
+		if ( ! is_array( $offers ) ) {
+			return [];
+		}
+
+		$by_id = [];
+		foreach ( $offers as $offer ) {
+			if ( ! is_array( $offer ) ) {
+				continue;
+			}
+			$hid = self::normalize_hotel_id( $offer );
+			if ( $hid === '' ) {
+				continue;
+			}
+			if ( isset( $by_id[ $hid ] ) ) {
+				continue;
+			}
+			$by_id[ $hid ] = [
+				'id'              => $hid,
+				'hotel_id'        => $hid,
+				'name'            => (string) ( $offer['hotel_name'] ?? $offer['hotel'] ?? '' ),
+				'country_id'      => (string) ( $offer['country_id'] ?? $country_id ),
+				'country_name'    => (string) ( $offer['country_name'] ?? $country_name ),
+				'region_id'       => (string) ( $offer['region_id'] ?? '' ),
+				'region_name'     => (string) ( $offer['region_name'] ?? $offer['region'] ?? '' ),
+				'hotel_rating'    => (string) ( $offer['hotel_rating'] ?? $offer['hotel_stars'] ?? '' ),
+				'lat'             => $offer['lat'] ?? $offer['latitude'] ?? '',
+				'lng'             => $offer['lng'] ?? $offer['longitude'] ?? '',
+				'hotel_images'    => $offer['hotel_images'] ?? [],
+				'image'           => is_array( $offer['hotel_images'] ?? null ) && ! empty( $offer['hotel_images'][0] )
+					? ( is_string( $offer['hotel_images'][0] ) ? $offer['hotel_images'][0] : ( $offer['hotel_images'][0]['url'] ?? '' ) )
+					: '',
+			];
+		}
+		return $by_id;
+	}
+
+	/**
+	 * @param array<string, mixed>                                          $data
+	 * @param array{api_calls:int,api_errors:int,failed:bool,last_error:string} $ctx
+	 */
+	private static function api_payload_error( array $data, array &$ctx ): bool {
+		if ( empty( $data['error'] ) ) {
+			return false;
+		}
+		$msg               = (string) ( $data['error_desc'] ?? $data['error'] ?? 'API error' );
+		++$ctx['api_errors'];
+		$ctx['failed']     = true;
+		$ctx['last_error'] = $msg;
+		Anex_Sync_Log::append( '  API: ' . $msg );
+		return true;
+	}
+
+	/**
+	 * @param array{api_calls:int,api_errors:int,failed:bool,last_error:string} $ctx
 	 * @return array{countries:array,regions:array,hotels:array}|null
 	 */
-	private static function destinations_query( string $query, array &$state ): ?array {
+	private static function destinations_query( string $query, array &$ctx ): ?array {
 		$q = trim( $query );
 		if ( mb_strlen( $q ) < 3 ) {
 			return [ 'countries' => [], 'regions' => [], 'hotels' => [] ];
 		}
 
 		if ( ! function_exists( 'ittour_lab_api_fetch' ) ) {
-			$state['status']     = 'failed';
-			$state['last_error'] = 'ittour_lab_api_fetch недоступний';
-			++$state['api_errors'];
-			Anex_Sync_Log::append( 'Помилка: API не підключено' );
+			$ctx['failed']     = true;
+			$ctx['last_error'] = 'ittour_lab_api_fetch недоступний';
 			return null;
 		}
 
-		++$state['api_calls'];
+		++$ctx['api_calls'];
 		$result = ittour_lab_api_fetch( self::DEST_PATH, [ 'type' => '1', 'query' => $q ], 'uk' );
 
 		if ( is_wp_error( $result ) ) {
-			++$state['api_errors'];
-			$state['status']     = 'failed';
-			$state['last_error'] = $result->get_error_message();
-			Anex_Sync_Log::append( 'API HTTP: ' . $state['last_error'] );
+			++$ctx['api_errors'];
+			$ctx['failed']     = true;
+			$ctx['last_error'] = $result->get_error_message();
+			Anex_Sync_Log::append( '  destinations HTTP: ' . $ctx['last_error'] );
 			return null;
 		}
 
@@ -162,19 +379,7 @@ class Anex_Sync_Hotels {
 		if ( ! is_array( $data ) ) {
 			$data = [];
 		}
-
-		$api_error = '';
-		if ( ! empty( $data['error'] ) ) {
-			$api_error = (string) ( $data['error_desc'] ?? $data['error'] ?? 'API error' );
-		}
-		if ( $api_error !== '' ) {
-			++$state['api_errors'];
-			$state['status']     = 'failed';
-			$state['last_error'] = $api_error;
-			Anex_Sync_Log::append( 'API: ' . $api_error );
-			if ( stripos( $api_error, 'ліміт' ) !== false || stripos( $api_error, 'limit' ) !== false ) {
-				Anex_Sync_Log::append( 'Зупинено: можливо вичерпано ліміт API. Спробуйте пізніше.' );
-			}
+		if ( self::api_payload_error( $data, $ctx ) ) {
 			return null;
 		}
 
@@ -186,7 +391,7 @@ class Anex_Sync_Hotels {
 	}
 
 	/**
-	 * @return array<int, string> country_id => name
+	 * @return array<int, string>
 	 */
 	private static function country_names_map(): array {
 		static $cache = null;
@@ -222,8 +427,20 @@ class Anex_Sync_Hotels {
 	}
 
 	/**
-	 * Sideload featured images for up to $limit hotels missing thumbnail.
-	 *
+	 * @param array<string, mixed> $state
+	 * @return array<string, mixed>
+	 */
+	private static function finish_run( array $state ): array {
+		$state['status']      = 'completed';
+		$state['finished_at'] = current_time( 'mysql' );
+		Anex_Sync_Log::append(
+			'Завершено. Всього створено: ' . (int) ( $state['created'] ?? 0 ) . ', оновлено: ' . (int) ( $state['updated'] ?? 0 )
+		);
+		Anex_Sync_Log::save_state( $state );
+		return Anex_Sync_Log::get_state();
+	}
+
+	/**
 	 * @return array{processed:int, errors:int, message:string}
 	 */
 	public static function sync_photos_batch( int $limit = 5 ): array {
