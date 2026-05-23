@@ -1276,7 +1276,7 @@ if ($hero_video_poster === '') {
             font-size: clamp(28px, 4vw, 42px);
             line-height: 1;
             letter-spacing: 0;
-            color: var(--accent);
+            color: #003087;
             font-weight: 800;
         }
 

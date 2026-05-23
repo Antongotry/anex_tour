@@ -89,7 +89,7 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
 .widget-inner{padding:34px 34px 36px;position:relative}
 .toolbar{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;margin-bottom:26px}
 .toolbar-copy{display:grid;gap:8px}
-.toolbar-copy h2{margin:0;font-size:clamp(28px,4vw,42px);line-height:1;letter-spacing:0;color:var(--accent);font-weight:800}
+.toolbar-copy h2{margin:0;font-size:clamp(28px,4vw,42px);line-height:1;letter-spacing:0;color:#003087;font-weight:800}
 .toolbar-copy p{margin:0;color:var(--muted)}
 .country-showcase{display:flex;flex-direction:column}
 .showcase-tabs{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:24px}
