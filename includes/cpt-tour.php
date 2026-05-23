@@ -128,12 +128,9 @@ function anex_tour_parse_prices_from_offer( array $offer ): array {
 	$per    = $uah > 0 ? (int) round( $uah / $nights ) : 0;
 	$label  = '';
 	if ( $uah > 0 ) {
-		$label = sprintf(
-			'від %s за 2 дор. / %d н. (%s/ніч)',
-			number_format_i18n( $uah, 0, '.', ' ' ) . ' ₴',
-			$nights,
-			number_format_i18n( $per, 0, '.', ' ' ) . ' ₴'
-		);
+		$fmt_uah = number_format( $uah, 0, '', ' ' );
+		$fmt_per = number_format( $per, 0, '', ' ' );
+		$label   = sprintf( 'від %s ₴ за 2 дор. / %d н. (%s ₴/ніч)', $fmt_uah, $nights, $fmt_per );
 	}
 	return [
 		'uah'       => $uah,
