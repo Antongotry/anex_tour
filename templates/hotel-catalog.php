@@ -7023,7 +7023,8 @@ if ($hero_video_poster === '') {
         }));
         const DEFAULT_COUNTRY_ID = FEATURED_COUNTRIES[0] ? FEATURED_COUNTRIES[0].id : (ALL_COUNTRIES[0] ? ALL_COUNTRIES[0].id : '');
         const DEPARTURE_PRIORITY = ['2014', '143', '1745', '449', '1212'];
-        const SEARCH_WINDOW_LIMIT = 4;
+        const SEARCH_WINDOW_LIMIT = 2;
+        const SEARCH_MIN_SHOW_HOTELS = 1;
         const DEPARTURE_CANDIDATE_LIMIT = 2;
         const OFFERS_VISIBLE_LIMIT = 6;
         const SEARCH_RESULTS_PER_PAGE = 24;
@@ -7542,8 +7543,8 @@ if ($hero_video_poster === '') {
                 night_till: '9',
                 date_from: window.date_from,
                 date_till: window.date_till,
-                items_per_page: '40',
-                hotel_info: '1',
+                items_per_page: '24',
+                hotel_info: '0',
                 currency: '2',
             };
             if (fromCityId) {
@@ -8217,7 +8218,7 @@ if ($hero_video_poster === '') {
             const windows = dedupeThumbWindows(thumbSearchDateWindows());
 
             const request = (async () => {
-                for (const win of windows) {
+                for (const win of windows.slice(0, 1)) {
                     const query = {
                         type: '1',
                         country: countryId,
@@ -8229,8 +8230,8 @@ if ($hero_video_poster === '') {
                         night_till: String(win.night_till),
                         date_from: String(win.date_from),
                         date_till: String(win.date_till),
-                        hotel_info: '1',
-                        items_per_page: '8',
+                        hotel_info: '0',
+                        items_per_page: '4',
                     };
                     try {
                         const data = await api('module/search-list', query);
@@ -9909,8 +9910,8 @@ if ($hero_video_poster === '') {
                     night_till: String(nightTill),
                     date_from: win.date_from,
                     date_till: win.date_till,
-                    items_per_page: '120',
-                    hotel_info: '1',
+                    items_per_page: '48',
+                    hotel_info: '0',
                     currency: '2',
                 };
                 if (fromCity) {
@@ -9937,8 +9938,8 @@ if ($hero_video_poster === '') {
                     night_till: String(nightTill),
                     date_from: win.date_from,
                     date_till: win.date_till,
-                    items_per_page: '160',
-                    hotel_info: '1',
+                    items_per_page: '60',
+                    hotel_info: '0',
                     currency: '2',
                 };
                 if (params.region && String(countryId || params.country) === String(params.country)) {
@@ -9950,7 +9951,7 @@ if ($hero_video_poster === '') {
             function broadWindowsToTry() {
                 const base = new Date();
                 base.setHours(12, 0, 0, 0);
-                return [7,14,21,28,35,42,49,56,63,70,84,98,112,126].map((offset) => {
+                return [14, 28, 42, 56].map((offset) => {
                     const start = new Date(base);
                     start.setDate(start.getDate() + offset);
                     const end = new Date(start);
@@ -9986,24 +9987,9 @@ if ($hero_video_poster === '') {
                 return [...map.values()];
             }
 
-            /* Очищаємо JS-кеш для запитів цієї країни, щоб не отримати старі "0 результатів" */
-            (function clearCountrySearchCache() {
-                try {
-                    const prefix = 'ittour:module/search-list::';
-                    const countryStr = '"country":"' + String(params.country) + '"';
-                    const toRemove = [];
-                    for (let i = 0; i < sessionStorage.length; i++) {
-                        const k = sessionStorage.key(i);
-                        if (k && k.startsWith(prefix) && k.includes(countryStr)) {
-                            toRemove.push(k);
-                        }
-                    }
-                    toRemove.forEach((k) => sessionStorage.removeItem(k));
-                } catch (e) {}
-            })();
-
             let hotels = [];
             let usedFallback = false;
+            let searchRenderedOnce = false;
             const wins = windowsToTry();
             const hotelsById = new Map();
 
@@ -10042,91 +10028,88 @@ if ($hero_video_poster === '') {
                 return hotels.length >= targetHotels;
             }
 
-            /* Раунд 1: точне місто виїзду, збираємо з кількох вікон */
-            for (const win of wins) {
-                const nightRanges = [
-                    [n1, n2],
-                    [Math.max(1, n1 - 2), n2 + 2],
-                ];
-                for (const [nf, nt] of nightRanges) {
-                    try {
-                        const data = await api('module/search-list', buildQuery(win, nf, nt, params.from));
-                        const offers = dedupeHotels(sortHotels(data.offers || []));
-                        if (offers.length > 0) {
-                            mergeHotels(offersToHotels(offers));
-                            if (!win.exact || nf !== n1) {
-                                usedFallback = true;
-                            }
-                            if (enoughHotels()) break;
+            function flushSearchResults(partial) {
+                popularSearchState.rawHotels = hotels;
+                popularSearchState.loadedTarget = hotels.length;
+                applySearchClientFiltersAndRender();
+                if (partial && !searchRenderedOnce && hotels.length >= SEARCH_MIN_SHOW_HOTELS) {
+                    searchRenderedOnce = true;
+                    if (searchResultsLoading) {
+                        searchResultsLoading.hidden = true;
+                    }
+                    if (searchResultsBanner) {
+                        searchResultsBanner.textContent = enoughHotels()
+                            ? 'Пропозиції за вашим запитом.'
+                            : ('Знайдено ' + hotels.length + ' — шукаємо ще…');
+                    }
+                }
+            }
+
+            async function searchOffers(getQuery) {
+                try {
+                    const data = await api('module/search-list', getQuery());
+                    return dedupeHotels(sortHotels(data.offers || []));
+                } catch (e) {
+                    return [];
+                }
+            }
+
+            /* Раунд 1: паралельно перші вікна + основний діапазон ночей */
+            const round1Wins = wins.slice(0, 2);
+            const round1Batches = await Promise.all(
+                round1Wins.map((win) => searchOffers(() => buildQuery(win, n1, n2, params.from))),
+            );
+            round1Batches.forEach((offers, idx) => {
+                if (!offers.length) {
+                    return;
+                }
+                mergeHotels(offersToHotels(offers));
+                if (!round1Wins[idx].exact) {
+                    usedFallback = true;
+                }
+            });
+            flushSearchResults(true);
+            if (!enoughHotels() && hotels.length < SEARCH_MIN_SHOW_HOTELS) {
+                for (const win of round1Wins) {
+                    const offers = await searchOffers(() => buildQuery(win, Math.max(1, n1 - 2), n2 + 2, params.from));
+                    if (offers.length) {
+                        mergeHotels(offersToHotels(offers));
+                        usedFallback = true;
+                        flushSearchResults(true);
+                        if (enoughHotels() || hotels.length >= SEARCH_MIN_SHOW_HOTELS) {
+                            break;
                         }
-                    } catch (e) {}
+                    }
                 }
-                if (enoughHotels()) break;
             }
 
-            /* Раунд 2: без обмеження міста виїзду (будь-який рейс) */
+            /* Раунд 2: без міста виїзду — лише якщо ще мало */
+            if (!enoughHotels() && hotels.length < SEARCH_MIN_SHOW_HOTELS) {
+                for (const win of round1Wins) {
+                    const offers = await searchOffers(() => buildQuery(win, n1, n2, null));
+                    if (offers.length) {
+                        mergeHotels(offersToHotels(offers));
+                        usedFallback = true;
+                        flushSearchResults(true);
+                        if (enoughHotels() || hotels.length >= SEARCH_MIN_SHOW_HOTELS) {
+                            break;
+                        }
+                    }
+                }
+            }
+
+            /* Раунд 3: ширший пошук по країні — обмежено 2 вікнами */
             if (!enoughHotels()) {
-                for (const win of wins) {
-                    const nightRanges = [
-                        [n1, n2],
-                        [Math.max(1, n1 - 2), n2 + 3],
-                        [1, 28],
-                    ];
-                    for (const [nf, nt] of nightRanges) {
-                        try {
-                            const data = await api('module/search-list', buildQuery(win, nf, nt, null));
-                            const offers = dedupeHotels(sortHotels(data.offers || []));
-                            if (offers.length > 0) {
-                                mergeHotels(offersToHotels(offers));
-                                usedFallback = true;
-                                if (enoughHotels()) break;
-                            }
-                        } catch (e) {}
+                for (const win of broadWindowsToTry().slice(0, 2)) {
+                    const offers = await searchOffers(() => buildLooseQuery(params.country, win, n1, n2));
+                    if (offers.length) {
+                        mergeHotels(offersToHotels(offers));
+                        usedFallback = true;
+                        flushSearchResults(true);
+                        if (enoughHotels()) {
+                            break;
+                        }
                     }
-                    if (enoughHotels()) break;
-                }
-            }
-
-            /* Раунд 3: максимально широкий пошук по тій самій країні */
-            if (!enoughHotels()) {
-                const looseNightRanges = [
-                    [Math.max(1, n1 - 4), n2 + 6],
-                    [1, 28],
-                ];
-                for (const win of broadWindowsToTry()) {
-                    for (const [nf, nt] of looseNightRanges) {
-                        try {
-                            const data = await api('module/search-list', buildLooseQuery(params.country, win, nf, nt));
-                            const offers = dedupeHotels(sortHotels(data.offers || []));
-                            if (offers.length > 0) {
-                                mergeHotels(offersToHotels(offers));
-                                usedFallback = true;
-                                if (enoughHotels()) break;
-                            }
-                        } catch (e) {}
-                    }
-                    if (enoughHotels()) break;
-                }
-            }
-
-            /* Раунд 4: якщо все ще мало, додаємо популярні напрямки */
-            if (!enoughHotels() && !params.region) {
-                const similarCountries = FEATURED_COUNTRIES
-                    .map((country) => country.id)
-                    .filter((id) => String(id) !== String(params.country));
-                for (const countryId of similarCountries) {
-                    for (const win of broadWindowsToTry().slice(0, 8)) {
-                        try {
-                            const data = await api('module/search-list', buildLooseQuery(countryId, win, 1, 28));
-                            const offers = dedupeHotels(sortHotels(data.offers || []));
-                            if (offers.length > 0) {
-                                mergeHotels(offersToHotels(offers));
-                                usedFallback = true;
-                                if (enoughHotels()) break;
-                            }
-                        } catch (e) {}
-                    }
-                    if (enoughHotels()) break;
                 }
             }
 
@@ -11036,7 +11019,7 @@ if ($hero_video_poster === '') {
                     continue;
                 }
 
-                for (const window of buildCandidateWindows()) {
+                for (const window of buildCandidateWindows().slice(0, 2)) {
                     const windowKey = cacheKey + ':' + window.date_from + ':' + window.date_till;
                     let data = windowCache.get(windowKey);
                     if (!data) {
@@ -13149,29 +13132,35 @@ if ($hero_video_poster === '') {
             const cardsCache = new Map();    /* countryId → cards[] */
             const fetchPromises = new Map(); /* countryId → Promise — щоб не дублювати запити */
 
+            function showcaseSearchQuery(country, win) {
+                return {
+                    type: '1', kind: '1',
+                    country: String(country.id),
+                    adult_amount: '2', child_amount: '0',
+                    hotel_rating: '3:78',
+                    night_from: '5', night_till: '10',
+                    date_from: win.date_from, date_till: win.date_till,
+                    items_per_page: '12', hotel_info: '0', currency: '2',
+                };
+            }
+
             function fetchCardsForCountry(country) {
                 if (cardsCache.has(country.id)) return Promise.resolve(cardsCache.get(country.id));
                 if (fetchPromises.has(country.id)) return fetchPromises.get(country.id);
                 const promise = (async () => {
-                    for (const win of wins) {
-                        try {
-                            const data = await api('module/search-list', {
-                                type: '1', kind: '1',
-                                country: String(country.id),
-                                adult_amount: '2', child_amount: '0',
-                                hotel_rating: '3:78',
-                                night_from: '5', night_till: '10',
-                                date_from: win.date_from, date_till: win.date_till,
-                                items_per_page: '12', hotel_info: '1', currency: '2',
-                            });
-                            const offers = dedupeHotels(sortHotels(data.offers || []));
+                    try {
+                        const batch = await Promise.all(
+                            wins.map((win) => api('module/search-list', showcaseSearchQuery(country, win))),
+                        );
+                        for (let i = 0; i < batch.length; i++) {
+                            const offers = dedupeHotels(sortHotels(batch[i].offers || []));
                             if (offers.length > 0) {
-                                const cards = offers.slice(0, CARDS_PER_COUNTRY).map((o) => cardFromOffer(o, win));
+                                const cards = offers.slice(0, CARDS_PER_COUNTRY).map((o) => cardFromOffer(o, wins[i]));
                                 cardsCache.set(country.id, cards);
                                 return cards;
                             }
-                        } catch (e) {}
-                    }
+                        }
+                    } catch (e) {}
                     cardsCache.set(country.id, []);
                     return [];
                 })();
@@ -13277,16 +13266,15 @@ if ($hero_video_poster === '') {
                 });
             });
 
-            /* Запускаємо ВСІ країни ПАРАЛЕЛЬНО одразу */
-            FEATURED_COUNTRIES.forEach((country, idx) => {
-                fetchCardsForCountry(country).then((cards) => {
-                    updateTabPrice(country.id, cards);
-                    const panel = panels[idx];
+            if (FEATURED_COUNTRIES[0]) {
+                fetchCardsForCountry(FEATURED_COUNTRIES[0]).then((cards) => {
+                    updateTabPrice(FEATURED_COUNTRIES[0].id, cards);
+                    const panel = panels[0];
                     if (panel && !panel.querySelector('.showcase-cards')) {
                         renderTabCards(panel, cards);
                     }
                 });
-            });
+            }
         }
 
         void renderCountryShowcase();

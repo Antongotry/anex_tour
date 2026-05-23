@@ -137,17 +137,21 @@ $catalog_url = function_exists( 'anex_get_catalog_page_permalink' )
 
     function cardFromOffer(offer, win){ return { key:offer.key||'', hotelId:String(offer.hotel_id||''), priceUAH:offer.prices&&offer.prices['2']!=null?offer.prices['2']:offer.price||null, region:offer.region||'', image:pickImage(offer) }; }
 
+    function dirSearchQuery(country, win){
+        return {type:'1',kind:'1',country:String(country.id),adult_amount:'2',child_amount:'0',hotel_rating:'3:78',night_from:'5',night_till:'10',date_from:win.date_from,date_till:win.date_till,items_per_page:'12',hotel_info:'0',currency:'2'};
+    }
+
     async function loadCountryCards(country){
         var base=new Date(); base.setHours(12,0,0,0);
-        var wins=[14,21,28].map(function(off){ var s=new Date(base); s.setDate(s.getDate()+off); var e=new Date(s); e.setDate(e.getDate()+7); return {date_from:formatApiDate(s),date_till:formatApiDate(e)}; });
+        var wins=[21,35].map(function(off){ var s=new Date(base); s.setDate(s.getDate()+off); var e=new Date(s); e.setDate(e.getDate()+7); return {date_from:formatApiDate(s),date_till:formatApiDate(e)}; });
         var lastError=null;
-        for(var i=0;i<wins.length;i++){
-            try{
-                var data=await api('module/search-list',{type:'1',kind:'1',country:String(country.id),adult_amount:'2',child_amount:'0',hotel_rating:'3:78',night_from:'5',night_till:'10',date_from:wins[i].date_from,date_till:wins[i].date_till,items_per_page:'20',hotel_info:'1',currency:'2'});
-                var offers=(data.offers||[]);
+        try{
+            var batch=await Promise.all(wins.map(function(win){ return api('module/search-list', dirSearchQuery(country, win)); }));
+            for(var i=0;i<batch.length;i++){
+                var offers=batch[i].offers||[];
                 if(offers.length>0) return {cards: offers.map(function(o){ return cardFromOffer(o,wins[i]); }), error:null};
-            } catch(e){ lastError=e.message||String(e); console.error('[Anex Directions] '+country.name+': '+lastError); }
-        }
+            }
+        } catch(e){ lastError=e.message||String(e); }
         return {cards:[], error:lastError};
     }
 
@@ -178,13 +182,17 @@ $catalog_url = function_exists( 'anex_get_catalog_page_permalink' )
         var grid = document.getElementById('anex-dir-grid');
         if(!grid) return;
 
-        // Render all countries in parallel
-        var promises = FEATURED.map(function(country, idx){
-            return loadCountryCards(country).then(function(res){
-                return {country, cards: res.cards, error: res.error, idx};
-            }).catch(function(e){ return {country, cards:[], error: e.message||String(e), idx:FEATURED.indexOf(country)}; });
-        });
-        var results = await Promise.all(promises);
+        var results = [];
+        for(var i=0;i<FEATURED.length;i+=2){
+            var chunk=FEATURED.slice(i,i+2);
+            var chunkResults=await Promise.all(chunk.map(function(country, j){
+                var idx=i+j;
+                return loadCountryCards(country).then(function(res){
+                    return {country, cards: res.cards, error: res.error, idx};
+                }).catch(function(e){ return {country, cards:[], error: e.message||String(e), idx}; });
+            }));
+            results=results.concat(chunkResults);
+        }
         // Show error if first country has error (likely token/API issue)
         var firstError = results[0] && results[0].error;
         if(firstError && results.every(function(r){ return r.error; })){

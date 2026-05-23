@@ -210,15 +210,25 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
         return req;
     }
 
-    /* 8 вікон дат як у каталозі (SEARCH_WINDOW_LIMIT там теж обмежує зріз; беремо повний набір для віджета) */
     function buildWindows(){
         var base=new Date(); base.setHours(12,0,0,0);
-        var offsets=[14,21,28,35,42,49,56,63];
-        return offsets.slice(0,4).map(function(off){
+        return [21,35].map(function(off){
             var s=new Date(base); s.setDate(s.getDate()+off);
             var e=new Date(s); e.setDate(e.getDate()+7);
             return {date_from:formatApiDate(s), date_till:formatApiDate(e)};
         });
+    }
+
+    function searchListQuery(country, win, nf, nt){
+        return {
+            type:'1', kind:'1',
+            country:String(country.id),
+            adult_amount:'2', child_amount:'0',
+            hotel_rating:'3:78',
+            night_from:nf, night_till:nt,
+            date_from:win.date_from, date_till:win.date_till,
+            items_per_page:'12', hotel_info:'0', currency:'2'
+        };
     }
 
     function dedupeHotels(offers){ var seen=new Set(),out=[]; (offers||[]).forEach(function(o){ var id=String(o.hotel_id||o.hotel||Math.random()); if(!seen.has(id)){ seen.add(id); out.push(o); } }); return out; }
@@ -254,33 +264,29 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
         if(fetchPromises.has(country.id)) return fetchPromises.get(country.id);
         var p = (async function(){
             var lastError = null;
-            var nightRanges = [
-                { nf:'5', nt:'10' },
-                { nf:'3', nt:'14' },
-                { nf:'7', nt:'9' },
-            ];
-            for(var r=0;r<nightRanges.length;r++){
-                var nr = nightRanges[r];
-                for(var i=0;i<wins.length;i++){
-                    try{
-                        var data = await api('module/search-list',{
-                            type:'1', kind:'1',
-                            country:String(country.id),
-                            adult_amount:'2', child_amount:'0',
-                            hotel_rating:'3:78',
-                            night_from:nr.nf, night_till:nr.nt,
-                            date_from:wins[i].date_from, date_till:wins[i].date_till,
-                            items_per_page:'12', hotel_info:'1', currency:'2'
-                        });
-                        var offers = dedupeHotels(sortHotels(data.offers||[]));
-                        if(offers.length>0){
-                            var cards=offers.slice(0,CARDS_PER).map(function(o){ return cardFromOffer(o,wins[i]); });
-                            cardsCache.set(country.id,cards); errorCache.set(country.id,null);
-                            return {cards, error:null};
-                        }
-                        lastError = null;
-                    } catch(e){ lastError = e.message || String(e); console.error('[Anex Hot Tours] '+country.name+': '+lastError); }
+            try{
+                var batch = await Promise.all(wins.map(function(win){
+                    return api('module/search-list', searchListQuery(country, win, '5', '10'));
+                }));
+                for(var i=0;i<batch.length;i++){
+                    var offers = dedupeHotels(sortHotels(batch[i].offers||[]));
+                    if(offers.length>0){
+                        var cards=offers.slice(0,CARDS_PER).map(function(o){ return cardFromOffer(o,wins[i]); });
+                        cardsCache.set(country.id,cards); errorCache.set(country.id,null);
+                        return {cards, error:null};
+                    }
                 }
+            } catch(e){ lastError = e.message || String(e); }
+            if(!lastError){
+                try{
+                    var data = await api('module/search-list', searchListQuery(country, wins[0], '3', '14'));
+                    var offers = dedupeHotels(sortHotels(data.offers||[]));
+                    if(offers.length>0){
+                        var cards=offers.slice(0,CARDS_PER).map(function(o){ return cardFromOffer(o,wins[0]); });
+                        cardsCache.set(country.id,cards); errorCache.set(country.id,null);
+                        return {cards, error:null};
+                    }
+                } catch(e){ lastError = e.message || String(e); }
             }
             cardsCache.set(country.id,[]); errorCache.set(country.id, lastError);
             return {cards:[], error:lastError};
@@ -358,14 +364,12 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
             });
         });
 
-        // Parallel fetch for all countries
-        FEATURED_COUNTRIES.forEach(function(country, idx){
-            fetchCards(country).then(function(res){
-                updateTabPrice(country.id, res.cards);
-                var panel = panels[idx];
-                if(panel && !panel.querySelector('.showcase-cards')) renderTabCards(panel, res.cards, res.error);
+        if(FEATURED_COUNTRIES[0]){
+            fetchCards(FEATURED_COUNTRIES[0]).then(function(res){
+                updateTabPrice(FEATURED_COUNTRIES[0].id, res.cards);
+                if(panels[0] && !panels[0].querySelector('.showcase-cards')) renderTabCards(panels[0], res.cards, res.error);
             });
-        });
+        }
     }
 
     initShowcase().catch(console.error);

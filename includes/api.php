@@ -130,7 +130,11 @@ function ittour_lab_api_fetch( string $path, array $query, string $lang = 'uk', 
                 || str_starts_with( $path, 'module-excursion/search' )
                 || str_starts_with( $path, 'showcase/hot-offers/search' );
             $is_empty = $is_offer_search && isset( $data['offers'] ) && is_array( $data['offers'] ) && count( $data['offers'] ) === 0;
-            if ( ! $is_empty ) set_transient( $cache_key, $result, ittour_lab_cache_ttl( $path, $data ) );
+            if ( $is_empty ) {
+                set_transient( $cache_key, $result, 10 * MINUTE_IN_SECONDS );
+            } else {
+                set_transient( $cache_key, $result, ittour_lab_cache_ttl( $path, $data ) );
+            }
         } elseif ( ( $code ?: 200 ) < 400 ) {
             set_transient( $cache_key, $result, ittour_lab_cache_ttl( $path ) );
         }

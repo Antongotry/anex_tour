@@ -3,7 +3,7 @@
  * Plugin Name:  Anex Tour Widget
  * Plugin URI:   https://github.com/Antongotry/anex_tour
  * Description:  Пошук турів, каталог готелів і форма бронювання для турагентства Anex Tour. Вставляйте через шорткоди в Elementor або будь-який редактор.
- * Version:      1.3.5
+ * Version:      1.4.0
  * Author:       Anex Tour Львів
  * Author URI:   https://anextour.com.ua
  * Text Domain:  anex-tour
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /* ─────────────────────────────────────────────
    Constants
 ───────────────────────────────────────────── */
-define( 'ANEX_VERSION',     '1.3.5' );
+define( 'ANEX_VERSION',     '1.4.0' );
 define( 'ANEX_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'ANEX_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
 define( 'ANEX_PLUGIN_FILE', __FILE__ );
@@ -57,6 +57,7 @@ require_once ANEX_PLUGIN_DIR . 'includes/sync/class-anex-sync-hotels.php';
 require_once ANEX_PLUGIN_DIR . 'includes/sync/class-anex-sync-log-tours.php';
 require_once ANEX_PLUGIN_DIR . 'includes/sync/class-anex-sync-tours.php';
 require_once ANEX_PLUGIN_DIR . 'includes/shortcodes.php';
+require_once ANEX_PLUGIN_DIR . 'includes/cache-warm.php';
 
 /* ─────────────────────────────────────────────
    Template filter — лише slug з налаштувань.
