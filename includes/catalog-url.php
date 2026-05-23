@@ -346,3 +346,42 @@ function anex_get_excursion_detail_nav_base_url(): string {
 
 	return anex_get_excursions_page_permalink( array() );
 }
+
+/**
+ * Slugs сторінки каталогу без важкого пошуку (П.1 — зараз лише /katalog/).
+ *
+ * @return string[]
+ */
+function anex_get_katalog_landing_slugs(): array {
+	return array_values(
+		array_filter(
+			array_unique(
+				[
+					'katalog',
+				]
+			)
+		)
+	);
+}
+
+/**
+ * Чи це сторінка /katalog/ (Elementor + вкладки, без форми пошуку та search=1).
+ */
+function anex_is_katalog_landing_page(): bool {
+	if ( is_admin() ) {
+		return false;
+	}
+	if ( function_exists( 'is_page' ) && is_page( 'katalog' ) ) {
+		return true;
+	}
+	$path = trim( (string) wp_parse_url( $_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH ), '/' );
+	return in_array( $path, anex_get_katalog_landing_slugs(), true );
+}
+
+/**
+ * Чи приховувати віджети пошуку / результатів на поточній сторінці.
+ */
+function anex_should_suppress_catalog_search_ui(): bool {
+	return anex_is_katalog_landing_page();
+}
+

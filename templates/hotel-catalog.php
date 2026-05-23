@@ -105,9 +105,10 @@ $anex_agency_telegram   = (string) ( get_option( 'anex_agency_telegram' ) ?: 'ht
 $anex_agency_viber      = (string) ( get_option( 'anex_agency_viber' ) ?: 'viber://chat?number=%2B380979451781' );
 // Preset search params — used to pre-select country before page renders.
 // All other params (from/d1/d2/n1/n2) are read directly from URL by JS readPopularSearchFromUrl().
-$preset_country = ( isset($_GET['search']) && $_GET['search'] === '1' && ( isset($_GET['country_id']) || isset($_GET['country']) ) )
-    ? sanitize_text_field(wp_unslash((string) ($_GET['country_id'] ?? $_GET['country'] ?? '')))
-    : '';
+$preset_country = '';
+if ( isset( $_GET['country_id'] ) || isset( $_GET['country'] ) ) {
+    $preset_country = sanitize_text_field( wp_unslash( (string) ( $_GET['country_id'] ?? $_GET['country'] ?? '' ) ) );
+}
 // Resolve asset URLs: plugin bundle takes priority over legacy mu-plugin path
 $about_image_url = defined('ANEX_PLUGIN_URL')
     ? ANEX_PLUGIN_URL . 'assets/about-travel-service.jpg'
@@ -7041,6 +7042,7 @@ if ($hero_video_poster === '') {
         const SITE_HOME_URL = <?php echo wp_json_encode($site_home_url); ?>;
         const ABOUT_IMAGE_URL = <?php echo wp_json_encode($about_image_url); ?>;
         const PRESET_SEARCH   = <?php echo wp_json_encode($preset_country ? ['countryId' => $preset_country] : null); ?>;
+        const ANEX_CATALOG_LITE = window.ANEX_CATALOG_LITE === true;
         const countryMetaById = new Map(ALL_COUNTRIES.map((country) => [country.id, country]));
         const apiMemoryCache = new Map();
         const apiPending = new Map();
@@ -8932,7 +8934,26 @@ if ($hero_video_poster === '') {
             }
         }
 
+
+        function stripLegacySearchQueryFromUrl() {
+            const u = new URL(window.location.href);
+            if (u.searchParams.get('search') !== '1') {
+                return;
+            }
+            u.searchParams.delete('search');
+            [
+                'from', 'd1', 'd2', 'n1', 'n2', 'adults', 'children', 'region', 'hotel_id', 'hotel',
+                'mode', 'from_city', 'date_from', 'date_till', 'night_from', 'night_till',
+                'adult', 'child', 'transport_type', 'country',
+            ].forEach((key) => u.searchParams.delete(key));
+            const next = u.pathname + (u.search ? u.search : '') + (window.location.hash || '');
+            window.history.replaceState({}, '', next);
+        }
+
         function readPopularSearchFromUrl() {
+            if (ANEX_CATALOG_LITE) {
+                return null;
+            }
             const u = new URL(window.location.href);
             if (u.searchParams.get('search') !== '1') {
                 return null;
@@ -10138,7 +10159,7 @@ if ($hero_video_poster === '') {
         }
 
         function initPopularSearchFlow() {
-            if (DETAIL_TOUR_KEY || !popularSearchForm) {
+            if (ANEX_CATALOG_LITE || DETAIL_TOUR_KEY || !popularSearchForm) {
                 return;
             }
             ensurePsPickerPortal();
@@ -12457,7 +12478,7 @@ if ($hero_video_poster === '') {
                     '<section class="exc-head">' +
                         '<nav class="tour-breadcrumbs" aria-label="Навігація">' +
                             '<a href="' + escAttr(SITE_HOME_URL) + '">Головна</a><span>/</span>' +
-                            '<a href="' + escAttr(CATALOG_BASE_URL) + '?mode=excursion&search=1">Екскурсійні тури</a><span>/</span>' +
+                            '<a href="' + escAttr(CATALOG_BASE_URL) + '?mode=excursion">Екскурсійні тури</a><span>/</span>' +
                             '<span>' + esc(title) + '</span>' +
                         '</nav>' +
                         '<h1 class="exc-head-title">' + esc(title) + '</h1>' +
@@ -12917,7 +12938,7 @@ if ($hero_video_poster === '') {
                     return;
                 }
                 const catalogLink = String(CATALOG_BASE_URL || SITE_HOME_URL || '/');
-                const catalogHref = catalogLink + (catalogLink.includes('?') ? '&' : '?') + 'mode=excursion&search=1';
+                const catalogHref = catalogLink + (catalogLink.includes('?') ? '&' : '?') + 'mode=excursion';
                 const emptyBlock = (bodyHtml) => '' +
                     '<section class="exc-pop-sec">' +
                         '<h2 class="exc-sec-h">Популярні екскурсії</h2>' +
@@ -13118,7 +13139,11 @@ if ($hero_video_poster === '') {
             PRESET_SEARCH && PRESET_SEARCH.countryId ? PRESET_SEARCH.countryId : activeCountryId,
             false
         ).then(() => {
-            initPopularSearchFlow();
+            if (!ANEX_CATALOG_LITE) {
+                initPopularSearchFlow();
+            } else {
+                stripLegacySearchQueryFromUrl();
+            }
         });
         void loadDirections();
 

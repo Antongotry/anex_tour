@@ -164,7 +164,7 @@ $catalog_url = function_exists( 'anex_get_catalog_page_permalink' )
         var regions = summarizeRegions(cards);
         var tags = regions.length ? regions.map(function(r){ return '<span class="direction-tag">'+esc(r)+'</span>'; }).join('') : '<span class="direction-tag">Курорти уточнюються</span>';
         var note = cards.length ? 'Добірка оновлюється за актуальними пропозиціями' : 'Відкрийте країну, щоб підтягнути доступні курорти та ціни';
-        var href = catalogUrl + '?search=1&country_id=' + encodeURIComponent(country.id);
+        var href = catalogUrl + (catalogUrl.indexOf('?') >= 0 ? '&' : '?') + 'country_id=' + encodeURIComponent(country.id) + '#offers-section';
         return '<article class="direction-card">'+
             '<div class="direction-media">'+imageHtml+'<span class="direction-badge">Актуально зараз</span></div>'+
             '<div class="direction-body">'+

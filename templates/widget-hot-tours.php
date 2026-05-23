@@ -364,10 +364,21 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
             });
         });
 
-        if(FEATURED_COUNTRIES[0]){
-            fetchCards(FEATURED_COUNTRIES[0]).then(function(res){
-                updateTabPrice(FEATURED_COUNTRIES[0].id, res.cards);
-                if(panels[0] && !panels[0].querySelector('.showcase-cards')) renderTabCards(panels[0], res.cards, res.error);
+        var urlCountryId = '';
+        try {
+            urlCountryId = String((new URL(window.location.href)).searchParams.get('country_id') || '').trim();
+        } catch(e) { urlCountryId = ''; }
+        var initialCountry = FEATURED_COUNTRIES[0];
+        if(urlCountryId){
+            var matched = FEATURED_COUNTRIES.find(function(c){ return String(c.id) === urlCountryId; });
+            if(matched){ initialCountry = matched; activateTab(matched.id); }
+        }
+
+        if(initialCountry){
+            fetchCards(initialCountry).then(function(res){
+                updateTabPrice(initialCountry.id, res.cards);
+                var panel = panelsEl.querySelector('.showcase-panel[data-country="'+String(initialCountry.id)+'"]');
+                if(panel && !panel.querySelector('.showcase-cards') && !panel.querySelector('.empty-state')) renderTabCards(panel, res.cards, res.error);
             });
         }
     }
