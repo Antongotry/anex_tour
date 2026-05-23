@@ -1276,6 +1276,8 @@ if ($hero_video_poster === '') {
             font-size: clamp(28px, 4vw, 42px);
             line-height: 1;
             letter-spacing: 0;
+            color: var(--accent);
+            font-weight: 800;
         }
 
         .toolbar-copy p {
