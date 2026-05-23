@@ -11331,6 +11331,14 @@ if ($hero_video_poster === '') {
                 .concat(Array.isArray(offer && offer.hotel_images) ? offer.hotel_images : []);
             const seen = new Set();
             const images = [];
+            const cptGallery = Array.isArray(window.anexCptHotelGallery) ? window.anexCptHotelGallery : [];
+            cptGallery.forEach((raw) => {
+                const url = fixMediaUrl(raw || '');
+                if (url && !seen.has(url)) {
+                    seen.add(url);
+                    images.push(url);
+                }
+            });
             source.forEach((image) => {
                 const url = fixMediaUrl(image.full || image.web || image.thumb || '');
                 if (url && !seen.has(url)) {
