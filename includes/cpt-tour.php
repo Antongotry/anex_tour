@@ -141,9 +141,10 @@ function anex_tour_parse_prices_from_offer( array $offer ): array {
 }
 
 function anex_tour_default_country_ids(): array {
-	return function_exists( 'anex_hotel_default_country_ids' )
+	$base = function_exists( 'anex_hotel_default_country_ids' )
 		? anex_hotel_default_country_ids()
 		: [ 318, 338, 16, 372, 434, 39, 320, 376 ];
+	return array_values( array_unique( array_merge( $base, [ 49, 420 ] ) ) );
 }
 
 function anex_tour_sync_country_ids(): array {

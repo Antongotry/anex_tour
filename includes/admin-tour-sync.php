@@ -78,7 +78,11 @@ function anex_tour_sync_admin_page(): void {
 	<div class="wrap">
 		<h1>Синхронізація турів (екскурсії)</h1>
 		<p>Картки: <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . ANEX_TOUR_POST_TYPE ) ); ?>"><strong>Anex Tour → Тури</strong></a>.</p>
-		<p class="description">API: <code>module-excursion/search</code> + <code>tour-excursion/info/{key}</code> для фото. Кількість турів залежить від видачі API (часто мало оферів на країну).</p>
+		<p class="description">
+			API: <code>module-excursion/search</code> + <code>tour-excursion/info/{key}</code>.
+			<strong>Це не каталог готелів:</strong> IT-Tour на вашому токені зараз віддає лише кілька екскурсійних турів на всі країни разом (типово 2–5), навіть при багатьох датах.
+			Готелі — через <code>module/search-list</code> (десятки на країну), тури — окремий endpoint з малою видачею.
+		</p>
 
 		<table class="widefat" style="max-width:720px;margin:1em 0">
 			<tbody>

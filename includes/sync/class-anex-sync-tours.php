@@ -18,19 +18,27 @@ class Anex_Sync_Tours {
 	}
 
 	/**
+	 * Вікна дат як у каталозі (module-excursion дає мало оферів — потрібно більше вікон).
+	 *
 	 * @return array{date_from:string, date_till:string}[]
 	 */
-	private static function search_date_windows(): array {
-		return [
-			[
-				'date_from' => self::api_date_offset( 21 ),
-				'date_till' => self::api_date_offset( 32 ),
-			],
-			[
-				'date_from' => self::api_date_offset( 35 ),
-				'date_till' => self::api_date_offset( 46 ),
-			],
-		];
+	private static function search_date_windows( bool $extended = false ): array {
+		$offsets = $extended
+			? [ 14, 21, 28, 35, 42, 49, 56, 63, 70, 77, 84, 98, 119, 140 ]
+			: [ 14, 21, 35, 63, 98 ];
+		$windows = [];
+		foreach ( $offsets as $offset ) {
+			$windows[] = [
+				'date_from' => self::api_date_offset( $offset ),
+				'date_till' => self::api_date_offset( $offset + 14 ),
+			];
+		}
+		return $windows;
+	}
+
+	/** @return array<int, string> */
+	private static function extra_country_ids(): array {
+		return [ 49, 420 ];
 	}
 
 	public static function country_names_map(): array {
@@ -124,20 +132,9 @@ class Anex_Sync_Tours {
 		}
 
 		$by_key = [];
-		foreach ( self::search_date_windows() as $win ) {
-			$query = [
-				'country'        => (string) $country_id,
-				'date_from'      => $win['date_from'],
-				'date_till'      => $win['date_till'],
-				'night_from'     => '2',
-				'night_till'     => '21',
-				'adult'          => '2',
-				'child'          => '0',
-				'transport_type' => '2',
-				'items_per_page' => '60',
-				'page'           => '1',
-			];
+		$queries = self::build_search_queries_for_country( $country_id, false );
 
+		foreach ( $queries as $query ) {
 			++$ctx['api_calls'];
 			$result = ittour_lab_api_fetch( self::SEARCH_PATH, $query, 'uk' );
 			if ( is_wp_error( $result ) ) {
@@ -151,60 +148,101 @@ class Anex_Sync_Tours {
 			if ( ! is_array( $data ) || ! empty( $data['error'] ) ) {
 				++$ctx['api_errors'];
 				$msg = (string) ( $data['error_desc'] ?? $data['error'] ?? 'API error' );
+				if ( str_contains( $msg, 'Hour limit' ) || str_contains( $msg, 'limit' ) ) {
+					$ctx['failed']     = true;
+					$ctx['last_error'] = $msg;
+				}
 				Anex_Tour_Sync_Log::append( '  API: ' . $msg );
 				continue;
 			}
 
-			$offers = $data['offers'] ?? [];
-			if ( ! is_array( $offers ) ) {
-				continue;
-			}
-
-			foreach ( $offers as $offer ) {
+			foreach ( (array) ( $data['offers'] ?? [] ) as $offer ) {
 				if ( ! is_array( $offer ) ) {
 					continue;
 				}
 				$key = trim( (string) ( $offer['key'] ?? '' ) );
-				if ( $key === '' || isset( $by_key[ $key ] ) ) {
+				if ( $key === '' ) {
 					continue;
 				}
-				$by_key[ $key ] = $offer;
-			}
-		}
-
-		// Без transport_type — інколи більше оферів.
-		if ( count( $by_key ) < 5 ) {
-			$win   = self::search_date_windows()[0];
-			$query = [
-				'country'        => (string) $country_id,
-				'date_from'      => $win['date_from'],
-				'date_till'      => $win['date_till'],
-				'night_from'     => '2',
-				'night_till'     => '21',
-				'adult'          => '2',
-				'child'          => '0',
-				'items_per_page' => '60',
-				'page'           => '1',
-			];
-			++$ctx['api_calls'];
-			$result = ittour_lab_api_fetch( self::SEARCH_PATH, $query, 'uk' );
-			if ( ! is_wp_error( $result ) ) {
-				$data   = $result['data'] ?? [];
-				$offers = is_array( $data ) ? ( $data['offers'] ?? [] ) : [];
-				if ( is_array( $offers ) ) {
-					foreach ( $offers as $offer ) {
-						if ( ! is_array( $offer ) ) {
-							continue;
-						}
-						$key = trim( (string) ( $offer['key'] ?? '' ) );
-						if ( $key !== '' && ! isset( $by_key[ $key ] ) ) {
-							$by_key[ $key ] = $offer;
-						}
-					}
+				if ( ! isset( $by_key[ $key ] ) ) {
+					$by_key[ $key ] = $offer;
 				}
 			}
 		}
 
+		return array_values( $by_key );
+	}
+
+	/**
+	 * @return array<int, array<string, string>>
+	 */
+	private static function build_search_queries_for_country( int $country_id, bool $extended = false ): array {
+		$queries = [];
+		$base    = [
+			'night_from'     => '1',
+			'night_till'     => '21',
+			'adult'          => '2',
+			'child'          => '0',
+			'items_per_page' => '60',
+			'page'           => '1',
+		];
+
+		foreach ( self::search_date_windows( $extended ) as $win ) {
+			$queries[] = array_merge(
+				$base,
+				[
+					'country'   => (string) $country_id,
+					'date_from' => $win['date_from'],
+					'date_till' => $win['date_till'],
+				]
+			);
+		}
+
+		return $queries;
+	}
+
+	/**
+	 * Скільки унікальних турів віддає API зараз (діагностика, обмежений набір запитів).
+	 */
+	public static function count_discoverable_tours(): int {
+		$by_key = [];
+		$ctx    = [ 'api_calls' => 0, 'api_errors' => 0, 'failed' => false, 'last_error' => '' ];
+		$ids    = array_values( array_unique( array_merge( anex_tour_sync_country_ids(), self::extra_country_ids() ) ) );
+		foreach ( $ids as $country_id ) {
+			foreach ( self::fetch_tours_for_country_extended( (int) $country_id, $ctx ) as $offer ) {
+				if ( is_array( $offer ) && ! empty( $offer['key'] ) ) {
+					$by_key[ (string) $offer['key'] ] = true;
+				}
+			}
+			if ( $ctx['failed'] ) {
+				break;
+			}
+		}
+		return count( $by_key );
+	}
+
+	/**
+	 * @param array{api_calls:int,api_errors:int,failed:bool,last_error:string} $ctx
+	 * @return array<int, array<string, mixed>>
+	 */
+	private static function fetch_tours_for_country_extended( int $country_id, array &$ctx ): array {
+		$by_key = [];
+		foreach ( self::build_search_queries_for_country( $country_id, true ) as $query ) {
+			++$ctx['api_calls'];
+			$result = ittour_lab_api_fetch( self::SEARCH_PATH, $query, 'uk' );
+			if ( is_wp_error( $result ) ) {
+				continue;
+			}
+			$data = $result['data'] ?? [];
+			if ( ! is_array( $data ) || ! empty( $data['error'] ) ) {
+				continue;
+			}
+			foreach ( (array) ( $data['offers'] ?? [] ) as $offer ) {
+				if ( is_array( $offer ) && ! empty( $offer['key'] ) ) {
+					$by_key[ (string) $offer['key'] ] = $offer;
+				}
+			}
+		}
 		return array_values( $by_key );
 	}
 
