@@ -27,6 +27,119 @@ function anex_tour_meta_keys(): array {
 		'synced_at'        => '_anex_synced_at',
 		'sync_error'       => '_anex_sync_error',
 		'gallery_ids'      => '_anex_gallery_ids',
+		'prices_json'      => '_anex_prices_json',
+		'price_uah'        => '_anex_price_uah',
+		'price_per_night'  => '_anex_price_per_night',
+		'price_label'      => '_anex_price_label',
+	];
+}
+
+/**
+ * JSON meta без «u0421» (зберігаємо UTF-8, не \u з з’їденим slash).
+ */
+function anex_json_meta_encode( $data ): string {
+	return (string) wp_json_encode( $data, JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE );
+}
+
+/**
+ * @return array<int, string>
+ */
+function anex_json_meta_decode_list( $raw ): array {
+	if ( is_array( $raw ) ) {
+		return anex_sanitize_label_list( $raw );
+	}
+	$raw = (string) $raw;
+	if ( $raw === '' ) {
+		return [];
+	}
+	$decoded = json_decode( $raw, true );
+	if ( ! is_array( $decoded ) ) {
+		$fixed = anex_fix_unicode_escape_string( $raw );
+		return $fixed !== '' ? [ $fixed ] : [];
+	}
+	return anex_sanitize_label_list( $decoded );
+}
+
+/**
+ * @param array<int, mixed> $list
+ * @return array<int, string>
+ */
+function anex_sanitize_label_list( array $list ): array {
+	$out = [];
+	foreach ( $list as $item ) {
+		if ( ! is_scalar( $item ) ) {
+			continue;
+		}
+		$s = anex_fix_unicode_escape_string( trim( (string) $item ) );
+		if ( $s !== '' ) {
+			$out[] = $s;
+		}
+	}
+	return array_values( array_unique( $out ) );
+}
+
+function anex_fix_unicode_escape_string( string $s ): string {
+	$s = trim( $s );
+	if ( $s === '' ) {
+		return '';
+	}
+	if ( preg_match( '/[\x{0400}-\x{04FF}]/u', $s ) ) {
+		return $s;
+	}
+	if ( preg_match( '/u[0-9a-fA-F]{4}/', $s ) ) {
+		$fixed = preg_replace_callback(
+			'/u([0-9a-fA-F]{4})/',
+			static function ( array $m ): string {
+				return mb_chr( (int) hexdec( $m[1] ), 'UTF-8' );
+			},
+			$s
+		);
+		return is_string( $fixed ) ? $fixed : $s;
+	}
+	return $s;
+}
+
+/**
+ * @return array<int, string>
+ */
+function anex_tour_get_country_names( int $post_id ): array {
+	return anex_json_meta_decode_list( get_post_meta( $post_id, anex_tour_meta_keys()['country_names'], true ) );
+}
+
+/**
+ * @return array<int, string>
+ */
+function anex_tour_get_city_names( int $post_id ): array {
+	return anex_json_meta_decode_list( get_post_meta( $post_id, anex_tour_meta_keys()['city_names'], true ) );
+}
+
+/**
+ * IT-Tour: ключ "2" у prices — зазвичай UAH за 2 дорослих.
+ *
+ * @return array{uah:int, per_night:int, label:string, raw:array<string, int>}
+ */
+function anex_tour_parse_prices_from_offer( array $offer ): array {
+	$prices = $offer['prices'] ?? [];
+	if ( ! is_array( $prices ) ) {
+		return [ 'uah' => 0, 'per_night' => 0, 'label' => '', 'raw' => [] ];
+	}
+	$uah    = (int) ( $prices['2'] ?? $prices[2] ?? 0 );
+	$nights = max( 1, (int) ( $offer['duration'] ?? 1 ) );
+	$per    = $uah > 0 ? (int) round( $uah / $nights ) : 0;
+	$label  = '';
+	if ( $uah > 0 ) {
+		$label = sprintf(
+			'від %s за 2 дор. / %d н. (%s/ніч)',
+			number_format_i18n( $uah, 0, '.', ' ' ) . ' ₴',
+			$nights,
+			number_format_i18n( $per, 0, '.', ' ' ) . ' ₴'
+		);
+	}
+	return [
+		'uah'       => $uah,
+		'per_night' => $per,
+		'label'     => $label,
+		'raw'       => array_map( 'intval', $prices ),
 	];
 }
 
@@ -102,6 +215,7 @@ function anex_tour_list_columns( array $columns ): array {
 		if ( 'title' === $key ) {
 			$new['anex_tour_key']  = 'Tour key';
 			$new['anex_countries'] = 'Країни';
+			$new['anex_price']     = 'Ціна';
 			$new['anex_thumb']     = 'Фото';
 		}
 	}
@@ -115,12 +229,12 @@ function anex_tour_render_column( string $column, int $post_id ): void {
 			echo esc_html( (string) get_post_meta( $post_id, $keys['ittour_tour_key'], true ) );
 			break;
 		case 'anex_countries':
-			$names = get_post_meta( $post_id, $keys['country_names'], true );
-			if ( is_string( $names ) ) {
-				$decoded = json_decode( $names, true );
-				$names   = is_array( $decoded ) ? $decoded : [ $names ];
-			}
-			echo esc_html( is_array( $names ) ? implode( ', ', $names ) : '—' );
+			$names = anex_tour_get_country_names( $post_id );
+			echo esc_html( $names !== [] ? implode( ', ', $names ) : '—' );
+			break;
+		case 'anex_price':
+			$label = (string) get_post_meta( $post_id, $keys['price_label'], true );
+			echo esc_html( $label !== '' ? $label : '—' );
 			break;
 		case 'anex_thumb':
 			if ( has_post_thumbnail( $post_id ) ) {
@@ -240,9 +354,15 @@ function anex_upsert_tour_from_offer( array $offer ): array {
 	$city_names    = $offer['city_names'] ?? [];
 
 	update_post_meta( $post_id, $keys['ittour_tour_key'], $key );
-	update_post_meta( $post_id, $keys['country_ids'], wp_json_encode( is_array( $country_ids ) ? $country_ids : [] ) );
-	update_post_meta( $post_id, $keys['country_names'], wp_json_encode( is_array( $country_names ) ? $country_names : [] ) );
-	update_post_meta( $post_id, $keys['city_names'], wp_json_encode( is_array( $city_names ) ? $city_names : [] ) );
+	update_post_meta( $post_id, $keys['country_ids'], anex_json_meta_encode( is_array( $country_ids ) ? $country_ids : [] ) );
+	update_post_meta( $post_id, $keys['country_names'], anex_json_meta_encode( anex_sanitize_label_list( is_array( $country_names ) ? $country_names : [] ) ) );
+	update_post_meta( $post_id, $keys['city_names'], anex_json_meta_encode( anex_sanitize_label_list( is_array( $city_names ) ? $city_names : [] ) ) );
+
+	$prices = anex_tour_parse_prices_from_offer( $offer );
+	update_post_meta( $post_id, $keys['prices_json'], anex_json_meta_encode( $prices['raw'] ) );
+	update_post_meta( $post_id, $keys['price_uah'], (string) $prices['uah'] );
+	update_post_meta( $post_id, $keys['price_per_night'], (string) $prices['per_night'] );
+	update_post_meta( $post_id, $keys['price_label'], $prices['label'] );
 	update_post_meta( $post_id, $keys['duration'], (string) ( $offer['duration'] ?? '' ) );
 	update_post_meta( $post_id, $keys['transport_type'], (string) ( $offer['transport_type'] ?? '' ) );
 	update_post_meta( $post_id, $keys['from_city'], (string) ( $offer['from_city'] ?? '' ) );
@@ -258,7 +378,183 @@ function anex_upsert_tour_from_offer( array $offer ): array {
 	update_post_meta( $post_id, $keys['synced_at'], current_time( 'mysql' ) );
 	delete_post_meta( $post_id, $keys['sync_error'] );
 
+	anex_enrich_tour_post( $post_id, $key, $offer );
+
 	return [ 'created' => $created, 'post_id' => $post_id ];
+}
+
+/**
+ * Знайти офер у module-excursion/search за tour key.
+ *
+ * @return array<string, mixed>
+ */
+function anex_fetch_excursion_offer_by_key( string $tour_key ): array {
+	$tour_key = trim( $tour_key );
+	if ( $tour_key === '' || ! function_exists( 'ittour_lab_api_fetch' ) ) {
+		return [];
+	}
+	$win = [
+		'date_from' => wp_date( 'd.m.y', strtotime( '+21 days' ) ),
+		'date_till' => wp_date( 'd.m.y', strtotime( '+32 days' ) ),
+	];
+	foreach ( anex_tour_sync_country_ids() as $country_id ) {
+		$result = ittour_lab_api_fetch(
+			'module-excursion/search',
+			array_merge(
+				$win,
+				[
+					'country'        => (string) $country_id,
+					'night_from'     => '2',
+					'night_till'     => '21',
+					'adult'          => '2',
+					'child'          => '0',
+					'items_per_page' => '60',
+				]
+			),
+			'uk'
+		);
+		if ( is_wp_error( $result ) ) {
+			continue;
+		}
+		$offers = $result['data']['offers'] ?? [];
+		if ( ! is_array( $offers ) ) {
+			continue;
+		}
+		foreach ( $offers as $offer ) {
+			if ( ! is_array( $offer ) ) {
+				continue;
+			}
+			if ( (string) ( $offer['key'] ?? '' ) === $tour_key ) {
+				return $offer;
+			}
+		}
+	}
+	return [];
+}
+
+/**
+ * Опис, фото, країни з tour-excursion/info + завантаження в медіа.
+ */
+function anex_enrich_tour_post( int $post_id, string $tour_key = '', array $offer = [] ): void {
+	$post_id  = (int) $post_id;
+	$keys     = anex_tour_meta_keys();
+	$tour_key = $tour_key !== '' ? $tour_key : (string) get_post_meta( $post_id, $keys['ittour_tour_key'], true );
+	if ( $tour_key === '' ) {
+		return;
+	}
+
+	if ( $offer === [] ) {
+		$offer = anex_fetch_excursion_offer_by_key( $tour_key );
+		if ( $offer !== [] ) {
+			$prices = anex_tour_parse_prices_from_offer( $offer );
+			update_post_meta( $post_id, $keys['prices_json'], anex_json_meta_encode( $prices['raw'] ) );
+			update_post_meta( $post_id, $keys['price_uah'], (string) $prices['uah'] );
+			update_post_meta( $post_id, $keys['price_per_night'], (string) $prices['per_night'] );
+			update_post_meta( $post_id, $keys['price_label'], $prices['label'] );
+			update_post_meta( $post_id, $keys['country_names'], anex_json_meta_encode( anex_sanitize_label_list( (array) ( $offer['country_names'] ?? [] ) ) ) );
+			update_post_meta( $post_id, $keys['city_names'], anex_json_meta_encode( anex_sanitize_label_list( (array) ( $offer['city_names'] ?? [] ) ) ) );
+		}
+	}
+
+	$date_from = wp_date( 'd.m.y', strtotime( '+21 days' ) );
+	$date_till = wp_date( 'd.m.y', strtotime( '+32 days' ) );
+	$detail    = [];
+	if ( function_exists( 'ittour_lab_api_fetch' ) ) {
+		$result = ittour_lab_api_fetch(
+			'tour-excursion/info/' . rawurlencode( $tour_key ),
+			[
+				'date_from'    => $date_from,
+				'date_till'    => $date_till,
+				'limit_images' => '20',
+			],
+			'uk'
+		);
+		if ( ! is_wp_error( $result ) ) {
+			$data = $result['data'] ?? $result;
+			if ( is_array( $data ) && empty( $data['error'] ) ) {
+				$detail = $data;
+			}
+		}
+	}
+
+	if ( $detail !== [] ) {
+		$title = trim( (string) ( $detail['name'] ?? $detail['tour_name'] ?? '' ) );
+		if ( $title !== '' ) {
+			wp_update_post(
+				[
+					'ID'         => $post_id,
+					'post_title' => $title,
+				]
+			);
+		}
+
+		$desc = (string) ( $detail['description'] ?? $detail['description_html'] ?? '' );
+		if ( $desc !== '' ) {
+			$content = wp_kses_post( $desc );
+			wp_update_post(
+				[
+					'ID'           => $post_id,
+					'post_content' => $content,
+					'post_excerpt' => wp_trim_words( wp_strip_all_tags( $content ), 40 ),
+				]
+			);
+		}
+
+		$countries = [];
+		foreach ( (array) ( $detail['countries'] ?? [] ) as $c ) {
+			if ( is_array( $c ) && ! empty( $c['name'] ) ) {
+				$countries[] = (string) $c['name'];
+			}
+		}
+		if ( $countries !== [] ) {
+			update_post_meta( $post_id, $keys['country_names'], anex_json_meta_encode( anex_sanitize_label_list( $countries ) ) );
+		}
+
+		$cities = [];
+		foreach ( (array) ( $detail['cities'] ?? [] ) as $c ) {
+			if ( is_array( $c ) && ! empty( $c['name'] ) ) {
+				$cities[] = (string) $c['name'];
+			}
+		}
+		if ( $cities !== [] ) {
+			update_post_meta( $post_id, $keys['city_names'], anex_json_meta_encode( anex_sanitize_label_list( $cities ) ) );
+		}
+	}
+
+	$url_map = $offer !== [] ? anex_extract_tour_gallery_url_map( $offer ) : [];
+	if ( $detail !== [] && function_exists( 'anex_extract_hotel_gallery_url_map' ) ) {
+		foreach ( anex_extract_hotel_gallery_url_map( $detail ) as $url => $is_main ) {
+			$url_map[ $url ] = $is_main ? true : ( $url_map[ $url ] ?? false );
+		}
+		foreach ( (array) ( $detail['hikes'] ?? [] ) as $hike ) {
+			if ( ! is_array( $hike ) || empty( $hike['image'] ) ) {
+				continue;
+			}
+			$url = function_exists( 'anex_normalize_ittour_image_url_to_full' )
+				? anex_normalize_ittour_image_url_to_full( (string) $hike['image'] )
+				: (string) $hike['image'];
+			if ( $url !== '' ) {
+				$url_map[ $url ] = $url_map[ $url ] ?? false;
+			}
+		}
+	}
+
+	if ( $url_map !== [] && function_exists( 'anex_import_hotel_gallery' ) ) {
+		anex_import_hotel_gallery( $post_id, $url_map, 20 );
+		$first = (string) array_key_first( $url_map );
+		if ( $first !== '' ) {
+			update_post_meta( $post_id, $keys['thumb_url'], $first );
+		}
+	} elseif ( $offer !== [] ) {
+		$thumb = anex_extract_tour_thumb_url( $offer );
+		if ( $thumb !== '' && function_exists( 'anex_sideload_attachment_from_url' ) ) {
+			update_post_meta( $post_id, $keys['thumb_url'], $thumb );
+			$att_id = anex_sideload_attachment_from_url( $post_id, $thumb );
+			if ( $att_id > 0 && ! has_post_thumbnail( $post_id ) ) {
+				set_post_thumbnail( $post_id, $att_id );
+			}
+		}
+	}
 }
 
 /**
@@ -285,49 +581,47 @@ function anex_tour_save_gallery_ids( int $post_id, array $ids ): void {
 	update_post_meta( $post_id, anex_tour_meta_keys()['gallery_ids'], wp_json_encode( $ids ) );
 }
 
-/**
- * Завантажити фото туру (country_images + tour-excursion/info).
- */
+/** @deprecated Use anex_enrich_tour_post() */
 function anex_import_tour_media( int $post_id, array $offer = [] ): void {
-	if ( ! function_exists( 'anex_sideload_attachment_from_url' ) || ! function_exists( 'anex_import_hotel_gallery' ) ) {
-		return;
-	}
+	$keys = anex_tour_meta_keys();
+	$key  = (string) get_post_meta( $post_id, $keys['ittour_tour_key'], true );
+	anex_enrich_tour_post( $post_id, $key, $offer );
+}
 
-	$keys     = anex_tour_meta_keys();
-	$tour_key = (string) get_post_meta( $post_id, $keys['ittour_tour_key'], true );
-	$url_map  = $offer !== [] ? anex_extract_tour_gallery_url_map( $offer ) : [];
+add_action( 'add_meta_boxes', 'anex_tour_meta_boxes' );
 
-	if ( $tour_key !== '' && function_exists( 'ittour_lab_api_fetch' ) ) {
-		$date_from = wp_date( 'd.m.y', strtotime( '+21 days' ) );
-		$date_till = wp_date( 'd.m.y', strtotime( '+32 days' ) );
-		$result    = ittour_lab_api_fetch(
-			'tour-excursion/info/' . rawurlencode( $tour_key ),
-			[
-				'date_from'     => $date_from,
-				'date_till'     => $date_till,
-				'limit_images'  => '20',
-			],
-			'uk'
-		);
-		if ( ! is_wp_error( $result ) ) {
-			$data = $result['data'] ?? $result;
-			if ( is_array( $data ) && empty( $data['error'] ) && function_exists( 'anex_extract_hotel_gallery_url_map' ) ) {
-				foreach ( anex_extract_hotel_gallery_url_map( $data ) as $url => $is_main ) {
-					if ( $is_main ) {
-						$url_map[ $url ] = true;
-					} else {
-						$url_map[ $url ] = $url_map[ $url ] ?? false;
-					}
-				}
-			}
+function anex_tour_meta_boxes(): void {
+	add_meta_box(
+		'anex_tour_details',
+		'Дані туру (IT-Tour)',
+		'anex_tour_meta_box_render',
+		ANEX_TOUR_POST_TYPE,
+		'normal',
+		'high'
+	);
+}
+
+function anex_tour_meta_box_render( WP_Post $post ): void {
+	$keys = anex_tour_meta_keys();
+	echo '<table class="form-table"><tbody>';
+	echo '<tr><th>Tour key</th><td><code>' . esc_html( (string) get_post_meta( $post->ID, $keys['ittour_tour_key'], true ) ) . '</code></td></tr>';
+	echo '<tr><th>Країни</th><td>' . esc_html( implode( ', ', anex_tour_get_country_names( $post->ID ) ) ) . '</td></tr>';
+	echo '<tr><th>Міста</th><td>' . esc_html( implode( ', ', anex_tour_get_city_names( $post->ID ) ) ) . '</td></tr>';
+	echo '<tr><th>Ціна</th><td><strong>' . esc_html( (string) get_post_meta( $post->ID, $keys['price_label'], true ) ) . '</strong></td></tr>';
+	echo '<tr><th>Тривалість</th><td>' . esc_html( (string) get_post_meta( $post->ID, $keys['duration'], true ) ) . ' н.</td></tr>';
+	echo '<tr><th>Транспорт</th><td>' . esc_html( (string) get_post_meta( $post->ID, $keys['transport_type'], true ) ) . '</td></tr>';
+	echo '<tr><th>Виїзд з</th><td>' . esc_html( (string) get_post_meta( $post->ID, $keys['from_city'], true ) ) . '</td></tr>';
+	$gids = function_exists( 'anex_hotel_get_gallery_ids' ) ? anex_hotel_get_gallery_ids( $post->ID ) : [];
+	echo '<tr><th>Фото в медіа</th><td><strong>' . count( $gids ) . '</strong>';
+	if ( $gids !== [] && function_exists( 'anex_hotel_get_gallery_items' ) ) {
+		echo '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px">';
+		foreach ( array_slice( anex_hotel_get_gallery_items( $post->ID ), 0, 12 ) as $item ) {
+			echo '<img src="' . esc_url( $item['url'] ) . '" style="width:80px;height:60px;object-fit:cover;border-radius:4px" alt="" />';
 		}
+		echo '</div>';
 	}
-
-	if ( $url_map === [] ) {
-		return;
-	}
-
-	anex_import_hotel_gallery( $post_id, $url_map, 15 );
+	echo '</td></tr>';
+	echo '</tbody></table>';
 }
 
 add_action( 'rest_api_init', 'anex_tour_register_rest_fields' );
@@ -353,8 +647,11 @@ function anex_tour_register_rest_fields(): void {
 				}
 				return [
 					'tour_key'       => (string) get_post_meta( $post_id, $keys['ittour_tour_key'], true ),
-					'country_names'  => json_decode( (string) get_post_meta( $post_id, $keys['country_names'], true ), true ) ?: [],
-					'city_names'     => json_decode( (string) get_post_meta( $post_id, $keys['city_names'], true ), true ) ?: [],
+					'country_names'  => anex_tour_get_country_names( $post_id ),
+					'city_names'     => anex_tour_get_city_names( $post_id ),
+					'price_label'    => (string) get_post_meta( $post_id, $keys['price_label'], true ),
+					'price_uah'      => (int) get_post_meta( $post_id, $keys['price_uah'], true ),
+					'price_per_night'=> (int) get_post_meta( $post_id, $keys['price_per_night'], true ),
 					'thumb_url'      => (string) get_post_meta( $post_id, $keys['thumb_url'], true ),
 					'gallery_urls'   => $urls,
 				];

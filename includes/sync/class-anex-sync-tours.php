@@ -98,9 +98,7 @@ class Anex_Sync_Tours {
 			} else {
 				++$state['updated'];
 			}
-			if ( get_option( 'anex_tour_sync_with_photos', true ) && function_exists( 'anex_import_tour_media' ) ) {
-				anex_import_tour_media( (int) $result['post_id'], $offer );
-			}
+			// anex_upsert_tour_from_offer → anex_enrich_tour_post (опис, ціни, фото).
 		}
 
 		Anex_Tour_Sync_Log::append( '  Турів з API: ' . count( $offers ) . ', імпортовано: ' . $imported );
