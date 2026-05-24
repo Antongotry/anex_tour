@@ -105,10 +105,9 @@ $anex_agency_telegram   = (string) ( get_option( 'anex_agency_telegram' ) ?: 'ht
 $anex_agency_viber      = (string) ( get_option( 'anex_agency_viber' ) ?: 'viber://chat?number=%2B380979451781' );
 // Preset search params — used to pre-select country before page renders.
 // All other params (from/d1/d2/n1/n2) are read directly from URL by JS readPopularSearchFromUrl().
-$preset_country = '';
-if ( isset( $_GET['country_id'] ) || isset( $_GET['country'] ) ) {
-    $preset_country = sanitize_text_field( wp_unslash( (string) ( $_GET['country_id'] ?? $_GET['country'] ?? '' ) ) );
-}
+$preset_country = ( isset($_GET['search']) && $_GET['search'] === '1' && ( isset($_GET['country_id']) || isset($_GET['country']) ) )
+    ? sanitize_text_field(wp_unslash((string) ($_GET['country_id'] ?? $_GET['country'] ?? '')))
+    : '';
 // Resolve asset URLs: plugin bundle takes priority over legacy mu-plugin path
 $about_image_url = defined('ANEX_PLUGIN_URL')
     ? ANEX_PLUGIN_URL . 'assets/about-travel-service.jpg'
@@ -6398,6 +6397,7 @@ if ($hero_video_poster === '') {
                             <div class="ps-field ps-field--grow">
                                 <label class="ps-label" for="ps-from">Звідки</label>
                                 <select id="ps-from" class="ps-hidden-select"></select>
+                                <input type="hidden" id="ps-from-ids" value="">
                                 <button type="button" id="ps-from-picker" class="ps-inputlike" aria-label="Оберіть місто вильоту" aria-haspopup="dialog" aria-controls="ps-picker">
                                     <span class="ps-inputlike-label is-placeholder" id="ps-from-picker-label">Оберіть країну призначення</span>
                                     <svg class="ps-inputlike-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M5 7.5 10 12.5 15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
@@ -7023,7 +7023,8 @@ if ($hero_video_poster === '') {
             id: String(country.id),
         }));
         const DEFAULT_COUNTRY_ID = FEATURED_COUNTRIES[0] ? FEATURED_COUNTRIES[0].id : (ALL_COUNTRIES[0] ? ALL_COUNTRIES[0].id : '');
-        const DEPARTURE_PRIORITY = ['2014', '143', '1745', '449', '1212'];
+        const PS_FROM_MAX_SELECT = 3;
+        const KYIV_CITY_ID = '2014';
         const SEARCH_WINDOW_LIMIT = 2;
         const SEARCH_MIN_SHOW_HOTELS = 1;
         const DEPARTURE_CANDIDATE_LIMIT = 2;
@@ -7042,7 +7043,6 @@ if ($hero_video_poster === '') {
         const SITE_HOME_URL = <?php echo wp_json_encode($site_home_url); ?>;
         const ABOUT_IMAGE_URL = <?php echo wp_json_encode($about_image_url); ?>;
         const PRESET_SEARCH   = <?php echo wp_json_encode($preset_country ? ['countryId' => $preset_country] : null); ?>;
-        const ANEX_CATALOG_LITE = window.ANEX_CATALOG_LITE === true;
         const countryMetaById = new Map(ALL_COUNTRIES.map((country) => [country.id, country]));
         const apiMemoryCache = new Map();
         const apiPending = new Map();
@@ -7078,6 +7078,7 @@ if ($hero_video_poster === '') {
         const psCountryPicker = document.getElementById('ps-country-picker');
         const psCountryPickerLabel = document.getElementById('ps-country-picker-label');
         const psFrom = document.getElementById('ps-from');
+        const psFromIds = document.getElementById('ps-from-ids');
         const psFromPicker = document.getElementById('ps-from-picker');
         const psFromPickerLabel = document.getElementById('ps-from-picker-label');
         const psD1 = document.getElementById('ps-d1');
@@ -7851,12 +7852,15 @@ if ($hero_video_poster === '') {
             updatePsPickerLabels();
         }
 
-        function currentPsFromName() {
-            if (!psFrom) {
-                return '';
+        function currentPsFromNames() {
+            const ids = getPsFromSelectedIds();
+            if (!ids.length || !psFrom) {
+                return [];
             }
-            const selected = psFrom.selectedOptions && psFrom.selectedOptions[0] ? psFrom.selectedOptions[0] : null;
-            return selected ? String(selected.textContent || '').trim() : '';
+            return ids.map((id) => {
+                const opt = [...psFrom.options].find((item) => String(item.value) === String(id));
+                return opt ? String(opt.textContent || '').trim() : '';
+            }).filter(Boolean);
         }
 
         function updatePsPickerLabels() {
@@ -7875,10 +7879,12 @@ if ($hero_video_poster === '') {
                 psCountryQ.value = hotelName || countryName || '';
             }
 
-            const fromName = currentPsFromName();
+            const fromNames = currentPsFromNames();
             if (psFromPickerLabel) {
-                if (fromName) {
-                    psFromPickerLabel.textContent = fromName;
+                if (fromNames.length) {
+                    psFromPickerLabel.textContent = fromNames.length > 2
+                        ? (fromNames.slice(0, 2).join(', ') + ' +' + (fromNames.length - 2))
+                        : fromNames.join(', ');
                     psFromPickerLabel.classList.remove('is-placeholder');
                 } else if (!countryName) {
                     psFromPickerLabel.textContent = 'Оберіть країну призначення';
@@ -7896,6 +7902,9 @@ if ($hero_video_poster === '') {
             }
             if (psPickerMode === 'country' && isPsMobileViewport() && psMobileCountryStep === 'countries') {
                 psPickerApply.textContent = 'Далі';
+            } else if (psPickerMode === 'from') {
+                const count = getPsFromSelectedIds().length;
+                psPickerApply.textContent = count ? ('Обрати (' + count + '/' + PS_FROM_MAX_SELECT + ')') : 'Обрати';
             } else {
                 psPickerApply.textContent = 'Обрати';
             }
@@ -7983,7 +7992,7 @@ if ($hero_video_poster === '') {
                 'Київ', 'Львів', 'Одеса', 'Запоріжжя', 'Харків', 'Дніпро', 'Біла Церква', 'Вінниця', 'Долина', 'Дубно',
                 'Жашків', 'Житомир', 'Івано-Франківськ', 'Ізмаїл', "Кам'янець-Подільський", 'Калуш', 'Коломия', 'Кривий Ріг',
                 'Кропивницький', 'Кременець', 'Луцьк', 'Миколаїв', 'Полтава', 'Рівне', 'Тернопіль', 'Ужгород',
-                'Хмельницький', 'Черкаси', 'Чернівці', 'Чернігів',
+                'Хмельницький', 'Черкаси', 'Чернівці', 'Чернігів', 'Берегово', 'Мукачево',
             ],
             'Молдова': ['Кишинів'],
             'Польща': ['Варшава', 'Вроцлав', 'Гданськ', 'Жешув', 'Катовіце', 'Краків', 'Лодзь', 'Люблін', 'Бидгощ', 'Познань', 'Зелена Гура', 'Ольштин'],
@@ -8032,28 +8041,121 @@ if ($hero_video_poster === '') {
             normalizeSearchToken('Італія'),
         ]);
 
+        const DEPARTURE_GROUP_ORDER = [
+            'Україна', 'Молдова', 'Польща', 'Румунія', 'Німеччина', 'Чехія', 'Угорщина',
+            'Литва', 'Латвія', 'Естонія', 'Казахстан', 'Австрія', 'Італія', 'Іспанія', 'Бельгія',
+            'Словаччина', 'Швейцарія', 'Нідерланди', 'Інші країни',
+        ];
+
+        const UA_AIR_DEPARTURE_IDS = new Set([
+            '2014', '143', '1745', '449', '1212', '1344', '1352', '1360',
+        ]);
+
+        const BUS_TRANSPORT_ICON =
+            '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
+                '<path d="M4 16a2 2 0 0 0 2 2v2h2v-2h8v2h2v-2a2 2 0 0 0 2-2V7c0-2.6-3.58-3-8-3S4 4.4 4 7v9zm2 0v-4h12v4H6zm0-6V7h12v3H6zm2.5 3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"></path>' +
+            '</svg>';
+
+        const PLANE_TRANSPORT_ICON =
+            '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
+                '<path d="M2.5 17.5v-1.667h15V17.5zm1.542-4.167L1.667 9.292l1.292-.25 1.458 1.291 4-1.083-3.375-5.708 1.625-.5 5.708 5.125 4.167-1.125a1.27 1.27 0 0 1 1.208.25q.542.437.542 1.166 0 .459-.281.813a1.38 1.38 0 0 1-.719.479z"></path>' +
+            '</svg>';
+
+        function currentDestinationCountryId() {
+            return String((psCountryId && psCountryId.value) || activeCountryId || '');
+        }
+
+        function currentDestinationCountryToken() {
+            const meta = countryMetaById.get(currentDestinationCountryId());
+            return normalizeSearchToken(meta && meta.name ? meta.name : '');
+        }
+
+        function parseFromCityIds(raw) {
+            return String(raw || '')
+                .split(',')
+                .map((part) => part.trim())
+                .filter(Boolean)
+                .slice(0, PS_FROM_MAX_SELECT);
+        }
+
+        function getPsFromSelectedIds() {
+            if (psFromIds && psFromIds.value) {
+                return parseFromCityIds(psFromIds.value);
+            }
+            if (psFrom && psFrom.value) {
+                return [String(psFrom.value)];
+            }
+            if (activeDepartureId) {
+                return [String(activeDepartureId)];
+            }
+            return [];
+        }
+
+        function setPsFromSelectedIds(ids) {
+            const next = parseFromCityIds((ids || []).join(','));
+            if (psFromIds) {
+                psFromIds.value = next.join(',');
+            }
+            if (psFrom) {
+                const primary = next[0] || '';
+                if (primary && [...psFrom.options].some((opt) => String(opt.value) === primary)) {
+                    psFrom.value = primary;
+                } else {
+                    psFrom.value = '';
+                }
+            }
+            activeDepartureId = next[0] || '';
+            if (departureSelect) {
+                departureSelect.value = activeDepartureId;
+            }
+            updatePsPickerLabels();
+        }
+
+        function citySupportsAirDeparture(city) {
+            const id = String(city && city.id ? city.id : '');
+            if (UA_AIR_DEPARTURE_IDS.has(id)) {
+                return true;
+            }
+            const name = normalizeSearchToken(city && city.name ? city.name : '');
+            const airHubTokens = [
+                'київ', 'львів', 'одес', 'харків', 'дніпр', 'запоріж', 'кишинів', 'варшав',
+                'краків', 'бухарест', 'праг', 'будапешт', 'вільнюс', 'рига', 'таллін', 'алмат',
+            ];
+            return airHubTokens.some((token) => name.includes(token));
+        }
+
+        function filterDepartureCitiesForDestination(cities, destinationCountryId) {
+            const destToken = (() => {
+                const meta = countryMetaById.get(String(destinationCountryId || ''));
+                return normalizeSearchToken(meta && meta.name ? meta.name : '');
+            })();
+            const busOnlyDestination = BUS_DESTINATION_COUNTRIES.has(destToken);
+            return (cities || []).filter((city) => {
+                const depCountry = departureCountryLabel(city);
+                if (depCountry !== 'Україна') {
+                    return true;
+                }
+                if (busOnlyDestination) {
+                    return true;
+                }
+                return citySupportsAirDeparture(city);
+            });
+        }
+
         function departureTransportMeta(city) {
             const departureCountry = departureCountryLabel(city);
-            const selectedCountryId = String((psCountryId && psCountryId.value) || activeCountryId || '');
-            const selectedCountryMeta = countryMetaById.get(selectedCountryId);
-            const selectedCountryName = normalizeSearchToken(selectedCountryMeta && selectedCountryMeta.name ? selectedCountryMeta.name : '');
+            const selectedCountryName = currentDestinationCountryToken();
             const isBusRoute = departureCountry === 'Україна' && BUS_DESTINATION_COUNTRIES.has(selectedCountryName);
-            if (isBusRoute) {
-                return {
-                    label: 'автобусом',
-                    icon:
-                        '<svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">' +
-                            '<path d="M4 16a2 2 0 0 0 2 2v2h2v-2h8v2h2v-2a2 2 0 0 0 2-2V7c0-2.6-3.58-3-8-3S4 4.4 4 7v9zm2 0v-4h12v4H6zm0-6V7h12v3H6zm2.5 3.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3zm7 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"></path>' +
-                        '</svg>',
-                };
+            if (isBusRoute || (departureCountry === 'Україна' && !citySupportsAirDeparture(city))) {
+                return { label: 'автобусом', icon: BUS_TRANSPORT_ICON };
             }
-            return {
-                label: 'на літаку',
-                icon:
-                    '<svg viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">' +
-                        '<path d="M2.5 17.5v-1.667h15V17.5zm1.542-4.167L1.667 9.292l1.292-.25 1.458 1.291 4-1.083-3.375-5.708 1.625-.5 5.708 5.125 4.167-1.125a1.27 1.27 0 0 1 1.208.25q.542.437.542 1.166 0 .459-.281.813a1.38 1.38 0 0 1-.719.479z"></path>' +
-                    '</svg>',
-            };
+            return { label: 'на літаку', icon: PLANE_TRANSPORT_ICON };
+        }
+
+        function sortDepartureGroupNames(a, b) {
+            const ai = DEPARTURE_GROUP_ORDER.indexOf(a);
+            const bi = DEPARTURE_GROUP_ORDER.indexOf(b);
+            return (ai < 0 ? 999 : ai) - (bi < 0 ? 999 : bi);
         }
 
         function hotelThumbFromMeta(hotel) {
@@ -8301,16 +8403,18 @@ if ($hero_video_poster === '') {
                 return;
             }
             const q = normalizeSearchToken(query);
-            const list = (cities || []).filter((city) => {
+            const destinationId = currentDestinationCountryId();
+            const filtered = filterDepartureCitiesForDestination(cities || [], destinationId);
+            const list = filtered.filter((city) => {
                 const cityLabel = 'з ' + String(city.genitive_case || city.name || '');
                 const countryLabel = departureCountryLabel(city);
                 return !q || normalizeSearchToken(cityLabel).includes(q) || normalizeSearchToken(countryLabel).includes(q);
             });
             if (!list.length) {
-                psFromList.innerHTML = '<li><p class="ps-picker-empty">Немає міст вильоту за цим фільтром.</p></li>';
+                psFromList.innerHTML = '<li><p class="ps-picker-empty">Немає міст вильоту для обраного напрямку.</p></li>';
                 return;
             }
-            const selectedFrom = psFrom && psFrom.value ? String(psFrom.value) : '';
+            const selectedIds = new Set(getPsFromSelectedIds());
             const groups = new Map();
             list.forEach((city) => {
                 const groupName = departureCountryLabel(city);
@@ -8319,18 +8423,21 @@ if ($hero_video_poster === '') {
                 }
                 groups.get(groupName).push(city);
             });
-            psFromList.innerHTML = [...groups.entries()].map(([groupName, items]) => {
+            const sortedGroups = [...groups.entries()].sort((left, right) => sortDepartureGroupNames(left[0], right[0]));
+            psFromList.innerHTML = sortedGroups.map(([groupName, items]) => {
+                items.sort((a, b) => String(a.name || '').localeCompare(String(b.name || ''), 'uk'));
                 return '' +
-                    '<li>' +
-                        '<p class="ps-picker-col-title" style="position:static;border-bottom:0;background:#fff;padding:14px 18px 8px;text-transform:none;letter-spacing:0;color:#7b7b7b">' + esc(groupName) + '</p>' +
+                    '<li class="ps-from-group">' +
+                        '<p class="ps-picker-col-title ps-from-group-title">' + esc(groupName) + '</p>' +
                         items.map((city) => {
                             const id = String(city.id || '');
-                            const selectedClass = selectedFrom === id ? ' is-active' : '';
-                            const isChecked = selectedFrom === id ? ' is-on' : '';
+                            const isSelected = selectedIds.has(id);
+                            const selectedClass = isSelected ? ' is-active' : '';
+                            const isChecked = isSelected ? ' is-on' : '';
                             const transport = departureTransportMeta(city);
                             const cityText = 'з ' + String(city.genitive_case || city.name || '');
                             return '' +
-                                '<button type="button" class="ps-picker-item' + selectedClass + '" data-ps-from="' + escAttr(id) + '">' +
+                                '<button type="button" class="ps-picker-item ps-from-item' + selectedClass + '" data-ps-from="' + escAttr(id) + '">' +
                                     '<span class="ps-resort-row"><span class="ps-resort-check' + isChecked + '"></span><span>' + esc(cityText) + '</span></span>' +
                                     '<span class="ps-from-meta"><span>' + esc(transport.label) + '</span>' + transport.icon + '</span>' +
                                 '</button>';
@@ -8340,23 +8447,20 @@ if ($hero_video_poster === '') {
 
             psFromList.querySelectorAll('button[data-ps-from]').forEach((btn) => {
                 btn.addEventListener('click', () => {
-                    if (!psFrom) {
-                        return;
-                    }
                     const id = String(btn.getAttribute('data-ps-from') || '');
                     if (!id) {
                         return;
                     }
-                    if ([...psFrom.options].some((opt) => String(opt.value) === id)) {
-                        psFrom.value = id;
-                        activeDepartureId = id;
-                        if (departureSelect && [...departureSelect.options].some((opt) => String(opt.value) === id)) {
-                            departureSelect.value = id;
-                        }
-                        syncCountryLabels();
-                        updatePsPickerLabels();
-                        closePsPicker();
+                    let next = getPsFromSelectedIds();
+                    if (next.includes(id)) {
+                        next = next.filter((item) => item !== id);
+                    } else if (next.length >= PS_FROM_MAX_SELECT) {
+                        return;
+                    } else {
+                        next = next.concat([id]);
                     }
+                    setPsFromSelectedIds(next);
+                    renderPsFromList(filtered, query);
                 });
             });
         }
@@ -8758,6 +8862,9 @@ if ($hero_video_poster === '') {
             }
             if (psPickerMode === 'from') {
                 psPicker.classList.add('is-mode-from');
+                if (psPickerTitle) {
+                    psPickerTitle.textContent = 'Звідки (до ' + PS_FROM_MAX_SELECT + ' міст)';
+                }
             } else {
                 psPicker.classList.remove('is-mode-from');
             }
@@ -8804,7 +8911,7 @@ if ($hero_video_poster === '') {
                 setPsRegionValue('', '');
             }
             if (!opts.keepDeparture) {
-                activeDepartureId = '';
+                setPsFromSelectedIds([]);
             }
             await refreshPsFromSelect({ keepCurrent: Boolean(opts.keepDeparture) });
             updatePsPickerLabels();
@@ -8820,10 +8927,9 @@ if ($hero_video_poster === '') {
             if (psRegionId) {
                 setPsRegionValue('', '');
             }
-            activeDepartureId = '';
+            setPsFromSelectedIds([]);
             if (psFrom) {
                 psFrom.innerHTML = '<option value="">' + esc(FROM_PLACEHOLDER_TEXT) + '</option>';
-                psFrom.value = '';
             }
             updatePsPickerLabels();
         }
@@ -8836,26 +8942,24 @@ if ($hero_video_poster === '') {
             const id = psCountryId && psCountryId.value ? psCountryId.value : activeCountryId;
             if (!id) {
                 psFrom.innerHTML = '<option value="">' + esc(FROM_PLACEHOLDER_TEXT) + '</option>';
-                psFrom.value = '';
-                activeDepartureId = '';
-                updatePsPickerLabels();
+                setPsFromSelectedIds([]);
                 return;
             }
-            const cities = await getDepartureCities(id);
-            const prevFromValue = psFrom.value || '';
+            const cities = filterDepartureCitiesForDestination(await getDepartureCities(id), id);
+            const prevIds = opts.keepCurrent
+                ? getPsFromSelectedIds()
+                : [];
             psFrom.innerHTML = '<option value="">' + esc(FROM_PLACEHOLDER_TEXT) + '</option>' + cities.map((c) =>
                 '<option value="' + escAttr(String(c.id)) + '">' + esc(c.name || '') + '</option>',
             ).join('');
-            const want = opts.keepCurrent
-                ? (prevFromValue || (departureSelect && departureSelect.value) || activeDepartureId)
-                : ((departureSelect && departureSelect.value) || activeDepartureId);
-            if (want && [...psFrom.options].some((o) => o.value === String(want))) {
-                psFrom.value = String(want);
+            const validPrev = prevIds.filter((cityId) =>
+                cities.some((city) => String(city.id) === String(cityId)),
+            );
+            if (validPrev.length) {
+                setPsFromSelectedIds(validPrev);
             } else {
-                psFrom.value = '';
+                setPsFromSelectedIds([]);
             }
-            activeDepartureId = psFrom.value || '';
-            updatePsPickerLabels();
         }
 
         function syncPsFormFromHero() {
@@ -8884,7 +8988,7 @@ if ($hero_video_poster === '') {
                 country: psCountryId && psCountryId.value ? psCountryId.value : activeCountryId,
                 region: psRegionId && psRegionId.value ? psRegionId.value : '',
                 hotel: psHotelId && psHotelId.value ? psHotelId.value : '',
-                from: psFrom && psFrom.value ? psFrom.value : '',
+                from: getPsFromSelectedIds().join(','),
                 d1: psD1 ? psD1.value.trim() : '',
                 d2: psD2 ? psD2.value.trim() : '',
                 n1: psN1 ? String(Math.max(1, parseInt(psN1.value, 10) || 6)) : '6',
@@ -8934,26 +9038,7 @@ if ($hero_video_poster === '') {
             }
         }
 
-
-        function stripLegacySearchQueryFromUrl() {
-            const u = new URL(window.location.href);
-            if (u.searchParams.get('search') !== '1') {
-                return;
-            }
-            u.searchParams.delete('search');
-            [
-                'from', 'd1', 'd2', 'n1', 'n2', 'adults', 'children', 'region', 'hotel_id', 'hotel',
-                'mode', 'from_city', 'date_from', 'date_till', 'night_from', 'night_till',
-                'adult', 'child', 'transport_type', 'country',
-            ].forEach((key) => u.searchParams.delete(key));
-            const next = u.pathname + (u.search ? u.search : '') + (window.location.hash || '');
-            window.history.replaceState({}, '', next);
-        }
-
         function readPopularSearchFromUrl() {
-            if (ANEX_CATALOG_LITE) {
-                return null;
-            }
             const u = new URL(window.location.href);
             if (u.searchParams.get('search') !== '1') {
                 return null;
@@ -9053,11 +9138,13 @@ if ($hero_video_poster === '') {
             if (psHotelId) {
                 setPsHotelValue(p.hotel || '', '');
             }
-            if (psFrom && p.from && [...psFrom.options].some((o) => o.value === String(p.from))) {
-                psFrom.value = String(p.from);
-                activeDepartureId = String(p.from);
-            } else if (psFrom) {
-                activeDepartureId = psFrom.value || '';
+            if (p.from) {
+                const fromIds = parseFromCityIds(p.from).filter((cityId) =>
+                    psFrom && [...psFrom.options].some((o) => o.value === String(cityId)),
+                );
+                setPsFromSelectedIds(fromIds);
+            } else {
+                setPsFromSelectedIds([]);
             }
             if (psD1) {
                 psD1.value = p.d1 || defaultSearchDatesPs().d1;
@@ -10075,10 +10162,16 @@ if ($hero_video_poster === '') {
                 }
             }
 
-            /* Раунд 1: паралельно перші вікна + основний діапазон ночей */
+            /* Раунд 1: паралельно перші вікна + основний діапазон ночей (до 3 міст виїзду) */
             const round1Wins = wins.slice(0, 2);
+            const fromCityIds = parseFromCityIds(params.from);
+            const fromIdsForSearch = fromCityIds.length ? fromCityIds : [''];
             const round1Batches = await Promise.all(
-                round1Wins.map((win) => searchOffers(() => buildQuery(win, n1, n2, params.from))),
+                round1Wins.flatMap((win) =>
+                    fromIdsForSearch.map((fromId) =>
+                        searchOffers(() => buildQuery(win, n1, n2, fromId || null)),
+                    ),
+                ),
             );
             round1Batches.forEach((offers, idx) => {
                 if (!offers.length) {
@@ -10091,14 +10184,17 @@ if ($hero_video_poster === '') {
             });
             flushSearchResults(true);
             if (!enoughHotels() && hotels.length < SEARCH_MIN_SHOW_HOTELS) {
-                for (const win of round1Wins) {
-                    const offers = await searchOffers(() => buildQuery(win, Math.max(1, n1 - 2), n2 + 2, params.from));
-                    if (offers.length) {
+                outer: for (const win of round1Wins) {
+                    for (const fromId of fromIdsForSearch) {
+                        const offers = await searchOffers(() => buildQuery(win, Math.max(1, n1 - 2), n2 + 2, fromId || null));
+                        if (!offers.length) {
+                            continue;
+                        }
                         mergeHotels(offersToHotels(offers));
                         usedFallback = true;
                         flushSearchResults(true);
                         if (enoughHotels() || hotels.length >= SEARCH_MIN_SHOW_HOTELS) {
-                            break;
+                            break outer;
                         }
                     }
                 }
@@ -10159,7 +10255,7 @@ if ($hero_video_poster === '') {
         }
 
         function initPopularSearchFlow() {
-            if (ANEX_CATALOG_LITE || DETAIL_TOUR_KEY || !popularSearchForm) {
+            if (DETAIL_TOUR_KEY || !popularSearchForm) {
                 return;
             }
             ensurePsPickerPortal();
@@ -10191,11 +10287,12 @@ if ($hero_video_poster === '') {
 
             if (psFrom) {
                 psFrom.addEventListener('change', () => {
-                    activeDepartureId = psFrom.value;
+                    if (psFrom.value) {
+                        setPsFromSelectedIds([psFrom.value]);
+                    }
                     if (departureSelect) {
                         departureSelect.value = psFrom.value;
                     }
-                    updatePsPickerLabels();
                 });
             }
 
@@ -10694,12 +10791,12 @@ if ($hero_video_poster === '') {
         function sortDepartureCities(cities) {
             const list = [...(cities || [])];
             list.sort((left, right) => {
-                const leftId = String(left.id || '');
-                const rightId = String(right.id || '');
-                const leftIndex = DEPARTURE_PRIORITY.indexOf(leftId);
-                const rightIndex = DEPARTURE_PRIORITY.indexOf(rightId);
-                if (leftIndex >= 0 || rightIndex >= 0) {
-                    return (leftIndex < 0 ? 999 : leftIndex) - (rightIndex < 0 ? 999 : rightIndex);
+                const groupSort = sortDepartureGroupNames(
+                    departureCountryLabel(left),
+                    departureCountryLabel(right),
+                );
+                if (groupSort !== 0) {
+                    return groupSort;
                 }
                 return String(left.name || '').localeCompare(String(right.name || ''), 'uk');
             });
@@ -10753,14 +10850,28 @@ if ($hero_video_poster === '') {
                 return;
             }
 
-            if (!activeDepartureId || !cities.some((city) => String(city.id) === String(activeDepartureId))) {
-                activeDepartureId = String(cities[0].id);
+            const filtered = filterDepartureCitiesForDestination(cities, countryId);
+            if (!filtered.length) {
+                activeDepartureId = '';
+                departureSelect.innerHTML = '<option value="">Немає доступних міст виїзду</option>';
+                departureSelect.disabled = true;
+                setPsFromSelectedIds([]);
+                syncCountryLabels();
+                return;
             }
 
-            departureSelect.innerHTML = cities.map((city) => {
+            const currentIds = getPsFromSelectedIds().filter((cityId) =>
+                filtered.some((city) => String(city.id) === String(cityId)),
+            );
+            if (!currentIds.length) {
+                setPsFromSelectedIds([]);
+            }
+
+            departureSelect.innerHTML = filtered.map((city) => {
                 return '<option value="' + escAttr(city.id) + '">' + esc(city.name) + '</option>';
             }).join('');
-            departureSelect.value = activeDepartureId;
+            departureSelect.value = getPsFromSelectedIds()[0] || '';
+            activeDepartureId = departureSelect.value;
             departureSelect.disabled = false;
             syncCountryLabels();
         }
@@ -11887,12 +11998,13 @@ if ($hero_video_poster === '') {
 
         if (departureSelect) {
             departureSelect.addEventListener('change', async (event) => {
-                activeDepartureId = event.target.value || '';
-                syncCountryLabels();
-                if (psFrom && activeDepartureId && [...psFrom.options].some((o) => o.value === String(activeDepartureId))) {
-                    psFrom.value = String(activeDepartureId);
+                const nextId = event.target.value || '';
+                if (nextId) {
+                    setPsFromSelectedIds([nextId]);
+                } else {
+                    setPsFromSelectedIds([]);
                 }
-                updatePsPickerLabels();
+                syncCountryLabels();
             });
         }
 
@@ -12478,7 +12590,7 @@ if ($hero_video_poster === '') {
                     '<section class="exc-head">' +
                         '<nav class="tour-breadcrumbs" aria-label="Навігація">' +
                             '<a href="' + escAttr(SITE_HOME_URL) + '">Головна</a><span>/</span>' +
-                            '<a href="' + escAttr(CATALOG_BASE_URL) + '?mode=excursion">Екскурсійні тури</a><span>/</span>' +
+                            '<a href="' + escAttr(CATALOG_BASE_URL) + '?mode=excursion&search=1">Екскурсійні тури</a><span>/</span>' +
                             '<span>' + esc(title) + '</span>' +
                         '</nav>' +
                         '<h1 class="exc-head-title">' + esc(title) + '</h1>' +
@@ -12938,7 +13050,7 @@ if ($hero_video_poster === '') {
                     return;
                 }
                 const catalogLink = String(CATALOG_BASE_URL || SITE_HOME_URL || '/');
-                const catalogHref = catalogLink + (catalogLink.includes('?') ? '&' : '?') + 'mode=excursion';
+                const catalogHref = catalogLink + (catalogLink.includes('?') ? '&' : '?') + 'mode=excursion&search=1';
                 const emptyBlock = (bodyHtml) => '' +
                     '<section class="exc-pop-sec">' +
                         '<h2 class="exc-sec-h">Популярні екскурсії</h2>' +
@@ -13139,11 +13251,7 @@ if ($hero_video_poster === '') {
             PRESET_SEARCH && PRESET_SEARCH.countryId ? PRESET_SEARCH.countryId : activeCountryId,
             false
         ).then(() => {
-            if (!ANEX_CATALOG_LITE) {
-                initPopularSearchFlow();
-            } else {
-                stripLegacySearchQueryFromUrl();
-            }
+            initPopularSearchFlow();
         });
         void loadDirections();
 

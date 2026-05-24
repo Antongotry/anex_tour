@@ -307,7 +307,8 @@ function anex_catalog_search_redirect_script( string $target_url, string $excurs
         url.searchParams.set("search", "1");
         var countryId = q("ps-country-id");
         var regionId = q("ps-region-id");
-        var fromCity = q("ps-from");
+        var fromIdsEl = document.getElementById("ps-from-ids");
+        var fromCity = fromIdsEl && fromIdsEl.value ? fromIdsEl.value : q("ps-from");
         var d1 = q("ps-d1");
         var d2 = q("ps-d2");
         var n1 = q("ps-n1") || "6";
