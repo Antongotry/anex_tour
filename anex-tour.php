@@ -135,6 +135,36 @@ add_action( 'parse_request', static function (): void {
 	exit;
 }, 1 );
 
+/**
+ * П.1: старі посилання /katalog/?search=1 — редірект без search (country_id лишається для вкладки).
+ */
+add_action(
+	'template_redirect',
+	static function (): void {
+		if ( ! function_exists( 'anex_is_katalog_landing_page' ) || ! anex_is_katalog_landing_page() ) {
+			return;
+		}
+		if ( ! isset( $_GET['search'] ) || '1' !== (string) $_GET['search'] ) {
+			return;
+		}
+		$country_id = '';
+		if ( ! empty( $_GET['country_id'] ) ) {
+			$country_id = sanitize_text_field( wp_unslash( (string) $_GET['country_id'] ) );
+		} elseif ( ! empty( $_GET['country'] ) ) {
+			$country_id = sanitize_text_field( wp_unslash( (string) $_GET['country'] ) );
+		}
+		$target = function_exists( 'anex_get_catalog_page_permalink' )
+			? anex_get_catalog_page_permalink( [] )
+			: home_url( '/katalog/' );
+		if ( '' !== $country_id ) {
+			$target = add_query_arg( 'country_id', $country_id, $target );
+		}
+		wp_safe_redirect( $target, 301 );
+		exit;
+	},
+	5
+);
+
 if ( ! $anex_bundled_api_loaded ) {
 	add_action(
 		'admin_notices',
