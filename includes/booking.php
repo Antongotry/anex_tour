@@ -18,6 +18,7 @@ function ittour_lab_booking_fields(): array {
         'tour_room'  => 'Номер',
         'tour_meal'  => 'Харчування',
         'tour_price' => 'Вартість',
+        'tour_operator' => 'Туроператор',
         'message'    => 'Коментар',
         'page_url'   => 'Сторінка',
     ];
@@ -37,6 +38,7 @@ function ittour_lab_ajax_booking(): void {
     $tour_room  = sanitize_text_field( wp_unslash( (string) ( $_POST['tour_room']  ?? '' ) ) );
     $tour_meal  = sanitize_text_field( wp_unslash( (string) ( $_POST['tour_meal']  ?? '' ) ) );
     $tour_price = sanitize_text_field( wp_unslash( (string) ( $_POST['tour_price'] ?? '' ) ) );
+    $tour_operator = sanitize_text_field( wp_unslash( (string) ( $_POST['tour_operator'] ?? '' ) ) );
     $message    = sanitize_textarea_field( wp_unslash( (string) ( $_POST['message'] ?? '' ) ) );
     $page_url   = esc_url_raw( wp_unslash( (string) ( $_POST['page_url'] ?? '' ) ) );
 
@@ -58,6 +60,7 @@ function ittour_lab_ajax_booking(): void {
         'tour_room'   => $tour_room,
         'tour_meal'   => $tour_meal,
         'tour_price'  => $tour_price,
+        'tour_operator' => $tour_operator,
         'message'     => $message,
         'page_url'    => $page_url,
         'ip'          => sanitize_text_field( (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ) ),
@@ -71,7 +74,18 @@ function ittour_lab_ajax_booking(): void {
 
     // Email notification
     $admin_email = get_option( 'admin_email' );
-    $notify_email = get_option( 'anex_notify_email', $admin_email );
+    $notify_email = sanitize_email( (string) get_option( 'anex_notify_email', $admin_email ) );
+    $recipients = array_values(
+        array_unique(
+            array_filter(
+                [
+                    sanitize_email( (string) $admin_email ),
+                    $notify_email,
+                ],
+                'is_email'
+            )
+        )
+    );
     $subject = 'Нова заявка на тур — ' . ( $tour_title ?: $tour_key );
     $lines   = [ 'Нова заявка з сайту ' . get_bloginfo( 'name' ) . ':', '' ];
     foreach ( ittour_lab_booking_fields() as $key => $label ) {
@@ -80,7 +94,7 @@ function ittour_lab_ajax_booking(): void {
     $lines[] = ''; $lines[] = 'ID заявки: ' . $booking['id'];
     $headers = [ 'From: ' . wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) . ' <' . $admin_email . '>' ];
     if ( $email !== '' ) $headers[] = 'Reply-To: ' . $name . ' <' . $email . '>';
-    $mailed = wp_mail( $notify_email, $subject, implode( "\n", $lines ), $headers );
+    $mailed = ! empty( $recipients ) ? wp_mail( implode( ',', $recipients ), $subject, implode( "\n", $lines ), $headers ) : false;
 
     $message = 'Заявку збережено. Менеджер звʼяжеться з вами найближчим часом.';
     if ( ! $mailed ) {

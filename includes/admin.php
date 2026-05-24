@@ -22,6 +22,21 @@ add_action( 'admin_menu', function () {
     add_submenu_page( 'anex-tour', 'Заявки',       'Заявки',       'manage_options', 'anex-tour-bookings',   'anex_admin_bookings_page' );
 } );
 
+add_action(
+    'admin_enqueue_scripts',
+    static function ( string $hook ): void {
+        if ( false === strpos( $hook, 'anex-' ) ) {
+            return;
+        }
+        wp_enqueue_style(
+            'anex-admin',
+            ANEX_PLUGIN_URL . 'assets/admin.css',
+            [],
+            ANEX_VERSION
+        );
+    }
+);
+
 /* ─────────────────────────────────────────────
    Settings save
 ───────────────────────────────────────────── */
@@ -122,8 +137,9 @@ function anex_admin_settings_page(): void {
     $token    = get_option( ITTOUR_LAB_TOKEN_OPTION, '' );
     $saved    = isset( $_GET['saved'] );
     ?>
-    <div class="wrap">
+    <div class="wrap anex-admin">
         <h1>⚙️ Anex Tour — Налаштування</h1>
+        <p class="anex-admin-lead">Керуйте API, контактами агентства, email для заявок та службовими slug сторінок плагіна з одного місця.</p>
 
         <?php if ( $saved ): ?><div class="notice notice-success is-dismissible"><p>Налаштування збережено.</p></div><?php endif; ?>
 
@@ -399,20 +415,21 @@ function anex_admin_bookings_page(): void {
         exit;
     }
     ?>
-    <div class="wrap">
+    <div class="wrap anex-admin">
         <h1>📋 Заявки на тури <span style="font-size:14px;color:#888">(<?php echo count( $bookings ); ?>)</span></h1>
+        <p class="anex-admin-lead">Кожна заявка зберігається в WordPress і дублюється на email адміністратора сайту. Експорт CSV доступний нижче.</p>
         <p>
             <a href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin.php?page=anex-tour-bookings&export=1' ), 'anex_export' ) ); ?>"
-               class="button">⬇ Завантажити CSV</a>
+               class="button button-primary">⬇ Завантажити CSV</a>
         </p>
         <?php if ( empty( $bookings ) ): ?>
             <p>Заявок ще немає.</p>
         <?php else: ?>
-        <table class="widefat striped">
+        <table class="widefat striped anex-admin-table">
             <thead>
                 <tr>
                     <th>Дата</th><th>Імʼя</th><th>Телефон</th><th>Email</th>
-                    <th>Тур</th><th>Дата виїзду</th><th>Ціна</th><th>Коментар</th>
+                    <th>Тур</th><th>Виїзд</th><th>Дата виїзду</th><th>Ціна</th><th>Коментар</th><th>Сторінка</th>
                 </tr>
             </thead>
             <tbody>
@@ -423,9 +440,15 @@ function anex_admin_bookings_page(): void {
                     <td><a href="tel:<?php echo esc_attr( preg_replace( '/[^\d+]/', '', $b['phone'] ?? '' ) ); ?>"><?php echo esc_html( $b['phone'] ?? '' ); ?></a></td>
                     <td><?php echo esc_html( $b['email'] ?? '' ); ?></td>
                     <td><?php echo esc_html( $b['tour_title'] ?? '' ); ?></td>
+                    <td><?php echo esc_html( $b['tour_city'] ?? '' ); ?></td>
                     <td><?php echo esc_html( $b['tour_date'] ?? '' ); ?></td>
                     <td style="font-weight:700;color:#1a5dc8"><?php echo esc_html( $b['tour_price'] ?? '' ); ?></td>
                     <td><?php echo esc_html( $b['message'] ?? '' ); ?></td>
+                    <td>
+                        <?php if ( ! empty( $b['page_url'] ) ) : ?>
+                            <a href="<?php echo esc_url( $b['page_url'] ); ?>" target="_blank" rel="noopener">Відкрити</a>
+                        <?php endif; ?>
+                    </td>
                 </tr>
                 <?php endforeach; ?>
             </tbody>

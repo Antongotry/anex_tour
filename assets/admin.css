@@ -1,0 +1,120 @@
+/* Scoped styles for Anex Tour plugin pages in wp-admin. */
+
+.anex-admin {
+    --anex-admin-accent: #003087;
+    --anex-admin-accent-soft: rgba(0, 48, 135, 0.08);
+    --anex-admin-border: #d7dfeb;
+    --anex-admin-surface: #ffffff;
+    --anex-admin-surface-alt: #f6f8fb;
+    --anex-admin-text: #1f2937;
+    --anex-admin-muted: #50575e;
+    max-width: 1180px;
+}
+
+.anex-admin h1,
+.anex-admin h2,
+.anex-admin h3 {
+    color: var(--anex-admin-accent);
+}
+
+.anex-admin .anex-admin-lead {
+    max-width: 860px;
+    margin: 10px 0 18px;
+    color: var(--anex-admin-muted);
+    font-size: 14px;
+    line-height: 1.6;
+}
+
+.anex-admin .widefat,
+.anex-admin .form-table,
+.anex-admin-form {
+    border: 1px solid var(--anex-admin-border);
+    border-radius: 16px;
+    background: var(--anex-admin-surface);
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.05);
+    overflow: hidden;
+}
+
+.anex-admin .form-table th,
+.anex-admin .widefat th {
+    color: var(--anex-admin-text);
+    font-weight: 700;
+}
+
+.anex-admin .widefat td,
+.anex-admin .widefat th {
+    padding: 14px 16px;
+}
+
+.anex-admin .widefat thead th {
+    background: var(--anex-admin-surface-alt);
+}
+
+.anex-admin .button.button-primary {
+    background: var(--anex-admin-accent);
+    border-color: var(--anex-admin-accent);
+}
+
+.anex-admin .button.button-primary:hover,
+.anex-admin .button.button-primary:focus {
+    background: #00276d;
+    border-color: #00276d;
+}
+
+.anex-admin-form {
+    padding: 18px;
+}
+
+.anex-admin-form h2 {
+    margin-top: 0;
+}
+
+.anex-admin .regular-text,
+.anex-admin .large-text,
+.anex-admin input[type="text"],
+.anex-admin input[type="password"],
+.anex-admin input[type="email"],
+.anex-admin textarea {
+    border-color: #cbd5e1;
+}
+
+.anex-admin .regular-text:focus,
+.anex-admin .large-text:focus,
+.anex-admin input[type="text"]:focus,
+.anex-admin input[type="password"]:focus,
+.anex-admin input[type="email"]:focus,
+.anex-admin textarea:focus {
+    border-color: var(--anex-admin-accent);
+    box-shadow: 0 0 0 1px var(--anex-admin-accent);
+}
+
+.anex-admin .notice {
+    border-radius: 12px;
+}
+
+.anex-admin-log {
+    border-radius: 16px;
+    background: #111827;
+    color: #dbe4f0;
+    padding: 16px;
+    line-height: 1.55;
+    font-size: 12px;
+}
+
+.anex-admin .description,
+.anex-admin p,
+.anex-admin td {
+    color: var(--anex-admin-text);
+}
+
+.anex-admin .description {
+    color: var(--anex-admin-muted);
+}
+
+.anex-admin a {
+    color: var(--anex-admin-accent);
+}
+
+.anex-admin-table td strong {
+    color: var(--anex-admin-accent);
+}

@@ -98,12 +98,13 @@ function anex_hotel_sync_admin_page(): void {
 	$default      = implode( ', ', anex_hotel_default_country_ids() );
 	$sync_photos  = anex_hotel_sync_photos_enabled();
 	?>
-	<div class="wrap">
-		<h1>Синхронізація готелів</h1>
-		<p>Картки: <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . ANEX_HOTEL_POST_TYPE ) ); ?>"><strong>Anex Tour → Готелі</strong></a> — колонка «Прев’ю» показує <strong>завантажене</strong> фото (після кнопки нижче).</p>
-		<p class="description">Якщо в sync мало готелів (3–11 на країну) — це ліміт одного search-list на країну, не баг. Фото: спочатку з офера, інакше <code>hotel/{id}/hotel-images</code>.</p>
+		<div class="wrap anex-admin">
+			<h1>Синхронізація готелів</h1>
+			<p class="anex-admin-lead">Оновлення каталогу готелів, статистики та фото. Інтерфейс не змінює глобальний `wp-admin` і стилізований тільки для сторінок Anex Tour.</p>
+			<p>Картки: <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . ANEX_HOTEL_POST_TYPE ) ); ?>"><strong>Anex Tour → Готелі</strong></a> — колонка «Прев’ю» показує <strong>завантажене</strong> фото (після кнопки нижче).</p>
+			<p class="description">Якщо в sync мало готелів (3–11 на країну) — це ліміт одного search-list на країну, не баг. Фото: спочатку з офера, інакше <code>hotel/{id}/hotel-images</code>.</p>
 
-		<table class="widefat" style="max-width:720px;margin:1em 0">
+			<table class="widefat anex-admin-table" style="max-width:720px;margin:1em 0">
 			<tbody>
 				<tr><th>Всього готелів у WP</th><td id="anex-stats-total"><strong><?php echo (int) $stats['total']; ?></strong></td></tr>
 				<tr><th>З URL прев’ю (meta)</th><td id="anex-stats-url"><?php echo (int) $stats['with_thumb_url']; ?></td></tr>
@@ -113,7 +114,7 @@ function anex_hotel_sync_admin_page(): void {
 			</tbody>
 		</table>
 
-		<form method="post" style="max-width:720px;margin:1em 0;padding:12px;background:#fff;border:1px solid #c3c4c7">
+			<form method="post" class="anex-admin-form" style="max-width:720px;margin:1em 0">
 			<?php wp_nonce_field( 'anex_hotel_sync_settings' ); ?>
 			<h2>Whitelist країн (IT-Tour country_id)</h2>
 			<p><input type="text" class="large-text" id="anex_country_ids" name="anex_country_ids" value="<?php echo esc_attr( implode( ', ', $ids ) ); ?>" /></p>
@@ -135,7 +136,7 @@ function anex_hotel_sync_admin_page(): void {
 		</p>
 		<p id="anex-photo-progress" class="description" style="max-width:720px"></p>
 
-		<table class="widefat" style="max-width:720px">
+			<table class="widefat anex-admin-table" style="max-width:720px">
 			<tbody>
 				<tr><th>Статус</th><td id="anex-st-status"><?php echo esc_html( (string) ( $state['status'] ?? 'idle' ) ); ?></td></tr>
 				<tr><th>Поточна країна</th><td id="anex-st-country"><?php echo esc_html( (string) ( $state['current_country'] ?? '' ) ); ?></td></tr>
@@ -146,7 +147,7 @@ function anex_hotel_sync_admin_page(): void {
 		</table>
 
 		<h2>Лог</h2>
-		<pre id="anex-sync-log" style="max-width:900px;max-height:360px;overflow:auto;background:#1e1e1e;color:#d4d4d4;padding:12px;font-size:12px;line-height:1.5"><?php
+			<pre id="anex-sync-log" class="anex-admin-log" style="max-width:900px;max-height:360px;overflow:auto"><?php
 			$log = $state['log'] ?? [];
 			if ( is_array( $log ) ) {
 				echo esc_html( implode( "\n", $log ) );

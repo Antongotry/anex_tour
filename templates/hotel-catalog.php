@@ -4073,6 +4073,25 @@ if ($hero_video_poster === '') {
             color: #c41e3a;
         }
 
+        .booking-success-card {
+            display: grid;
+            gap: 8px;
+            margin-top: 12px;
+            padding: 16px 18px;
+            border: 1px solid rgba(13, 122, 63, 0.18);
+            border-radius: 14px;
+            background: rgba(13, 122, 63, 0.07);
+            color: #0d7a3f;
+        }
+
+        .booking-success-card[hidden] {
+            display: none !important;
+        }
+
+        .booking-success-card strong {
+            font-size: 15px;
+        }
+
         .detail-backdrop {
             position: fixed;
             inset: 0;
@@ -6054,6 +6073,56 @@ if ($hero_video_poster === '') {
             display: none !important;
         }
 
+        .catalog-lite-note {
+            display: none;
+            margin-top: 18px;
+            padding: 18px 20px;
+            border: 1px solid rgba(0, 48, 135, 0.14);
+            border-radius: 18px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(241, 246, 255, 0.98));
+            box-shadow: 0 14px 34px rgba(18, 36, 74, 0.08);
+        }
+
+        body.anex-catalog-lite .catalog-lite-note {
+            display: grid;
+            gap: 12px;
+        }
+
+        .catalog-lite-note strong {
+            display: block;
+            color: #003087;
+            font-size: 1.05rem;
+        }
+
+        .catalog-lite-note p {
+            margin: 0;
+            color: #50575e;
+        }
+
+        .catalog-lite-note-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .catalog-lite-note-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 44px;
+            padding: 10px 16px;
+            border-radius: 999px;
+            background: #003087;
+            color: #fff !important;
+            font-weight: 800;
+            text-decoration: none !important;
+        }
+
+        .catalog-lite-note-link.catalog-lite-note-link--ghost {
+            background: rgba(0, 48, 135, 0.08);
+            color: #003087 !important;
+        }
+
         .ps-picker-item,
         .showcase-tab,
         .country-pill {
@@ -6416,6 +6485,16 @@ if ($hero_video_poster === '') {
                         Підберемо ідеальний відпочинок під ваш бюджет.
                         Оберіть країну й місто виїзду — покажемо актуальні готелі та ціни.
                     </p>
+                    <div class="catalog-lite-note">
+                        <div>
+                            <strong>Каталог працює як вітрина актуальних напрямків</strong>
+                            <p>Ми прибрали важкий пошук із цієї сторінки. Обирайте країну нижче, переглядайте готелі та залишайте заявку на конкретну пропозицію.</p>
+                        </div>
+                        <div class="catalog-lite-note-actions">
+                            <a class="catalog-lite-note-link" href="#offers-section">Перейти до добірки</a>
+                            <a class="catalog-lite-note-link catalog-lite-note-link--ghost" href="#popular-directions-title">Популярні напрямки</a>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="hero-search-card hero-search-card--catalog">
@@ -6452,11 +6531,11 @@ if ($hero_video_poster === '') {
                             </div>
                             <div class="ps-field ps-field--narrow">
                                 <label class="ps-label" for="ps-n1">Ночей від</label>
-                                <input id="ps-n1" type="number" min="1" max="28" placeholder="6">
+                                <input id="ps-n1" type="text" inputmode="numeric" maxlength="2" placeholder="6">
                             </div>
                             <div class="ps-field ps-field--narrow">
                                 <label class="ps-label" for="ps-n2">Ночей до</label>
-                                <input id="ps-n2" type="number" min="1" max="30" placeholder="8">
+                                <input id="ps-n2" type="text" inputmode="numeric" maxlength="2" placeholder="8">
                             </div>
                             <div class="ps-field ps-field--narrow">
                                 <label class="ps-label" for="ps-adults">Дорослих</label>
@@ -7052,6 +7131,10 @@ if ($hero_video_poster === '') {
                 </label>
                 <button type="submit" class="booking-submit">Відправити заявку</button>
                 <p class="booking-status" id="booking-status"></p>
+                <div class="booking-success-card" id="booking-success-card" hidden>
+                    <strong>Заявку прийнято</strong>
+                    <span>Менеджер перевірить актуальність пропозиції та звʼяжеться з вами найближчим часом.</span>
+                </div>
             </form>
         </div>
     </div>
@@ -7082,7 +7165,7 @@ if ($hero_video_poster === '') {
         const POPULAR_SEARCH_BATCH_HOTELS = 24;
         const EXCURSION_DISPLAY_CAP = 48;
         const COUNTRY_PLACEHOLDER_TEXT = 'Всі країни';
-        const FROM_PLACEHOLDER_TEXT = 'Всі міста';
+        const FROM_PLACEHOLDER_TEXT = 'Оберіть до 3 міст';
         const DETAIL_TOUR_KEY = <?php echo wp_json_encode($detail_tour_key); ?>;
         const DETAIL_HOTEL_ID = <?php echo wp_json_encode($detail_hotel_id); ?>;
         const DETAIL_BASE_URL = <?php echo wp_json_encode($detail_back_url); ?>;
@@ -7239,6 +7322,7 @@ if ($hero_video_poster === '') {
         const bookingClose = document.getElementById('booking-close');
         const bookingForm = document.getElementById('booking-form');
         const bookingStatus = document.getElementById('booking-status');
+        const bookingSuccessCard = document.getElementById('booking-success-card');
         const bookingTourName = document.getElementById('booking-tour-name');
         const bookingTourKey = document.getElementById('booking-tour-key');
         const bookingTourTitle = document.getElementById('booking-tour-title');
@@ -7417,6 +7501,22 @@ if ($hero_video_poster === '') {
             return false;
         }
 
+        function transportOnlyOffers(offers) {
+            return (offers || []).filter((offer) => offerHasTransport(offer));
+        }
+
+        function stayOnlyOffers(offers) {
+            return (offers || []).filter((offer) => !offerHasTransport(offer));
+        }
+
+        function hasTransportOffers(offers) {
+            return transportOnlyOffers(offers).length > 0;
+        }
+
+        function transportIncludedLabel(offer) {
+            return offerHasTransport(offer) ? 'Пакетний тур' : 'Лише проживання';
+        }
+
         function minPriceWithTransport(cards) {
             const prices = (cards || [])
                 .filter((card) => card && card.hasTransport === true)
@@ -7557,7 +7657,9 @@ if ($hero_video_poster === '') {
                     }
                     const data = unwrapApiPayload(payload.data && payload.data.data);
                     if (apiError(data)) {
-                        throw new Error(apiError(data));
+                        const apiIssue = new Error(apiError(data));
+                        apiIssue.code = apiErrorCode(data);
+                        throw apiIssue;
                     }
                     if (useCache) {
                         const ttl = apiCacheTtl(path);
@@ -7760,7 +7862,7 @@ if ($hero_video_poster === '') {
 
         function activeDepartureName() {
             if (!activeDepartureId) {
-                return 'Автопідбір міста виїзду';
+                return 'Місто виїзду не обрано';
             }
             const cities = departureCache.get(activeCountryId) || [];
             const city = cities.find((item) => String(item.id) === String(activeDepartureId));
@@ -7810,6 +7912,35 @@ if ($hero_video_poster === '') {
             const b = new Date(a);
             b.setDate(b.getDate() + 7);
             return { d1: formatApiDate(a), d2: formatApiDate(b) };
+        }
+
+        function bindDateMask(input) {
+            if (!input) {
+                return;
+            }
+            input.addEventListener('input', () => {
+                let value = String(input.value || '').replace(/\D/g, '').slice(0, 8);
+                if (value.length >= 5) {
+                    value = value.slice(0, 2) + '.' + value.slice(2, 4) + '.' + value.slice(4);
+                } else if (value.length >= 3) {
+                    value = value.slice(0, 2) + '.' + value.slice(2);
+                }
+                input.value = value;
+            });
+        }
+
+        function bindShortNumericMask(input, maxDigits, fallback) {
+            if (!input) {
+                return;
+            }
+            input.addEventListener('input', () => {
+                input.value = String(input.value || '').replace(/\D/g, '').slice(0, maxDigits);
+            });
+            input.addEventListener('blur', () => {
+                if (!input.value) {
+                    input.value = fallback;
+                }
+            });
         }
 
         function pickHotelThumbFromSearch(h, firstOffer) {
@@ -7866,8 +7997,7 @@ if ($hero_video_poster === '') {
 
         function hotelMinPriceUAH(h, adults, children) {
             const offers = h.offers || [];
-            const withTransport = offers.filter((o) => offerHasTransport(o));
-            const pool = withTransport.length ? withTransport : offers;
+            const pool = transportOnlyOffers(offers);
             let min = Infinity;
             pool.forEach((o) => {
                 const p = offerPriceForTravelers(o, adults, children);
@@ -7878,7 +8008,7 @@ if ($hero_video_poster === '') {
             if (min !== Infinity) {
                 return min;
             }
-            if (h.min_price != null && Number.isFinite(Number(h.min_price))) {
+            if (h.min_price != null && Number.isFinite(Number(h.min_price)) && Number(h.min_price) > 0) {
                 return Number(h.min_price);
             }
             return null;
@@ -8254,13 +8384,10 @@ if ($hero_video_poster === '') {
             const busOnlyDestination = BUS_DESTINATION_COUNTRIES.has(destToken);
             return (cities || []).filter((city) => {
                 const depCountry = departureCountryLabel(city);
-                if (depCountry !== 'Україна') {
-                    return true;
+                if (depCountry === 'Україна') {
+                    return busOnlyDestination;
                 }
-                if (busOnlyDestination) {
-                    return true;
-                }
-                return citySupportsAirDeparture(city);
+                return true;
             });
         }
 
@@ -9126,9 +9253,9 @@ if ($hero_video_poster === '') {
             const modeInput = document.getElementById('ps-search-mode');
             const currentUrlMode = new URL(window.location.href).searchParams.get('mode');
             const currentMode = String((modeInput && modeInput.value) || currentUrlMode || '').trim();
-            u.searchParams.set('search', '1');
             u.searchParams.set('country_id', params.country);
             u.searchParams.delete('country');
+            u.searchParams.delete('search');
             if (currentMode === 'excursion') {
                 u.searchParams.set('mode', 'excursion');
             } else {
@@ -9180,7 +9307,15 @@ if ($hero_video_poster === '') {
                 return null;
             }
             const u = new URL(window.location.href);
-            if (u.searchParams.get('search') !== '1') {
+            const legacySearch = u.searchParams.get('search') === '1';
+            const hasSearchPayload = legacySearch || [
+                'from', 'd1', 'd2', 'n1', 'n2', 'adults', 'children',
+                'region', 'hotel_id', 'hotel',
+            ].some((key) => {
+                const value = u.searchParams.get(key);
+                return value != null && String(value).trim() !== '';
+            });
+            if (!hasSearchPayload) {
                 return null;
             }
             return {
@@ -9580,7 +9715,8 @@ if ($hero_video_poster === '') {
             const winStub = { date_from: (psD1 && psD1.value.trim()) || '', date_till: (psD2 && psD2.value.trim()) || '' };
             searchResultsList.innerHTML = (hotels || []).map((h) => {
                 const offers = h.offers || [];
-                const first = offers.find((o) => o && o.key) || offers[0] || {};
+                const visibleOffers = detailVisibleOffers(offers);
+                const first = visibleOffers.find((o) => o && o.key) || visibleOffers[0] || offers.find((o) => o && o.key) || offers[0] || {};
                 const mergedOffer = Object.assign({}, first, {
                     hotel_id: first.hotel_id || h.hotel_id,
                     hotel: first.hotel || h.hotel,
@@ -9589,14 +9725,14 @@ if ($hero_video_poster === '') {
                 const img = pickHotelThumbFromSearch(h, first);
                 const stars = starsMarkup(h.hotel_rating);
                 const minP = hotelMinPriceUAH(h, travelers.adults, travelers.children);
-                const mini = offers.slice(0, 4).map((o) => {
+                const mini = visibleOffers.slice(0, 4).map((o) => {
                     const df = o.date_from ? formatHumanDate(o.date_from) : '';
                     const pr = formatMoneyUAH(offerPriceForTravelers(o, travelers.adults, travelers.children));
-                    return df + ' · ' + pr;
+                    return df + ' · ' + pr + (detailOfferIsStayOnly(o) ? ' · лише проживання' : '');
                 }).join(' · ');
                 const card = cardFromOffer(mergedOffer, { date_from: first.date_from || winStub.date_from, date_till: first.date_till || first.date_to || winStub.date_till });
                 const href = detailUrl(card);
-                const dep = firstValue(first, ['from_city_name', 'from_city']) || (psFrom && psFrom.selectedOptions[0] ? psFrom.selectedOptions[0].textContent : '');
+                const dep = detailOfferCity(first, mergedOffer);
                 const firstNights = Number(first.duration || first.hnight || 0);
                 const fallbackN1 = Math.max(1, parseInt(psN1 && psN1.value, 10) || 0);
                 const fallbackN2 = Math.max(1, parseInt(psN2 && psN2.value, 10) || 0);
@@ -9620,9 +9756,9 @@ if ($hero_video_poster === '') {
                     '</div>' +
                     '<div class="search-result-side">' +
                     '<div class="search-result-stay">' + esc(nightsLabel) + '</div>' +
-                    '<div class="search-result-depart">' + esc(dep ? 'Виліт з ' + dep : '') + '</div>' +
+                    '<div class="search-result-depart">' + esc(dep ? 'Виїзд з ' + dep : '') + '</div>' +
                     '<div class="search-result-price">' + esc(minP != null ? 'від ' + formatMoneyUAH(minP) : 'Ціну уточнюємо') + '</div>' +
-                    '<div class="search-result-price-note">' + esc(travelersLabel) + '</div>' +
+                    '<div class="search-result-price-note">' + esc(minP != null ? travelersLabel : (visibleOffers.length ? 'Є лише варіанти проживання без транспорту' : travelersLabel)) + '</div>' +
                     '<a class="search-result-cta" href="' + escAttr(href) + '" data-key="' + escAttr(card.key) + '" data-hotel-id="' + escAttr(card.hotelId) + '">Переглянути деталі</a>' +
                     '</div>' +
                     '</article>';
@@ -10431,6 +10567,10 @@ if ($hero_video_poster === '') {
             }
             ensurePsPickerPortal();
             hardenPickerInputsVisual();
+            bindDateMask(psD1);
+            bindDateMask(psD2);
+            bindShortNumericMask(psN1, 2, '6');
+            bindShortNumericMask(psN2, 2, '8');
             const dates = defaultSearchDatesPs();
             if (psD1 && !psD1.value) {
                 psD1.value = dates.d1;
@@ -10797,7 +10937,11 @@ if ($hero_video_poster === '') {
             setField('bos-operator-row', 'bos-operator', 'booking-tour-operator', od.operator || '');
 
             if (bookingStatus) {
+                bookingStatus.classList.remove('is-success', 'is-error');
                 bookingStatus.textContent = '';
+            }
+            if (bookingSuccessCard) {
+                bookingSuccessCard.hidden = true;
             }
             bookingBackdrop.hidden = false;
         }
@@ -10805,6 +10949,9 @@ if ($hero_video_poster === '') {
         function closeBookingForm() {
             if (bookingBackdrop) {
                 bookingBackdrop.hidden = true;
+            }
+            if (bookingSuccessCard) {
+                bookingSuccessCard.hidden = true;
             }
         }
 
@@ -11000,7 +11147,7 @@ if ($hero_video_poster === '') {
             }).join('');
             countrySelect.value = activeCountryId;
             if (heroSearchCaption) {
-                heroSearchCaption.textContent = 'У полі вибору доступно ' + ALL_COUNTRIES.length + ' країн. Основний вибір — у формі пошуку в блоці вище.';
+                heroSearchCaption.textContent = 'У добірці доступно ' + ALL_COUNTRIES.length + ' країн. Основний сценарій — вибір країни у вкладках та картках нижче.';
             }
         }
 
@@ -11038,11 +11185,11 @@ if ($hero_video_poster === '') {
                 setPsFromSelectedIds([]);
             }
 
-            departureSelect.innerHTML = filtered.map((city) => {
+            departureSelect.innerHTML = '<option value="">Оберіть місто виїзду</option>' + filtered.map((city) => {
                 return '<option value="' + escAttr(city.id) + '">' + esc(city.name) + '</option>';
             }).join('');
             departureSelect.value = getPsFromSelectedIds()[0] || '';
-            activeDepartureId = departureSelect.value;
+            activeDepartureId = departureSelect.value || '';
             departureSelect.disabled = false;
             syncCountryLabels();
         }
@@ -11108,7 +11255,9 @@ if ($hero_video_poster === '') {
 
         function renderCards(payload) {
             if (windowPill) {
-                windowPill.innerHTML = 'Найближче вікно: <strong>' + esc(formatHumanDate(payload.window.date_from)) + ' - ' + esc(formatHumanDate(payload.window.date_till)) + '</strong>';
+                const windowStart = payload && payload.window ? payload.window.date_from : '';
+                const windowEnd = payload && payload.window ? (payload.window.date_till || payload.window.date_from) : '';
+                windowPill.innerHTML = 'Найближче вікно: <strong>' + esc(formatHumanDate(windowStart)) + ' - ' + esc(formatHumanDate(windowEnd)) + '</strong>';
             }
 
             if (!track) {
@@ -11124,6 +11273,8 @@ if ($hero_video_poster === '') {
                 const mediaClass = card.image ? 'hotel-media' : 'hotel-media no-image';
                 const duration = card.duration ? card.duration + ' ночей' : 'Наявність уточнюється';
                 const url = detailUrl(card);
+                const transportLine = transportIncludedLabel(card) + (card.departureName ? ' • ' + card.departureName : '');
+                const locationLine = [card.country, card.region].filter(Boolean).join(', ');
 
                 return '' +
                     '<article class="hotel-card">' +
@@ -11134,12 +11285,13 @@ if ($hero_video_poster === '') {
                         '<div class="hotel-body">' +
                             '<div class="stars">' + esc(starsMarkup(card.rating)) + '</div>' +
                             '<h3 class="hotel-title">' + esc(card.name) + '</h3>' +
-                            '<p class="hotel-location">' + esc(card.country + ', ' + card.region) + '</p>' +
+                            '<p class="hotel-location">' + esc(locationLine) + '</p>' +
                             '<div class="hotel-meta">' +
-                                '<span>' + esc((card.departureName ? card.departureName + ' • ' : '') + 'Від ' + formatHumanDate(card.dateFrom)) + '</span>' +
+                                '<span>' + esc(transportLine) + '</span>' +
+                                '<span>' + esc('Від ' + formatHumanDate(card.dateFrom)) + '</span>' +
                                 '<span>' + esc(duration) + (card.mealType ? ' • ' + esc(card.mealType) : '') + '</span>' +
                             '</div>' +
-                            '<div class="hotel-price">Ціна за 2 дорослих<strong>' + esc(formatMoneyUAH(card.priceUAH)) + '</strong></div>' +
+                            '<div class="hotel-price">Пакетний тур за 2 дорослих<strong>' + esc(formatMoneyUAH(card.priceUAH)) + '</strong></div>' +
                             '<a class="card-action" href="' + escAttr(url) + '" data-key="' + escAttr(card.key) + '" data-hotel-id="' + escAttr(card.hotelId) + '">Переглянути деталі</a>' +
                         '</div>' +
                     '</article>';
@@ -11165,6 +11317,7 @@ if ($hero_video_poster === '') {
 
         function minPrice(cards) {
             const values = (cards || [])
+                .filter((card) => card && card.hasTransport === true)
                 .map((card) => Number(card.priceUAH || 0))
                 .filter((value) => value > 0);
             return values.length ? Math.min(...values) : null;
@@ -11241,7 +11394,7 @@ if ($hero_video_poster === '') {
                     : '<span class="direction-tag">Курорти уточнюються</span>';
                 const price = item.price ? '<span class="direction-price">від ' + esc(formatMoneyUAH(item.price)) + '</span>' : '';
                 const note = item.live
-                    ? 'Добірка оновлюється за актуальними пропозиціями'
+                    ? 'Ціни показуємо тільки для пакетних пропозицій з транспортом'
                     : 'Відкрийте країну, щоб підтягнути доступні курорти та ціни';
 
                 return '' +
@@ -11283,37 +11436,38 @@ if ($hero_video_poster === '') {
                 return;
             }
             const items = FEATURED_COUNTRIES.map((country) => {
-                const cacheKey = country.id + ':' + (activeDepartureId || 'auto');
-                const payload = searchCache.get(cacheKey) || null;
+                let payload = null;
+                const preferredKey = country.id + ':' + (activeDepartureId || 'auto') + ':showcase';
+                if (searchCache.has(preferredKey)) {
+                    payload = searchCache.get(preferredKey) || null;
+                } else {
+                    for (const [key, value] of searchCache.entries()) {
+                        if (key.indexOf(country.id + ':') === 0 && value) {
+                            payload = value;
+                            break;
+                        }
+                    }
+                }
                 return directionCard(country, payload);
             });
             renderDirections(items);
         }
 
         async function findCountryPayload(countryId) {
-            const departureCities = await getDepartureCities(countryId);
-            const orderedDepartures = [...departureCities];
-
-            if (activeDepartureId) {
-                orderedDepartures.sort((left, right) => {
-                    if (String(left.id) === String(activeDepartureId)) {
-                        return -1;
-                    }
-                    if (String(right.id) === String(activeDepartureId)) {
-                        return 1;
-                    }
-                    return 0;
-                });
+            const departureCities = filterDepartureCitiesForDestination(await getDepartureCities(countryId), countryId);
+            const selectedIds = getPsFromSelectedIds().filter((cityId) =>
+                departureCities.some((city) => String(city.id) === String(cityId)),
+            );
+            const fallbackIds = departureCities.slice(0, DEPARTURE_CANDIDATE_LIMIT).map((city) => String(city.id || ''));
+            const candidateIds = Array.from(new Set((selectedIds.length ? selectedIds : fallbackIds).filter(Boolean)));
+            if (!candidateIds.length) {
+                candidateIds.push('');
             }
 
-            const candidates = orderedDepartures.slice(0, DEPARTURE_CANDIDATE_LIMIT);
-            if (!candidates.length) {
-                return null;
-            }
-
-            for (const departure of candidates) {
-                const departureId = String(departure.id || '');
-                const cacheKey = countryId + ':' + (departureId || 'auto');
+            let lastError = null;
+            for (const departureId of candidateIds) {
+                const departure = departureCities.find((city) => String(city.id) === String(departureId));
+                const cacheKey = countryId + ':' + (departureId || 'auto') + ':showcase';
                 if (searchCache.has(cacheKey)) {
                     const cached = searchCache.get(cacheKey);
                     if (cached) {
@@ -11322,34 +11476,79 @@ if ($hero_video_poster === '') {
                     continue;
                 }
 
-                for (const window of buildCandidateWindows().slice(0, 2)) {
-                    const windowKey = cacheKey + ':' + window.date_from + ':' + window.date_till;
-                    let data = windowCache.get(windowKey);
-                    if (!data) {
-                        data = await api('module/search-list', requestBase(countryId, window, departureId));
-                        windowCache.set(windowKey, data);
-                    }
+                const queries = [
+                    {
+                        showcase_number: '1',
+                        country: String(countryId),
+                        hotel_rating: '3:78',
+                        night_from: '3',
+                        night_till: '14',
+                        page: '1',
+                        items_per_page: '36',
+                        hotel_image: '1',
+                        ...(departureId ? { from_city: departureId } : {}),
+                    },
+                    {
+                        showcase_number: '1',
+                        country: String(countryId),
+                        hotel_rating: '3:78:79',
+                        night_from: '1',
+                        night_till: '21',
+                        page: '1',
+                        items_per_page: '36',
+                        hotel_image: '1',
+                        ...(departureId ? { from_city: departureId } : {}),
+                    },
+                ];
+                if (departureId) {
+                    queries.push({
+                        showcase_number: '1',
+                        country: String(countryId),
+                        hotel_rating: '3:78',
+                        night_from: '3',
+                        night_till: '14',
+                        page: '1',
+                        items_per_page: '36',
+                        hotel_image: '1',
+                    });
+                }
 
-                    const uniqueOffers = sortHotels(dedupeHotels(data.offers || []));
-                    if (!uniqueOffers.length) {
-                        continue;
-                    }
+                for (const query of queries) {
+                    try {
+                        const data = await api('showcase/hot-offers/search', query);
+                        const uniqueOffers = sortHotels(dedupeHotels(data.offers || [])).filter((offer) => offerHasTransport(offer));
+                        if (!uniqueOffers.length) {
+                            continue;
+                        }
 
-                    const allCards = uniqueOffers.slice(0, 36).map((offer) => cardFromOffer(offer, window));
-                    const payload = {
-                        window,
-                        departureId,
-                        departureName: departure.name || (allCards[0] && allCards[0].departureName) || '',
-                        cards: allCards.slice(0, OFFERS_VISIBLE_LIMIT),
-                        allCards,
-                    };
-                    searchCache.set(cacheKey, payload);
-                    return payload;
+                        const window = {
+                            date_from: String(uniqueOffers[0].date_from || ''),
+                            date_till: String(uniqueOffers[0].date_till || uniqueOffers[0].date_from || ''),
+                        };
+                        const allCards = uniqueOffers.slice(0, 36).map((offer) => cardFromOffer(offer, window));
+                        const payload = {
+                            window,
+                            departureId: departureId || '',
+                            departureName: (departure && departure.name) || (allCards[0] && allCards[0].departureName) || '',
+                            cards: allCards.slice(0, OFFERS_VISIBLE_LIMIT),
+                            allCards,
+                        };
+                        searchCache.set(cacheKey, payload);
+                        return payload;
+                    } catch (error) {
+                        if (error && (error.code === 107 || error.code === 108 || error.code === 109)) {
+                            throw error;
+                        }
+                        lastError = error;
+                    }
                 }
 
                 searchCache.set(cacheKey, null);
             }
 
+            if (lastError) {
+                throw lastError;
+            }
             return null;
         }
 
@@ -11377,6 +11576,15 @@ if ($hero_video_poster === '') {
                 renderCards(payload);
                 loadDirections();
             } catch (error) {
+                if (error && (error.code === 107 || error.code === 108 || error.code === 109)) {
+                    renderEmpty(error.code === 109
+                        ? 'Перевищено денний ліміт вітрини. Спробуйте завтра.'
+                        : 'Вітрина тимчасово недоступна через ліміт API. Спробуйте трохи пізніше.');
+                    if (windowPill) {
+                        windowPill.textContent = 'Ліміт API';
+                    }
+                    return;
+                }
                 const message = String(error.message || error || '');
                 if (/Превышен лимит запросов|Hour limit reached/i.test(message)) {
                     renderEmpty('Сервіс пошуку тимчасово обмежив кількість запитів. Спробуйте ще раз трохи пізніше.');
@@ -11662,7 +11870,18 @@ if ($hero_video_poster === '') {
         }
 
         function detailOfferCity(offer, fallback) {
-            return firstValue(offer, ['from_city', 'from_city_name']) || firstValue(fallback || {}, ['from_city']) || 'Уточнюється';
+            const direct = firstValue(offer, ['from_city', 'from_city_name']) || firstValue(fallback || {}, ['from_city', 'from_city_name']);
+            if (direct) {
+                return direct;
+            }
+            if (activeDepartureId) {
+                const cities = departureCache.get(activeCountryId) || [];
+                const city = cities.find((item) => String(item.id) === String(activeDepartureId));
+                if (city && city.name) {
+                    return city.name;
+                }
+            }
+            return 'Місто виїзду уточнить менеджер';
         }
 
         function detailDuration(offer) {
@@ -11680,6 +11899,18 @@ if ($hero_video_poster === '') {
 
         function detailOperator(offer, fallback) {
             return firstValue(offer, ['operator', 'operator_name', 'tour_operator', 'tour_operator_name']) || firstValue(fallback || {}, ['spo']).split(/[.-]/)[0] || 'Туроператор';
+        }
+
+        function detailVisibleOffers(offers) {
+            const packaged = transportOnlyOffers(offers || []);
+            if (packaged.length) {
+                return packaged;
+            }
+            return stayOnlyOffers(offers || []).slice(0, 2).map((offer) => Object.assign({}, offer, { __stayOnly: true }));
+        }
+
+        function detailOfferIsStayOnly(offer) {
+            return Boolean(offer && offer.__stayOnly) || !offerHasTransport(offer);
         }
 
         function detailBestOffer(info, offer, title) {
@@ -11719,10 +11950,10 @@ if ($hero_video_poster === '') {
                 '</div>';
             return '<aside class="best-offer-card" id="best-offer"><h2>Найкраща пропозиція</h2><div class="best-offer-grid">' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v2H2V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm15 9v8a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-8h20Zm-6 3h-2v2h2v-2Z"/></svg>Дата</span><strong>' + esc(detailDateLabel(current.date_from || info.date_from)) + '</strong></div>' +
-                '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.6 13.2 10 15l4.8 6.2c.3.4.9.2.9-.3l-.4-5.1 4.8 1.2c.9.2 1.8-.3 2-1.2.2-.9-.4-1.8-1.3-2L15.9 12l4.9-1.8c.9-.3 1.4-1.2 1.1-2.1-.3-.9-1.2-1.4-2.1-1.1l-4.8 1.8.4-5.1c0-.5-.6-.7-.9-.3L10 9.6 2.6 11.4c-.5.1-.8.5-.8.9s.3.8.8.9Z"/></svg>Переліт</span><strong>' + esc(detailOfferCity(current, info)) + '</strong></div>' +
+                '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.6 13.2 10 15l4.8 6.2c.3.4.9.2.9-.3l-.4-5.1 4.8 1.2c.9.2 1.8-.3 2-1.2.2-.9-.4-1.8-1.3-2L15.9 12l4.9-1.8c.9-.3 1.4-1.2 1.1-2.1-.3-.9-1.2-1.4-2.1-1.1l-4.8 1.8.4-5.1c0-.5-.6-.7-.9-.3L10 9.6 2.6 11.4c-.5.1-.8.5-.8.9s.3.8.8.9Z"/></svg>Виїзд</span><strong>' + esc(detailOfferCity(current, info)) + '</strong></div>' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm1 5a1 1 0 1 0-2 0v6c0 .3.1.5.3.7l3.6 3.6a1 1 0 0 0 1.4-1.4L13 12.6V7Z"/></svg>Тривалість</span><strong>' + esc(detailDuration(current)) + '</strong></div>' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 2a1 1 0 0 1 .9.6l1.5 3.4h5.2l1.5-3.4a1 1 0 1 1 1.8.8l-1.2 2.6h.3A3 3 0 0 1 20 9v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h.3L6.1 3.4A1 1 0 0 1 7 2Zm1 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm8 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/></svg>Харчування</span><strong>' + esc(detailMeal(current)) + '</strong></div>' +
-                '</div><p class="best-offer-included">У вартість включено: переліт, трансфер, страховка та проживання у готелі.</p>' +
+                '</div><p class="best-offer-included">' + esc(detailOfferIsStayOnly(current) ? 'У вартості показано лише проживання. Переліт та інші послуги менеджер підтвердить окремо.' : 'У вартість включено: переліт/транспорт, трансфер, страховка та проживання у готелі.') + '</p>' +
                 '<div class="best-offer-price"><strong>' + esc(formatMoneyUAH(detailPriceValue(current))) + '</strong><span>За ' + esc(info.adult_amount || 2) + ' дор.</span></div>' +
                 '<button type="button" class="detail-buy-button detail-scroll-to-prices best-offer-prices-btn">Дивитись всі ціни</button>' +
                 consultBlock +
@@ -11737,7 +11968,7 @@ if ($hero_video_poster === '') {
         }
 
         function detailPriceTable(info, offers, title) {
-            const rows = (offers.length ? offers : [info]).slice(0, 5);
+            const rows = detailVisibleOffers(offers.length ? offers : [info]).slice(0, 5);
             const start = parseTourDate(info.date_from) || new Date();
             const end = addDays(start, Number(info.duration || info.hnight || 7) || 7);
             return '<section class="detail-section" id="tour-prices"><h2>Ціни на тури в готель ' + esc(title) + ', ' + esc(info.hotel_rating_kn || ((info.hotel_rating || '') + '*')) + '</h2>' +
@@ -11751,13 +11982,14 @@ if ($hero_video_poster === '') {
                     const offerMeal = offer.meal_type || '';
                     const offerMealFull = detailMeal(offer);
                     const offerPrice = formatMoneyUAH(detailPriceValue(offer));
+                    const offerPriceCaption = detailOfferIsStayOnly(offer) ? 'Лише проживання' : 'Пакетний тур';
                     const offerOperator = detailOperator(offer, info);
                     return '<tr>' +
                         '<td data-label="Дата вильоту">' + esc(offerDate) + '<small>з ' + esc(offerCity) + '</small></td>' +
                         '<td data-label="Тривалість">' + esc(offerNights) + '</td>' +
                         '<td data-label="Номер">' + esc(offerRoom) + '</td>' +
                         '<td data-label="Харчування">' + esc(offerMeal) + '<small>' + esc(offerMealFull) + '</small></td>' +
-                        '<td data-label="Вартість">' + esc(offerPrice) + '</td>' +
+                        '<td data-label="Вартість">' + esc(offerPrice) + '<small>' + esc(offerPriceCaption) + '</small></td>' +
                         '<td><button type="button" class="table-buy-button booking-open"' +
                             ' data-tour-key="' + escAttr(offer.key || info.key || DETAIL_TOUR_KEY) + '"' +
                             ' data-tour-title="' + escAttr(title) + '"' +
@@ -11944,7 +12176,8 @@ if ($hero_video_poster === '') {
                     detailLoadOffers(hydratedInfo),
                     detailLoadSimilar(hydratedInfo),
                 ]);
-                const tableOffers = detailOffers.length ? detailOffers : [hydratedInfo];
+                const rawTableOffers = detailOffers.length ? detailOffers : [hydratedInfo];
+                const tableOffers = detailVisibleOffers(rawTableOffers);
                 const bestOffer = tableOffers.slice().sort((left, right) => (detailPriceValue(left) || Infinity) - (detailPriceValue(right) || Infinity))[0] || hydratedInfo;
                 const imagesV2 = detailImages(hydratedInfo, bestOffer, card);
                 const hotelLocation = [info.region || card.region, info.country || card.country].filter(Boolean).join(', ');
@@ -12113,9 +12346,16 @@ if ($hero_video_poster === '') {
         if (bookingForm) {
             bookingForm.addEventListener('submit', async (event) => {
                 event.preventDefault();
+                const submitButton = bookingForm.querySelector('button[type="submit"]');
                 if (bookingStatus) {
                     bookingStatus.classList.remove('is-success', 'is-error');
                     bookingStatus.textContent = 'Відправляємо заявку…';
+                }
+                if (bookingSuccessCard) {
+                    bookingSuccessCard.hidden = true;
+                }
+                if (submitButton) {
+                    submitButton.disabled = true;
                 }
                 const body = new URLSearchParams(new FormData(bookingForm));
                 body.set('action', 'ittour_lab_booking');
@@ -12127,7 +12367,13 @@ if ($hero_video_poster === '') {
                         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                         body,
                     });
-                    const payload = await response.json();
+                    const raw = await response.text();
+                    let payload = null;
+                    try {
+                        payload = JSON.parse(raw);
+                    } catch (parseError) {
+                        throw new Error('Сервер повернув некоректну відповідь. Спробуйте ще раз або перевірте Anex Tour → Заявки.');
+                    }
                     if (!payload.success) {
                         throw new Error((payload.data && payload.data.message) || 'Не вдалося відправити заявку');
                     }
@@ -12137,12 +12383,20 @@ if ($hero_video_poster === '') {
                         bookingStatus.textContent = (payload.data && payload.data.message)
                             || 'Заявку збережено. Менеджер звʼяжеться з вами найближчим часом.';
                     }
+                    if (bookingSuccessCard) {
+                        bookingSuccessCard.hidden = false;
+                    }
+                    bookingForm.reset();
                     setTimeout(closeBookingForm, 2200);
                 } catch (error) {
                     if (bookingStatus) {
                         bookingStatus.classList.add('is-error');
                         bookingStatus.classList.remove('is-success');
                         bookingStatus.textContent = error.message || 'Не вдалося відправити заявку';
+                    }
+                } finally {
+                    if (submitButton) {
+                        submitButton.disabled = false;
                     }
                 }
             });
@@ -12767,7 +13021,7 @@ if ($hero_video_poster === '') {
                     '<section class="exc-head">' +
                         '<nav class="tour-breadcrumbs" aria-label="Навігація">' +
                             '<a href="' + escAttr(SITE_HOME_URL) + '">Головна</a><span>/</span>' +
-                            '<a href="' + escAttr(CATALOG_BASE_URL) + '?mode=excursion&search=1">Екскурсійні тури</a><span>/</span>' +
+                            '<a href="' + escAttr(CATALOG_BASE_URL) + '?mode=excursion">Екскурсійні тури</a><span>/</span>' +
                             '<span>' + esc(title) + '</span>' +
                         '</nav>' +
                         '<h1 class="exc-head-title">' + esc(title) + '</h1>' +
@@ -13227,7 +13481,7 @@ if ($hero_video_poster === '') {
                     return;
                 }
                 const catalogLink = String(CATALOG_BASE_URL || SITE_HOME_URL || '/');
-                const catalogHref = catalogLink + (catalogLink.includes('?') ? '&' : '?') + 'mode=excursion&search=1';
+                const catalogHref = catalogLink + (catalogLink.includes('?') ? '&' : '?') + 'mode=excursion';
                 const emptyBlock = (bodyHtml) => '' +
                     '<section class="exc-pop-sec">' +
                         '<h2 class="exc-sec-h">Популярні екскурсії</h2>' +

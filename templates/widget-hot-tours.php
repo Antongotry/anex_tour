@@ -22,46 +22,12 @@ if (function_exists('ittour_lab_get_token') && ittour_lab_get_token() === '') {
     return;
 }
 
-// Get featured countries list (same as main catalog)
+// Featured countries for the showcase tabs.
 $featured_country_fallbacks = [
     '318' => 'Туреччина', '338' => 'Єгипет', '39' => 'Болгарія',
     '372' => 'Греція', '16' => 'ОАЕ', '434' => 'Чорногорія',
 ];
 $featured_countries = [];
-try {
-    $token = ittour_lab_get_token();
-    if ($token) {
-        $showcase_cache_key = 'ittour_lab_' . md5('showcase_countries');
-        $cached = get_transient($showcase_cache_key);
-        if (is_array($cached)) {
-            $featured_countries = $cached;
-        } else {
-            $res = ittour_lab_api_fetch('module/search-list', [
-                'type' => '1', 'kind' => '1', 'adult_amount' => '2', 'child_amount' => '0',
-                'night_from' => '5', 'night_till' => '9', 'items_per_page' => '40',
-                'hotel_info' => '0', 'currency' => '2',
-            ]);
-            if (!is_wp_error($res) && !empty($res['data']['offers'])) {
-                $country_ids = [];
-                foreach ($res['data']['offers'] as $offer) {
-                    $cid = (string)($offer['country_id'] ?? $offer['country'] ?? '');
-                    if ($cid && !in_array($cid, $country_ids)) {
-                        $country_ids[] = $cid;
-                    }
-                    if (count($country_ids) >= 6) break;
-                }
-                foreach ($country_ids as $cid) {
-                    if (isset($featured_country_fallbacks[$cid])) {
-                        $featured_countries[] = ['id' => $cid, 'name' => $featured_country_fallbacks[$cid]];
-                    }
-                }
-                set_transient($showcase_cache_key, $featured_countries, 6 * HOUR_IN_SECONDS);
-            }
-        }
-    }
-} catch (\Throwable $e) {}
-
-// Fallback to predefined list
 if (empty($featured_countries)) {
     foreach ($featured_country_fallbacks as $id => $name) {
         $featured_countries[] = ['id' => $id, 'name' => $name];
@@ -210,27 +176,6 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
         return req;
     }
 
-    function buildWindows(){
-        var base=new Date(); base.setHours(12,0,0,0);
-        return [21,35].map(function(off){
-            var s=new Date(base); s.setDate(s.getDate()+off);
-            var e=new Date(s); e.setDate(e.getDate()+7);
-            return {date_from:formatApiDate(s), date_till:formatApiDate(e)};
-        });
-    }
-
-    function searchListQuery(country, win, nf, nt){
-        return {
-            type:'1', kind:'1',
-            country:String(country.id),
-            adult_amount:'2', child_amount:'0',
-            hotel_rating:'3:78',
-            night_from:nf, night_till:nt,
-            date_from:win.date_from, date_till:win.date_till,
-            items_per_page:'12', hotel_info:'0', currency:'2'
-        };
-    }
-
     function dedupeHotels(offers){ var seen=new Set(),out=[]; (offers||[]).forEach(function(o){ var id=String(o.hotel_id||o.hotel||Math.random()); if(!seen.has(id)){ seen.add(id); out.push(o); } }); return out; }
     function sortHotels(offers){ return [...offers].sort(function(a,b){ var rc=Number(b.hotel_review_count||0)-Number(a.hotel_review_count||0); if(rc) return rc; var rr=Number(b.hotel_review_rate||0)-Number(a.hotel_review_rate||0); if(rr) return rr; return Number((a.prices&&a.prices['2'])||a.price||0)-Number((b.prices&&b.prices['2'])||b.price||0); }); }
 
@@ -253,6 +198,7 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
             priceUAH: offer.prices&&offer.prices['2']!=null?offer.prices['2']:offer.price||null,
             dateFrom: offer.date_from||win.date_from, duration: offer.duration||offer.hnight||null,
             mealType: offer.meal_type_full||offer.meal_type||'',
+            departureName: offer.from_city_name||offer.from_city||'',
             hasTransport: offerHasTransport(offer)
         };
     }
@@ -267,8 +213,62 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
     var cardsCache    = new Map();
     var errorCache    = new Map();
     var fetchPromises = new Map();
-    var wins = buildWindows();
     var CARDS_PER = 4;
+
+    async function fetchShowcaseFilters(){
+        return api('showcase/hot-offers/filters', { showcase_number:'1' });
+    }
+
+    async function fetchCountryFromCityId(countryId){
+        try {
+            var data = await fetchShowcaseFilters();
+            var rows = Array.isArray(data && data.from_cities) ? data.from_cities : [];
+            var hit = rows.find(function(row){ return String(row.country_id||'') === String(countryId||''); }) || rows[0];
+            return hit && hit.id != null ? String(hit.id) : '';
+        } catch (error) {
+            return '';
+        }
+    }
+
+    function showcaseQueries(countryId, fromCityId){
+        var queries = [];
+        var push = function(query){ queries.push(query); };
+        push({
+            showcase_number:'1',
+            country:String(countryId),
+            hotel_rating:'3:78',
+            night_from:'3',
+            night_till:'14',
+            page:'1',
+            items_per_page:'18',
+            hotel_image:'1',
+            from_city: fromCityId || ''
+        });
+        push({
+            showcase_number:'1',
+            country:String(countryId),
+            hotel_rating:'3:78:79',
+            night_from:'1',
+            night_till:'21',
+            page:'1',
+            items_per_page:'18',
+            hotel_image:'1',
+            from_city: fromCityId || ''
+        });
+        if (fromCityId) {
+            push({
+                showcase_number:'1',
+                country:String(countryId),
+                hotel_rating:'3:78',
+                night_from:'3',
+                night_till:'14',
+                page:'1',
+                items_per_page:'18',
+                hotel_image:'1'
+            });
+        }
+        return queries;
+    }
 
     function fetchCards(country){
         if(cardsCache.has(country.id)) return Promise.resolve({cards: cardsCache.get(country.id), error: errorCache.get(country.id)||null});
@@ -276,29 +276,19 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
         var p = (async function(){
             var lastError = null;
             try{
-                var batch = await Promise.all(wins.map(function(win){
-                    return api('module/search-list', searchListQuery(country, win, '5', '10'));
-                }));
-                for(var i=0;i<batch.length;i++){
-                    var offers = dedupeHotels(sortHotels(batch[i].offers||[]));
+                var fromCityId = await fetchCountryFromCityId(country.id);
+                var queries = showcaseQueries(country.id, fromCityId);
+                for(var i=0;i<queries.length;i++){
+                    var data = await api('showcase/hot-offers/search', queries[i]);
+                    var offers = dedupeHotels(sortHotels(data.offers||[])).filter(function(offer){ return offerHasTransport(offer); });
                     if(offers.length>0){
-                        var cards=offers.slice(0,CARDS_PER).map(function(o){ return cardFromOffer(o,wins[i]); });
+                        var pseudoWindow = { date_from: String(offers[0].date_from||''), date_till: String(offers[0].date_till||offers[0].date_from||'') };
+                        var cards=offers.slice(0,CARDS_PER).map(function(o){ return cardFromOffer(o,pseudoWindow); });
                         cardsCache.set(country.id,cards); errorCache.set(country.id,null);
-                        return {cards, error:null};
+                        return {cards:cards, error:null};
                     }
                 }
             } catch(e){ lastError = e.message || String(e); }
-            if(!lastError){
-                try{
-                    var data = await api('module/search-list', searchListQuery(country, wins[0], '3', '14'));
-                    var offers = dedupeHotels(sortHotels(data.offers||[]));
-                    if(offers.length>0){
-                        var cards=offers.slice(0,CARDS_PER).map(function(o){ return cardFromOffer(o,wins[0]); });
-                        cardsCache.set(country.id,cards); errorCache.set(country.id,null);
-                        return {cards, error:null};
-                    }
-                } catch(e){ lastError = e.message || String(e); }
-            }
             cardsCache.set(country.id,[]); errorCache.set(country.id, lastError);
             return {cards:[], error:lastError};
         })();
@@ -312,14 +302,15 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
             var review = card.reviewRate ? '<div class="review-chip"><div class="review-copy"><strong>'+esc(reviewLabel(card.reviewRate))+'</strong><span>'+esc((card.reviewCount||0)+' відгуків')+'</span></div><div class="review-score">'+esc(Number(card.reviewRate).toFixed(1))+'</div></div>' : '';
             var img = card.image ? '<img src="'+escAttr(card.image)+'" alt="'+escAttr(card.name)+'" loading="lazy">' : '';
             var dur = card.duration ? card.duration+' ночей' : '';
+            var departure = card.departureName ? '<span>'+esc(card.departureName)+'</span>' : '';
             return '<article class="hotel-card">'+
                 '<div class="'+(card.image?'hotel-media':'hotel-media no-image')+'">'+img+review+'</div>'+
                 '<div class="hotel-body">'+
                     '<div class="stars">'+esc(starsMarkup(card.rating))+'</div>'+
                     '<h3 class="hotel-title">'+esc(card.name)+'</h3>'+
                     '<p class="hotel-location">'+esc(card.region||card.country)+'</p>'+
-                    '<div class="hotel-meta"><span>'+esc('Від '+formatHumanDate(card.dateFrom))+'</span>'+(dur?'<span>'+esc(dur+(card.mealType?' · '+card.mealType:''))+'</span>':'')+'</div>'+
-                    '<div class="hotel-price">Ціна за 2 дорослих<strong>'+esc(formatMoneyUAH(card.priceUAH))+'</strong></div>'+
+                    '<div class="hotel-meta">'+departure+'<span>'+esc('Від '+formatHumanDate(card.dateFrom))+'</span>'+(dur?'<span>'+esc(dur+(card.mealType?' · '+card.mealType:''))+'</span>':'')+'</div>'+
+                    '<div class="hotel-price">Пакетний тур за 2 дорослих<strong>'+esc(formatMoneyUAH(card.priceUAH))+'</strong></div>'+
                     '<a class="card-action" href="'+escAttr(detailUrl(card))+'" data-key="'+escAttr(card.key)+'">Переглянути деталі</a>'+
                 '</div></article>';
         }).join('') + '</div>';

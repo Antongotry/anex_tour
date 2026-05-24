@@ -311,7 +311,7 @@ function anex_catalog_search_redirect_script( string $target_url, string $excurs
         mode = mode || q("ps-search-mode") || "hotel";
         var base = (mode === "excursion" && excursTargetUrl) ? excursTargetUrl : targetUrl;
         var url = new URL(base, window.location.origin);
-        url.searchParams.set("search", "1");
+        url.searchParams.delete("search");
         var countryId = q("ps-country-id");
         var regionId = q("ps-region-id");
         var fromIdsEl = document.getElementById("ps-from-ids");
@@ -323,7 +323,8 @@ function anex_catalog_search_redirect_script( string $target_url, string $excurs
         var adults = q("ps-adults") || "2";
         var children = q("ps-children") || "0";
 
-        url.searchParams.set("country_id", countryId);
+        if (countryId) url.searchParams.set("country_id", countryId);
+        else url.searchParams.delete("country_id");
         if (regionId) url.searchParams.set("region", regionId);
         else url.searchParams.delete("region");
         url.searchParams.set("from", fromCity);

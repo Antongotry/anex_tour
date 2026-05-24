@@ -75,16 +75,17 @@ function anex_tour_sync_admin_page(): void {
 	$default     = implode( ', ', anex_tour_default_country_ids() );
 	$sync_photos = (bool) get_option( 'anex_tour_sync_with_photos', true );
 	?>
-	<div class="wrap">
-		<h1>Синхронізація турів (екскурсії)</h1>
-		<p>Картки: <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . ANEX_TOUR_POST_TYPE ) ); ?>"><strong>Anex Tour → Тури</strong></a>.</p>
+		<div class="wrap anex-admin">
+			<h1>Синхронізація турів (екскурсії)</h1>
+			<p class="anex-admin-lead">Окрема панель для екскурсійних турів: країни, запуск sync, логи та коротка статистика по контенту.</p>
+			<p>Картки: <a href="<?php echo esc_url( admin_url( 'edit.php?post_type=' . ANEX_TOUR_POST_TYPE ) ); ?>"><strong>Anex Tour → Тури</strong></a>.</p>
 		<p class="description">
 			API: <code>module-excursion/search</code> + <code>tour-excursion/info/{key}</code>.
 			<strong>Це не каталог готелів:</strong> IT-Tour на вашому токені зараз віддає лише кілька екскурсійних турів на всі країни разом (типово 2–5), навіть при багатьох датах.
 			Готелі — через <code>module/search-list</code> (десятки на країну), тури — окремий endpoint з малою видачею.
 		</p>
 
-		<table class="widefat" style="max-width:720px;margin:1em 0">
+			<table class="widefat anex-admin-table" style="max-width:720px;margin:1em 0">
 			<tbody>
 				<tr><th>Всього турів у WP</th><td id="anex-tour-stats-total"><strong><?php echo (int) $stats['total']; ?></strong></td></tr>
 				<tr><th>З фото в медіатеці</th><td id="anex-tour-stats-featured"><?php echo (int) $stats['with_featured']; ?></td></tr>
@@ -92,7 +93,7 @@ function anex_tour_sync_admin_page(): void {
 			</tbody>
 		</table>
 
-		<form method="post" style="max-width:720px;margin:1em 0;padding:12px;background:#fff;border:1px solid #c3c4c7">
+			<form method="post" class="anex-admin-form" style="max-width:720px;margin:1em 0">
 			<?php wp_nonce_field( 'anex_tour_sync_settings' ); ?>
 			<h2>Країни (country_id)</h2>
 			<p><input type="text" class="large-text" name="anex_tour_country_ids" value="<?php echo esc_attr( implode( ', ', $ids ) ); ?>" /></p>
@@ -111,7 +112,7 @@ function anex_tour_sync_admin_page(): void {
 			<span id="anex-tour-sync-spinner" class="spinner" style="float:none"></span>
 		</p>
 
-		<table class="widefat" style="max-width:720px">
+			<table class="widefat anex-admin-table" style="max-width:720px">
 			<tbody>
 				<tr><th>Статус</th><td id="anex-tour-st-status"><?php echo esc_html( (string) ( $state['status'] ?? 'idle' ) ); ?></td></tr>
 				<tr><th>Країна</th><td id="anex-tour-st-country"><?php echo esc_html( (string) ( $state['current_country'] ?? '' ) ); ?></td></tr>
@@ -121,7 +122,7 @@ function anex_tour_sync_admin_page(): void {
 		</table>
 
 		<h2>Лог</h2>
-		<pre id="anex-tour-sync-log" style="max-width:900px;max-height:360px;overflow:auto;background:#1e1e1e;color:#d4d4d4;padding:12px;font-size:12px"><?php
+			<pre id="anex-tour-sync-log" class="anex-admin-log" style="max-width:900px;max-height:360px;overflow:auto"><?php
 			$log = $state['log'] ?? [];
 			echo esc_html( is_array( $log ) ? implode( "\n", $log ) : '' );
 		?></pre>

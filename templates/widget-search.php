@@ -19,8 +19,8 @@ if (function_exists('ittour_lab_get_token') && ittour_lab_get_token() === '') {
     return;
 }
 
-$catalog_url = function_exists( 'anex_get_catalog_page_permalink' )
-    ? anex_get_catalog_page_permalink( [] )
+$catalog_url = function_exists( 'anex_get_catalog_search_page_permalink' )
+    ? anex_get_catalog_search_page_permalink( [] )
     : home_url( '/' );
 ?>
 <div class="anex-widget anex-search-widget">
@@ -34,8 +34,13 @@ $catalog_url = function_exists( 'anex_get_catalog_page_permalink' )
 .asw-grid{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:10px 12px;align-items:end}
 .ps-field{display:grid;gap:4px;min-width:0}
 .ps-field label,.ps-field .ps-label{font-size:11px;font-weight:800;color:#5d6b87;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.ps-field input,.ps-field select{min-height:46px;padding:0 12px;border-radius:var(--radius-md);border:1px solid var(--line);background:#fff;font:inherit;font-size:15px;font-weight:600;color:var(--text);width:100%}
-.ps-field input:focus,.ps-field select:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+    .ps-field input,.ps-field select{min-height:46px;padding:0 12px;border-radius:var(--radius-md);border:1px solid var(--line);background:#fff;font:inherit;font-size:15px;font-weight:600;color:var(--text);width:100%}
+    .ps-field input:focus,.ps-field select:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent)}
+    .ps-field select[multiple]{min-height:140px;padding:8px 10px}
+    .ps-field select[multiple] optgroup{font-style:normal;font-weight:800;color:#003087}
+    .ps-field select[multiple] option{padding:6px 8px;color:#50575e}
+    .ps-field select[multiple] option:checked{background:#1a5dc8;color:#fff}
+    .ps-field .ps-help{margin:2px 0 0;font-size:12px;line-height:1.4;color:#50575e}
 .ps-country-wrap{grid-column:span 4;position:relative;min-width:0}
 .asw-grid>.ps-field--grow:not(.ps-country-wrap){grid-column:span 4}
 .asw-grid>.ps-field--date{grid-column:span 2}
@@ -74,7 +79,8 @@ $catalog_url = function_exists( 'anex_get_catalog_page_permalink' )
         </div>
         <div class="ps-field ps-field--grow">
             <label class="ps-label" for="asw-from">Звідки</label>
-            <select id="asw-from"><option value="">Завантаження…</option></select>
+            <select id="asw-from" multiple size="6" aria-describedby="asw-from-help"><option value="">Завантаження…</option></select>
+            <p class="ps-help" id="asw-from-help">Оберіть до 3 міст. Для авіанапрямків міста з України приховано.</p>
         </div>
         <div class="ps-field ps-field--date">
             <label class="ps-label" for="asw-d1">Дата від</label>
@@ -86,19 +92,29 @@ $catalog_url = function_exists( 'anex_get_catalog_page_permalink' )
         </div>
         <div class="ps-field ps-field--narrow">
             <label class="ps-label" for="asw-n1">Ночей від</label>
-            <input id="asw-n1" type="number" min="1" max="28" value="6">
+            <input id="asw-n1" type="text" inputmode="numeric" maxlength="2" value="6" placeholder="6">
         </div>
         <div class="ps-field ps-field--narrow">
             <label class="ps-label" for="asw-n2">Ночей до</label>
-            <input id="asw-n2" type="number" min="1" max="30" value="8">
+            <input id="asw-n2" type="text" inputmode="numeric" maxlength="2" value="8" placeholder="8">
         </div>
         <div class="ps-field ps-field--narrow">
             <label class="ps-label" for="asw-adults">Дорослих</label>
-            <input id="asw-adults" type="number" min="1" max="9" value="2">
+            <select id="asw-adults">
+                <option value="1">1</option>
+                <option value="2" selected>2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+            </select>
         </div>
         <div class="ps-field ps-field--narrow">
             <label class="ps-label" for="asw-children">Дітей</label>
-            <input id="asw-children" type="number" min="0" max="6" value="0">
+            <select id="asw-children">
+                <option value="0" selected>0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+            </select>
         </div>
         <div class="ps-submit-wrap">
             <button type="submit" class="ps-submit" id="asw-submit">Шукати тури</button>
@@ -116,6 +132,45 @@ $catalog_url = function_exists( 'anex_get_catalog_page_permalink' )
     var apiPending = new Map();
     var departureCache = new Map();
     var allCountries   = [];
+    var MAX_FROM_SELECT = 3;
+    var departureCountryGroups = {
+        'Україна': ['Київ', 'Львів', 'Одеса', 'Запоріжжя', 'Харків', 'Дніпро', 'Біла Церква', 'Вінниця', 'Долина', 'Дубно', 'Жашків', 'Житомир', 'Івано-Франківськ', 'Ізмаїл', "Кам'янець-Подільський", 'Калуш', 'Коломия', 'Кривий Ріг', 'Кропивницький', 'Кременець', 'Луцьк', 'Миколаїв', 'Полтава', 'Рівне', 'Тернопіль', 'Ужгород', 'Хмельницький', 'Черкаси', 'Чернівці', 'Чернігів', 'Берегово', 'Мукачево'],
+        'Молдова': ['Кишинів'],
+        'Польща': ['Варшава', 'Вроцлав', 'Гданськ', 'Жешув', 'Катовіце', 'Краків', 'Лодзь', 'Люблін', 'Бидгощ', 'Познань', 'Зелена Гура', 'Ольштин'],
+        'Румунія': ['Бакеу', 'Бая-Маре', 'Брашов', 'Бухарест', 'Клуж-Напока', 'Крайова', 'Орада', 'Сібіу', 'Сучава', 'Тімішоара', 'Ясси'],
+        'Німеччина': ['Берлін', 'Дюссельдорф', 'Кельн', 'Франкфурт-на-Майні', 'Нюрнберг', 'Дрезден', 'Дортмунд', 'Мюнхен', 'Кассель', 'Падерборн', 'Фрідріхсхафен'],
+        'Чехія': ['Прага', 'Острава', 'Брно'],
+        'Угорщина': ['Будапешт'],
+        'Литва': ['Вільнюс'],
+        'Латвія': ['Рига'],
+        'Естонія': ['Таллінн'],
+        'Австрія': ['Відень'],
+        'Італія': ['Мілан', 'Рим', 'Турин', 'Болонья'],
+        'Іспанія': ['Мадрид'],
+        'Бельгія': ['Брюссель'],
+        'Казахстан': ['Алмати', 'Астана', 'Актобе', 'Атирау'],
+        'Словаччина': ['Братислава'],
+        'Швейцарія': ['Цюрих'],
+        'Нідерланди': ['Амстердам']
+    };
+    var departureCityToCountry = (function(){
+        var map = new Map();
+        Object.keys(departureCountryGroups).forEach(function(countryName){
+            departureCountryGroups[countryName].forEach(function(cityName){
+                map.set(normalizeSearchToken(cityName), countryName);
+            });
+        });
+        return map;
+    })();
+    var busDestinationCountries = new Set([
+        normalizeSearchToken('Болгарія'),
+        normalizeSearchToken('Греція'),
+        normalizeSearchToken('Чорногорія'),
+        normalizeSearchToken('Хорватія'),
+        normalizeSearchToken('Албанія'),
+        normalizeSearchToken('Туреччина'),
+        normalizeSearchToken('Італія')
+    ]);
 
     var elCountryId = document.getElementById('asw-country-id');
     var elCountryQ  = document.getElementById('asw-country-q');
@@ -132,6 +187,7 @@ $catalog_url = function_exists( 'anex_get_catalog_page_permalink' )
 
     function esc(v){ var d=document.createElement('div'); d.textContent=v==null?'':String(v); return d.innerHTML; }
     function escAttr(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+    function normalizeSearchToken(value){ return String(value||'').trim().toLowerCase().replace(/ё/g,'е').replace(/є/g,'е').replace(/і/g,'и').replace(/ї/g,'и'); }
 
     function formatApiDate(date){
         var dd=String(date.getDate()).padStart(2,'0');
@@ -201,32 +257,86 @@ $catalog_url = function_exists( 'anex_get_catalog_page_permalink' )
         loadFromCities(id);
     }
 
+    function departureCountryLabel(city){
+        var key = normalizeSearchToken(city && city.name ? city.name : '');
+        return departureCityToCountry.get(key) || 'Інші країни';
+    }
+
+    function selectedCountryToken(countryId){
+        var meta = allCountries.find(function(country){ return country.id === String(countryId || ''); });
+        return normalizeSearchToken(meta && meta.name ? meta.name : '');
+    }
+
+    function filterDepartureCitiesForDestination(cities, countryId){
+        var destinationToken = selectedCountryToken(countryId);
+        var busOnly = busDestinationCountries.has(destinationToken);
+        return (cities || []).filter(function(city){
+            var departureCountry = departureCountryLabel(city);
+            if (departureCountry !== 'Україна') return true;
+            return busOnly;
+        });
+    }
+
+    function selectedFromIds(){
+        if(!elFrom) return [];
+        return Array.from(elFrom.selectedOptions || []).map(function(option){ return String(option.value || '').trim(); }).filter(Boolean).slice(0, MAX_FROM_SELECT);
+    }
+
+    function enforceFromLimit(lastChangedValue){
+        if(!elFrom) return;
+        var selected = selectedFromIds();
+        if(selected.length <= MAX_FROM_SELECT) return;
+        Array.from(elFrom.options || []).forEach(function(option){
+            if(option && String(option.value || '') === String(lastChangedValue || '')){
+                option.selected = false;
+            }
+        });
+    }
+
+    function fillFromSelect(cities, countryId){
+        if(!elFrom) return;
+        var filtered = filterDepartureCitiesForDestination(cities, countryId);
+        if(!filtered.length){
+            elFrom.innerHTML = '<option value="" disabled>Немає доступних міст виїзду</option>';
+            elFrom.disabled = true;
+            return;
+        }
+        var groups = new Map();
+        filtered.forEach(function(city){
+            var groupName = departureCountryLabel(city);
+            if(!groups.has(groupName)) groups.set(groupName, []);
+            groups.get(groupName).push(city);
+        });
+        elFrom.innerHTML = Array.from(groups.entries()).map(function(entry){
+            var label = entry[0];
+            var options = entry[1].sort(function(left, right){
+                return String(left.name || '').localeCompare(String(right.name || ''), 'uk');
+            }).map(function(city){
+                return '<option value="'+escAttr(String(city.id || ''))+'">'+esc(city.name || '')+'</option>';
+            }).join('');
+            return '<optgroup label="'+escAttr(label)+'">'+options+'</optgroup>';
+        }).join('');
+        elFrom.disabled = false;
+    }
+
     function loadFromCities(countryId){
         if(!elFrom||!countryId) return;
         var key = String(countryId);
-        if(departureCache.has(key)){ fillFromSelect(departureCache.get(key)); return; }
+        if(departureCache.has(key)){ fillFromSelect(departureCache.get(key), countryId); return; }
         elFrom.innerHTML='<option value="">Завантаження…</option>';
         elFrom.disabled = true;
         api('module/params/'+countryId,{entity:'from_city'}).then(function(data){
-            var cities = (data.from_cities||[]).sort(function(a,b){
-                var pri=['2014','143','1745','449','1212'];
-                var ai=pri.indexOf(String(a.id)), bi=pri.indexOf(String(b.id));
-                if(ai!==-1&&bi===-1) return -1;
-                if(bi!==-1&&ai===-1) return 1;
-                if(ai!==-1&&bi!==-1) return ai-bi;
+            var cities = (data.from_cities||[]).slice().sort(function(a,b){
+                var leftCountry = departureCountryLabel(a);
+                var rightCountry = departureCountryLabel(b);
+                if(leftCountry !== rightCountry){
+                    return leftCountry.localeCompare(rightCountry, 'uk');
+                }
                 return (a.name||'').localeCompare(b.name||'','uk');
             });
             departureCache.set(key, cities);
-            fillFromSelect(cities);
+            fillFromSelect(cities, countryId);
         }).catch(function(){ elFrom.disabled=false; });
-    }
-
-    function fillFromSelect(cities){
-        if(!elFrom) return;
-        elFrom.innerHTML = cities.map(function(c){
-            return '<option value="'+escAttr(String(c.id))+'">'+esc(c.name||'')+'</option>';
-        }).join('');
-        elFrom.disabled = false;
     }
 
     /* ── Init ── */
@@ -273,6 +383,18 @@ $catalog_url = function_exists( 'anex_get_catalog_page_permalink' )
                 el.value=v;
             });
         });
+        [elN1, elN2].forEach(function(el){
+            if(!el) return;
+            el.addEventListener('input', function(){
+                el.value = el.value.replace(/\D/g,'').slice(0,2);
+            });
+        });
+        if(elFrom){
+            elFrom.addEventListener('change', function(event){
+                var changed = event.target && event.target.value ? event.target.value : '';
+                enforceFromLimit(changed);
+            });
+        }
 
         // Form submit → redirect to catalog page
         if(elForm){
@@ -281,9 +403,8 @@ $catalog_url = function_exists( 'anex_get_catalog_page_permalink' )
                 var countryId = elCountryId ? elCountryId.value : '';
                 if(!countryId){ elCountryQ && elCountryQ.focus(); return; }
                 var url = new URL(catalogUrl);
-                url.searchParams.set('search',  '1');
                 url.searchParams.set('country_id', countryId);
-                if(elFrom&&elFrom.value)         url.searchParams.set('from',     elFrom.value);
+                if(elFrom&&selectedFromIds().length) url.searchParams.set('from', selectedFromIds().join(','));
                 if(elD1&&elD1.value)             url.searchParams.set('d1',       elD1.value);
                 if(elD2&&elD2.value)             url.searchParams.set('d2',       elD2.value);
                 if(elN1&&elN1.value)             url.searchParams.set('n1',       elN1.value);
