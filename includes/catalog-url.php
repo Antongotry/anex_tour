@@ -367,7 +367,7 @@ function anex_get_catalog_search_page_permalink( array $atts = [] ): string {
 	};
 
 	$opt = trim( (string) get_option( 'anex_slug_hotel_catalog', '' ), '/' );
-	foreach ( array_unique( array_filter( [ $opt, 'populyarni-goteli', 'poisk-turiv', 'search-tours' ] ) ) ) as $slug ) {
+	foreach ( array_unique( array_filter( [ $opt, 'populyarni-goteli', 'poisk-turiv', 'search-tours' ] ) ) as $slug ) {
 		$url = $try_slug( $slug );
 		if ( null !== $url ) {
 			return $url;
@@ -432,5 +432,4 @@ function anex_is_katalog_landing_page(): bool {
 	$path = trim( (string) wp_parse_url( $_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH ), '/' );
 	return in_array( $path, anex_get_katalog_landing_slugs(), true );
 }
-
 
