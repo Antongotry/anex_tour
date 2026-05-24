@@ -378,10 +378,4 @@ function anex_is_katalog_landing_page(): bool {
 	return in_array( $path, anex_get_katalog_landing_slugs(), true );
 }
 
-/**
- * Чи приховувати віджети пошуку / результатів на поточній сторінці.
- */
-function anex_should_suppress_catalog_search_ui(): bool {
-	return anex_is_katalog_landing_page();
-}
 

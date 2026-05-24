@@ -3,7 +3,7 @@
  * Plugin Name:  Anex Tour Widget
  * Plugin URI:   https://github.com/Antongotry/anex_tour
  * Description:  Пошук турів, каталог готелів і форма бронювання для турагентства Anex Tour. Вставляйте через шорткоди в Elementor або будь-який редактор.
- * Version:      1.4.1
+ * Version:      1.4.2
  * Author:       Anex Tour Львів
  * Author URI:   https://anextour.com.ua
  * Text Domain:  anex-tour
@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /* ─────────────────────────────────────────────
    Constants
 ───────────────────────────────────────────── */
-define( 'ANEX_VERSION',     '1.4.1' );
+define( 'ANEX_VERSION',     '1.4.2' );
 define( 'ANEX_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'ANEX_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
 define( 'ANEX_PLUGIN_FILE', __FILE__ );
@@ -134,37 +134,6 @@ add_action( 'parse_request', static function (): void {
 	wp_safe_redirect( $target, 301 );
 	exit;
 }, 1 );
-
-
-/**
- * П.1: старі посилання /katalog/?search=1 — редірект без search (country_id лишається для вкладки).
- */
-add_action(
-	'template_redirect',
-	static function (): void {
-		if ( ! function_exists( 'anex_is_katalog_landing_page' ) || ! anex_is_katalog_landing_page() ) {
-			return;
-		}
-		if ( ! isset( $_GET['search'] ) || '1' !== (string) $_GET['search'] ) {
-			return;
-		}
-		$country_id = '';
-		if ( ! empty( $_GET['country_id'] ) ) {
-			$country_id = sanitize_text_field( wp_unslash( (string) $_GET['country_id'] ) );
-		} elseif ( ! empty( $_GET['country'] ) ) {
-			$country_id = sanitize_text_field( wp_unslash( (string) $_GET['country'] ) );
-		}
-		$target = function_exists( 'anex_get_catalog_page_permalink' )
-			? anex_get_catalog_page_permalink( [] )
-			: home_url( '/katalog/' );
-		if ( '' !== $country_id ) {
-			$target = add_query_arg( 'country_id', $country_id, $target );
-		}
-		wp_safe_redirect( $target, 301 );
-		exit;
-	},
-	5
-);
 
 if ( ! $anex_bundled_api_loaded ) {
 	add_action(

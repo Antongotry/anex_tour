@@ -100,8 +100,14 @@ function anex_catalog_widgets_source(): array {
 }
 
 
-function anex_catalog_search_suppressed_html(): string {
-	return '<!-- Anex Tour: пошук на /katalog/ вимкнено (П.1). Використовуйте вкладки «Гарячі тури» або [anex_search] на іншій сторінці. -->';
+/**
+ * П.1: на /katalog/ не запускати важкий пошук (лише JS), шорткоди рендеряться як є.
+ */
+function anex_katalog_lite_footer_flag(): void {
+	if ( ! function_exists( 'anex_is_katalog_landing_page' ) || ! anex_is_katalog_landing_page() ) {
+		return;
+	}
+	echo '<script>window.ANEX_CATALOG_LITE=true;</script>';
 }
 
 function anex_catalog_widgets_assets(): string {
@@ -111,18 +117,16 @@ function anex_catalog_widgets_assets(): string {
     if ( ! has_action( 'wp_footer', 'anex_catalog_widgets_footer_assets' ) ) {
         add_action( 'wp_footer', 'anex_catalog_widgets_footer_assets', 40 );
     }
+    if ( ! has_action( 'wp_footer', 'anex_katalog_lite_footer_flag' ) ) {
+        add_action( 'wp_footer', 'anex_katalog_lite_footer_flag', 5 );
+    }
 
     if ( $printed ) {
         return '';
     }
     $printed = true;
 
-    $lite_flag = '';
-    if ( function_exists( 'anex_is_katalog_landing_page' ) && anex_is_katalog_landing_page() ) {
-        $lite_flag = '<script>window.ANEX_CATALOG_LITE=true;</script>' . "\n";
-    }
-
-    return $lite_flag . $source['style'] . "\n" . '<style>
+    return $source['style'] . "\n" . '<style>
 .anex-catalog-search-widget{display:block;width:100%;max-width:100%!important;margin:0!important;padding:0!important;background:transparent!important;overflow:visible}
 .anex-catalog-search-widget .hero-stage{display:block;width:100%;min-height:0!important;height:auto!important;margin:0!important;padding:0!important;background:transparent!important;overflow:visible}
 .anex-catalog-search-widget .hero-stage::before,.anex-catalog-search-widget .hero-stage::after{display:none!important}
@@ -344,10 +348,6 @@ function anex_catalog_search_redirect_script( string $target_url, string $excurs
 }
 
 function anex_render_catalog_search_widget( array $atts = [] ): string {
-    if ( function_exists( 'anex_should_suppress_catalog_search_ui' ) && anex_should_suppress_catalog_search_ui() ) {
-        return anex_catalog_search_suppressed_html();
-    }
-
     $source = anex_catalog_widgets_source();
     if ( '' === $source['search_card'] ) {
         return '<p style="color:red">Anex Tour: фрагмент пошуку не знайдено.</p>';
@@ -422,10 +422,6 @@ function anex_render_excursion_search_widget( array $atts = [] ): string {
 }
 
 function anex_render_catalog_results_widget(): string {
-    if ( function_exists( 'anex_should_suppress_catalog_search_ui' ) && anex_should_suppress_catalog_search_ui() ) {
-        return anex_catalog_search_suppressed_html();
-    }
-
     $source = anex_catalog_widgets_source();
     if ( '' === $source['results_section'] ) {
         return '<p style="color:red">Anex Tour: фрагмент результатів не знайдено.</p>';
@@ -438,10 +434,6 @@ function anex_render_catalog_results_widget(): string {
 }
 
 function anex_render_catalog_filters_widget(): string {
-    if ( function_exists( 'anex_should_suppress_catalog_search_ui' ) && anex_should_suppress_catalog_search_ui() ) {
-        return anex_catalog_search_suppressed_html();
-    }
-
     $source = anex_catalog_widgets_source();
     if ( '' === $source['filters'] ) {
         return '<p style="color:red">Anex Tour: фрагмент фільтрів не знайдено.</p>';
@@ -456,10 +448,6 @@ function anex_render_catalog_filters_widget(): string {
 }
 
 function anex_render_catalog_results_main_widget(): string {
-    if ( function_exists( 'anex_should_suppress_catalog_search_ui' ) && anex_should_suppress_catalog_search_ui() ) {
-        return anex_catalog_search_suppressed_html();
-    }
-
     $source = anex_catalog_widgets_source();
     if ( '' === $source['results_main'] ) {
         return '<p style="color:red">Anex Tour: фрагмент списку результатів не знайдено.</p>';
@@ -645,11 +633,17 @@ add_shortcode( 'anex_tour_results_main', function ( $atts ) {
 
 /* ─── [anex_hot_tours] ─── */
 add_shortcode( 'anex_hot_tours', function ( $atts ) {
+    if ( ! has_action( 'wp_footer', 'anex_katalog_lite_footer_flag' ) ) {
+        add_action( 'wp_footer', 'anex_katalog_lite_footer_flag', 5 );
+    }
     return anex_render_template( ANEX_PLUGIN_DIR . 'templates/widget-hot-tours.php' );
 } );
 
 /* ─── [anex_directions] ─── */
 add_shortcode( 'anex_directions', function ( $atts ) {
+    if ( ! has_action( 'wp_footer', 'anex_katalog_lite_footer_flag' ) ) {
+        add_action( 'wp_footer', 'anex_katalog_lite_footer_flag', 5 );
+    }
     return anex_render_template( ANEX_PLUGIN_DIR . 'templates/widget-directions.php' );
 } );
 
