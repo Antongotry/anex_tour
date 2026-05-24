@@ -234,6 +234,16 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
     function dedupeHotels(offers){ var seen=new Set(),out=[]; (offers||[]).forEach(function(o){ var id=String(o.hotel_id||o.hotel||Math.random()); if(!seen.has(id)){ seen.add(id); out.push(o); } }); return out; }
     function sortHotels(offers){ return [...offers].sort(function(a,b){ var rc=Number(b.hotel_review_count||0)-Number(a.hotel_review_count||0); if(rc) return rc; var rr=Number(b.hotel_review_rate||0)-Number(a.hotel_review_rate||0); if(rr) return rr; return Number((a.prices&&a.prices['2'])||a.price||0)-Number((b.prices&&b.prices['2'])||b.price||0); }); }
 
+    function offerHasTransport(offer){
+        if(!offer) return false;
+        if(Number(offer.type)===2) return false;
+        var t=String(offer.transport_type||'').toLowerCase();
+        if(t==='flight'||t==='bus') return true;
+        var fl=offer.flights;
+        if(fl&&((fl.from&&fl.from.length)||(fl.to&&fl.to.length))) return true;
+        return false;
+    }
+
     function cardFromOffer(offer, win){
         return {
             key: offer.key||'', hotelId: String(offer.hotel_id||''),
@@ -242,7 +252,8 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
             reviewCount: offer.hotel_review_count||null, image: pickImage(offer),
             priceUAH: offer.prices&&offer.prices['2']!=null?offer.prices['2']:offer.price||null,
             dateFrom: offer.date_from||win.date_from, duration: offer.duration||offer.hnight||null,
-            mealType: offer.meal_type_full||offer.meal_type||''
+            mealType: offer.meal_type_full||offer.meal_type||'',
+            hasTransport: offerHasTransport(offer)
         };
     }
 
@@ -335,7 +346,7 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
         function updateTabPrice(id, cards){
             var el = document.getElementById('tab-price-'+escAttr(id));
             if(!el) return;
-            var prices = cards.map(function(c){ return Number(c.priceUAH||0); }).filter(function(p){ return p>0; });
+            var prices = cards.filter(function(c){ return c.hasTransport===true; }).map(function(c){ return Number(c.priceUAH||0); }).filter(function(p){ return p>0; });
             el.textContent = prices.length ? 'від '+formatMoneyUAH(Math.min.apply(null,prices)) : '';
         }
 
@@ -364,21 +375,10 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
             });
         });
 
-        var urlCountryId = '';
-        try {
-            urlCountryId = String((new URL(window.location.href)).searchParams.get('country_id') || '').trim();
-        } catch(e) { urlCountryId = ''; }
-        var initialCountry = FEATURED_COUNTRIES[0];
-        if(urlCountryId){
-            var matched = FEATURED_COUNTRIES.find(function(c){ return String(c.id) === urlCountryId; });
-            if(matched){ initialCountry = matched; activateTab(matched.id); }
-        }
-
-        if(initialCountry){
-            fetchCards(initialCountry).then(function(res){
-                updateTabPrice(initialCountry.id, res.cards);
-                var panel = panelsEl.querySelector('.showcase-panel[data-country="'+String(initialCountry.id)+'"]');
-                if(panel && !panel.querySelector('.showcase-cards') && !panel.querySelector('.empty-state')) renderTabCards(panel, res.cards, res.error);
+        if(FEATURED_COUNTRIES[0]){
+            fetchCards(FEATURED_COUNTRIES[0]).then(function(res){
+                updateTabPrice(FEATURED_COUNTRIES[0].id, res.cards);
+                if(panels[0] && !panels[0].querySelector('.showcase-cards')) renderTabCards(panels[0], res.cards, res.error);
             });
         }
     }

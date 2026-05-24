@@ -348,6 +348,61 @@ function anex_get_excursion_detail_nav_base_url(): string {
 }
 
 /**
+ * Сторінка з повним пошуком (не /katalog/ lite) — для редіректу з [anex_search].
+ *
+ * @param array $atts Опційно: ['target' => 'https://...'] — примусово.
+ */
+function anex_get_catalog_search_page_permalink( array $atts = [] ): string {
+	if ( ! empty( $atts['target'] ) ) {
+		return esc_url_raw( (string) $atts['target'] );
+	}
+
+	$lite_slugs = anex_get_katalog_landing_slugs();
+	$try_slug   = static function ( string $slug ) use ( $lite_slugs ): ?string {
+		$slug = trim( $slug, '/' );
+		if ( '' === $slug || in_array( $slug, $lite_slugs, true ) ) {
+			return null;
+		}
+		return anex_resolve_published_page_url_by_path( $slug );
+	};
+
+	$opt = trim( (string) get_option( 'anex_slug_hotel_catalog', '' ), '/' );
+	foreach ( array_unique( array_filter( [ $opt, 'populyarni-goteli', 'poisk-turiv', 'search-tours' ] ) ) ) as $slug ) {
+		$url = $try_slug( $slug );
+		if ( null !== $url ) {
+			return $url;
+		}
+	}
+
+	global $wpdb;
+	// phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery,WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	$rows = $wpdb->get_results(
+		"SELECT DISTINCT p.ID, p.post_name
+		 FROM {$wpdb->posts} p
+		 LEFT JOIN {$wpdb->postmeta} em ON em.post_id = p.ID AND em.meta_key = '_elementor_data'
+		 WHERE p.post_status = 'publish' AND p.post_type = 'page'
+		   AND (
+				p.post_content LIKE '%[anex_tour_results%' OR
+				p.post_content LIKE '%[anex_hotel_catalog%' OR
+				em.meta_value LIKE '%anex_tour_results%' OR
+				em.meta_value LIKE '%anex_hotel_catalog%'
+		   )
+		 ORDER BY p.post_modified DESC"
+	);
+	if ( ! empty( $rows ) && is_array( $rows ) ) {
+		foreach ( $rows as $row ) {
+			$name = isset( $row->post_name ) ? (string) $row->post_name : '';
+			if ( '' === $name || in_array( $name, $lite_slugs, true ) ) {
+				continue;
+			}
+			return get_permalink( (int) $row->ID );
+		}
+	}
+
+	return anex_get_catalog_page_permalink( $atts );
+}
+
+/**
  * Slugs сторінки каталогу без важкого пошуку (П.1 — зараз лише /katalog/).
  *
  * @return string[]

@@ -80,9 +80,21 @@ function ittour_lab_ajax_booking(): void {
     $lines[] = ''; $lines[] = 'ID заявки: ' . $booking['id'];
     $headers = [ 'From: ' . wp_specialchars_decode( get_bloginfo( 'name' ), ENT_QUOTES ) . ' <' . $admin_email . '>' ];
     if ( $email !== '' ) $headers[] = 'Reply-To: ' . $name . ' <' . $email . '>';
-    wp_mail( $notify_email, $subject, implode( "\n", $lines ), $headers );
+    $mailed = wp_mail( $notify_email, $subject, implode( "\n", $lines ), $headers );
 
-    wp_send_json_success( [ 'message' => 'Заявку відправлено. Менеджер звяжеться з вами найближчим часом.' ] );
+    $message = 'Заявку збережено. Менеджер звʼяжеться з вами найближчим часом.';
+    if ( ! $mailed ) {
+        $message .= ' (Лист на email не надіслано — перевірте Anex Tour → Заявки або налаштуйте SMTP.)';
+    }
+
+    wp_send_json_success(
+        [
+            'message' => $message,
+            'saved'   => true,
+            'mailed'  => (bool) $mailed,
+            'id'      => $booking['id'],
+        ]
+    );
 }
 add_action( 'wp_ajax_ittour_lab_booking',        'ittour_lab_ajax_booking' );
 add_action( 'wp_ajax_nopriv_ittour_lab_booking', 'ittour_lab_ajax_booking' );
