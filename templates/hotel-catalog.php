@@ -7812,7 +7812,8 @@ if ($hero_video_poster === '') {
                 date_from: window.date_from,
                 date_till: window.date_till,
                 items_per_page: '24',
-                hotel_info: '0',
+                hotel_info: '1',
+                hotel_image: '1',
                 currency: '2',
             };
             if (fromCityId) {
@@ -7867,7 +7868,10 @@ if ($hero_video_poster === '') {
                 .concat((offer && offer.images) || []);
             const main = candidates.find((item) => String(item.is_main) === '1' || item.is_main === 1);
             const image = main || candidates[0];
-            return image ? fixMediaUrl(image.full || image.web || image.thumb) : '';
+            if (typeof image === 'string') {
+                return fixMediaUrl(image);
+            }
+            return image ? fixMediaUrl(image.full || image.web || image.thumb || image.url || image.src || image.image || image.photo || '') : '';
         }
 
         function cardFromOffer(offer, window) {
@@ -8487,10 +8491,17 @@ if ($hero_video_poster === '') {
                 .concat(Array.isArray(offer && offer.hotel_images) ? offer.hotel_images : [])
                 .concat(Array.isArray(offer && offer.images) ? offer.images : []);
             for (const item of list) {
+                if (typeof item === 'string') {
+                    const stringUrl = fixMediaUrl(item);
+                    if (stringUrl) {
+                        return stringUrl;
+                    }
+                    continue;
+                }
                 if (!item || typeof item !== 'object') {
                     continue;
                 }
-                const raw = item.thumb || item.full || item.web || '';
+                const raw = item.thumb || item.full || item.web || item.url || item.src || item.image || item.photo || '';
                 const url = fixMediaUrl(raw);
                 if (url) {
                     return url;
@@ -8627,7 +8638,9 @@ if ($hero_video_poster === '') {
                         night_till: String(win.night_till),
                         date_from: String(win.date_from),
                         date_till: String(win.date_till),
-                        hotel_info: '0',
+                        hotel_info: '1',
+                        hotel_image: '1',
+                        currency: '2',
                         items_per_page: '4',
                     };
                     try {
@@ -8651,7 +8664,7 @@ if ($hero_video_poster === '') {
             return request;
         }
 
-        async function fetchHotelThumbByHotelId(hotelId) {
+        async function fetchHotelThumbByHotelId(hotelId, hotel) {
             const id = String(hotelId || '');
             if (!id) {
                 return '';
@@ -8664,18 +8677,34 @@ if ($hero_video_poster === '') {
             }
 
             const request = (async () => {
+                const rawCountryId = String((hotel && hotel.country_id) || '');
+                const countryId = /^\d+$/.test(rawCountryId) ? rawCountryId : '';
+                if (!countryId) {
+                    return '';
+                }
                 try {
-                    const data = await api('hotel/' + id + '/hotel-images', {});
-                    const list = Array.isArray(data) ? data : [];
-                    for (const item of list) {
-                        if (!item || typeof item !== 'object') {
-                            continue;
-                        }
-                        const url = fixMediaUrl(item.thumb || item.web || item.full || item.url || item.src || '');
-                        if (url) {
-                            hotelThumbCache.set(id, url);
-                            return url;
-                        }
+                    const data = await api('module/search-list', {
+                        type: '1',
+                        kind: '1',
+                        country: countryId,
+                        hotel: id,
+                        hotel_rating: '1:78',
+                        adult_amount: String((psAdults && psAdults.value) || '2'),
+                        child_amount: String((psChildren && psChildren.value) || '0'),
+                        night_from: String((psN1 && psN1.value) || '1'),
+                        night_till: String((psN2 && psN2.value) || '30'),
+                        date_from: String((psD1 && psD1.value) || formatApiDate(addDays(new Date(), 14))),
+                        date_till: String((psD2 && psD2.value) || formatApiDate(addDays(new Date(), 25))),
+                        hotel_info: '1',
+                        hotel_image: '1',
+                        items_per_page: '4',
+                        currency: '2',
+                    });
+                    const offers = Array.isArray(data && data.offers) ? data.offers : [];
+                    const url = bestOfferImage(offers);
+                    if (url) {
+                        hotelThumbCache.set(id, url);
+                        return url;
                     }
                 } catch (error) {
                 }
@@ -9526,7 +9555,7 @@ if ($hero_video_poster === '') {
                 adults: String(params && params.adults || ''),
                 children: String(params && params.children || ''),
             };
-            return 'anex:search-render:v2:' + JSON.stringify(payload);
+            return 'anex:search-render:v3:' + JSON.stringify(payload);
         }
 
         function saveSearchRenderCache(params, mode) {
@@ -9971,7 +10000,7 @@ if ($hero_video_poster === '') {
                 if (!holder) {
                     return;
                 }
-                queue.push({ hotelId, holder });
+                queue.push({ hotelId, holder, hotel });
             });
             if (!queue.length) {
                 return;
@@ -9986,7 +10015,7 @@ if ($hero_video_poster === '') {
                     if (!item || !item.holder) {
                         continue;
                     }
-                    const url = await fetchHotelThumbByHotelId(item.hotelId);
+                    const url = await fetchHotelThumbByHotelId(item.hotelId, item.hotel);
                     if (!url || !item.holder.isConnected) {
                         continue;
                     }
@@ -10009,6 +10038,7 @@ if ($hero_video_poster === '') {
                         hotel_id: hotelId,
                         hotel: offer.hotel || '',
                         hotel_rating: offer.hotel_stars || offer.hotel_rating || '',
+                        country_id: offer.country_id || '',
                         country: offer.country || '',
                         region: offer.region || '',
                         min_price: null,
@@ -10068,7 +10098,8 @@ if ($hero_video_poster === '') {
                             date_from: win.date_from,
                             date_till: win.date_till,
                             items_per_page: '24',
-                            hotel_info: '0',
+                            hotel_info: '1',
+                            hotel_image: '1',
                             currency: '2',
                         };
                         const data = await api('showcase/hot-offers/search', query);
@@ -10317,55 +10348,58 @@ if ($hero_video_poster === '') {
                     }
                 });
             };
-            const fetchExcursionOffers = async (baseQuery) => {
-                const variants = [];
-                const q1 = { ...baseQuery };
-                variants.push(q1);
-                const q2 = {
-                    country_id: q1.country || '',
-                    from: q1.from_city || '',
-                    d1: q1.date_from || '',
-                    d2: q1.date_till || '',
-                    n1: q1.night_from || '',
-                    n2: q1.night_till || '',
-                    adults: q1.adult || '',
-                    children: q1.child || '',
-                    transport_type: q1.transport_type || '',
-                    page: q1.page || '1',
-                    items_per_page: q1.items_per_page || '60',
-                };
-                variants.push(q2);
-                const q3 = {
-                    country: q1.country || '',
-                    from: q1.from_city || '',
-                    date_from: q1.date_from || '',
-                    date_till: q1.date_till || '',
-                    night_from: q1.night_from || '',
-                    night_till: q1.night_till || '',
-                    adult_amount: q1.adult || '',
-                    child_amount: q1.child || '',
-                    transport_type: q1.transport_type || '',
-                    page: q1.page || '1',
-                    items_per_page: q1.items_per_page || '60',
-                };
-                variants.push(q3);
-
-                const mergedLocal = [];
-                const seenLocal = new Set();
-                for (const variant of variants) {
-                    const cleaned = {};
-                    Object.keys(variant).forEach((k) => {
-                        const v = variant[k];
-                        if (v != null && String(v) !== '') cleaned[k] = v;
-                    });
-                    try {
-                        const data = await api('module-excursion/search', cleaned);
-                        const offers = Array.isArray(data && data.offers) ? data.offers : [];
-                        collectOffers(mergedLocal, seenLocal, offers);
-                    } catch (e) {}
-                }
-                return mergedLocal;
+            const cleanExcursionQuery = (query) => {
+                const cleaned = {};
+                Object.keys(query || {}).forEach((key) => {
+                    const value = query[key];
+                    if (value != null && String(value).trim() !== '') {
+                        cleaned[key] = String(value);
+                    }
+                });
+                return cleaned;
             };
+            const excursionQueryKey = (query) => JSON.stringify(stableQuery(cleanExcursionQuery(query)));
+            const fetchExcursionOffers = async (query) => {
+                const data = await api('module-excursion/search', cleanExcursionQuery(query));
+                return Array.isArray(data && data.offers) ? data.offers : [];
+            };
+            const runExcursionBatch = async (queries, target, seenSet, stopAt, maxCalls) => {
+                const unique = [];
+                const keys = new Set();
+                (queries || []).forEach((query) => {
+                    const key = excursionQueryKey(query);
+                    if (!keys.has(key)) {
+                        keys.add(key);
+                        unique.push(query);
+                    }
+                });
+                const limited = unique.slice(0, Math.max(1, maxCalls || 8));
+                let cursor = 0;
+                const workers = Array.from({ length: Math.min(2, limited.length) }, async () => {
+                    while (cursor < limited.length && target.length < stopAt) {
+                        const index = cursor;
+                        cursor += 1;
+                        try {
+                            const offers = await fetchExcursionOffers(limited[index]);
+                            collectOffers(target, seenSet, offers);
+                        } catch (e) {}
+                    }
+                });
+                await Promise.all(workers);
+            };
+            const makeExcursionQuery = (countryId, win, overrides) => ({
+                country: String(countryId),
+                date_from: String(win.date_from || ''),
+                date_till: String(win.date_till || ''),
+                night_from: String(params.n1 || '2'),
+                night_till: String(params.n2 || '21'),
+                adult: String(params.adults || '2'),
+                child: String(params.children || '0'),
+                transport_type: '2',
+                page: '1',
+                items_per_page: '60',
+                ...(overrides || {}),
+            });
 
             const countryCandidates = [];
             if (params.country) {
@@ -10386,118 +10420,59 @@ if ($hero_video_poster === '') {
             if (params.d1 && params.d2) {
                 windows.push({ date_from: String(params.d1), date_till: String(params.d2) });
             }
-            buildCandidateWindows().slice(0, 6).forEach((w) => windows.push({ date_from: w.date_from, date_till: w.date_till }));
+            buildCandidateWindows().slice(0, 2).forEach((w) => windows.push({ date_from: w.date_from, date_till: w.date_till }));
 
             const merged = [];
             const seen = new Set();
-            for (const countryId of countryCandidates) {
-                for (const win of windows) {
-                    const q = {
-                        country: String(countryId),
-                        date_from: String(win.date_from || ''),
-                        date_till: String(win.date_till || ''),
-                        night_from: String(params.n1 || '2'),
-                        night_till: String(params.n2 || '21'),
-                        adult: String(params.adults || '2'),
-                        child: String(params.children || '0'),
-                        transport_type: '2',
-                        page: '1',
-                        items_per_page: '60',
-                    };
-                    if (params.from) {
-                        q.from_city = String(params.from);
-                    }
-                    try {
-                        const offers = await fetchExcursionOffers(q);
-                        collectOffers(merged, seen, offers);
-                        if (merged.length >= 30) {
-                            break;
-                        }
-                    } catch (e) {}
+            const windowMap = new Map();
+            windows.forEach((win) => {
+                if (win && win.date_from && win.date_till) {
+                    windowMap.set(String(win.date_from) + '::' + String(win.date_till), win);
                 }
-                if (merged.length >= 30) {
-                    break;
-                }
-            }
+            });
+            const primaryWindows = Array.from(windowMap.values()).slice(0, 3);
+            const fromCityIds = parseFromCityIds(params.from).slice(0, 2);
+            const primaryFromIds = fromCityIds.length ? fromCityIds : [''];
+            const primaryQueries = [];
+            countryCandidates.slice(0, 2).forEach((countryId) => {
+                primaryWindows.forEach((win) => {
+                    primaryFromIds.forEach((fromId) => {
+                        primaryQueries.push(makeExcursionQuery(countryId, win, fromId ? { from_city: fromId } : {}));
+                    });
+                });
+            });
+            await runExcursionBatch(primaryQueries, merged, seen, 30, 8);
 
-            if (!merged.length) {
-                const monthOffsets = [21, 35, 49, 63, 77, 98, 119, 140];
-                const extraCountries = ['318', '338', '320', '16', '372', '376'];
-                for (const c of extraCountries) {
-                    for (const offset of monthOffsets) {
-                        const start = new Date();
-                        start.setHours(12, 0, 0, 0);
-                        start.setDate(start.getDate() + offset);
-                        const end = new Date(start);
-                        end.setDate(end.getDate() + 14);
-                        const q = {
-                            country: String(c),
-                            date_from: formatApiDate(start),
-                            date_till: formatApiDate(end),
-                            night_from: '1',
-                            night_till: '21',
-                            adult: String(params.adults || '2'),
-                            child: String(params.children || '0'),
-                            page: '1',
-                            items_per_page: '80',
-                        };
-                        try {
-                            const offers = await fetchExcursionOffers(q);
-                            collectOffers(merged, seen, offers);
-                            if (merged.length >= 24) break;
-                        } catch (e) {}
-                    }
-                    if (merged.length >= 24) break;
-                }
-            }
-
-            const TARGET_POOL_MIN = 36;
+            const TARGET_POOL_MIN = 18;
             let mergedUnique = dedupeExcursionOffers(merged);
 
             if (mergedUnique.length < TARGET_POOL_MIN) {
-                const extraMerged = [];
-                const seenExtra = new Set();
-                const monthOffsets = [14, 28, 42, 56, 70, 84, 98, 112, 126, 140, 154];
+                const monthOffsets = [21, 49, 77, 105];
                 const extraCountries = [
                     ...(params.country ? [String(params.country)] : []),
                     '318', '338', '320', '16', '372', '376', '49', '420',
                 ].filter((value, index, source) => source.indexOf(value) === index);
-
-                for (const c of extraCountries) {
-                    for (const offset of monthOffsets) {
+                const fallbackQueries = [];
+                extraCountries.forEach((countryId) => {
+                    monthOffsets.forEach((offset) => {
                         const start = new Date();
                         start.setHours(12, 0, 0, 0);
                         start.setDate(start.getDate() + offset);
                         const end = new Date(start);
                         end.setDate(end.getDate() + 10);
-                        const q = {
-                            country: String(c),
+                        fallbackQueries.push(makeExcursionQuery(countryId, {
                             date_from: formatApiDate(start),
                             date_till: formatApiDate(end),
+                        }, {
                             night_from: '1',
                             night_till: '21',
-                            adult: String(params.adults || '2'),
-                            child: String(params.children || '0'),
-                            page: '1',
-                            items_per_page: '120',
-                        };
-                        try {
-                            const offers = await fetchExcursionOffers(q);
-                            collectOffers(extraMerged, seenExtra, offers);
-                        } catch (e) {}
-                        const candidate = dedupeExcursionOffers(merged.concat(extraMerged));
-                        if (candidate.length >= TARGET_POOL_MIN + 6) {
-                            mergedUnique = candidate;
-                            break;
-                        }
-                    }
-                    if (mergedUnique.length >= TARGET_POOL_MIN + 6) {
-                        break;
-                    }
-                }
-                if (mergedUnique.length < TARGET_POOL_MIN + 6 && extraMerged.length) {
-                    mergedUnique = dedupeExcursionOffers(merged.concat(extraMerged));
-                }
+                            transport_type: '',
+                            items_per_page: '80',
+                        }));
+                    });
+                });
+                await runExcursionBatch(fallbackQueries, merged, seen, TARGET_POOL_MIN + 12, 10);
+                mergedUnique = dedupeExcursionOffers(merged);
             }
 
             if (!mergedUnique.length) {
@@ -10611,7 +10586,8 @@ if ($hero_video_poster === '') {
                     date_from: win.date_from,
                     date_till: win.date_till,
                     items_per_page: '48',
-                    hotel_info: '0',
+                    hotel_info: '1',
+                    hotel_image: '1',
                     currency: '2',
                 };
                 if (fromCity) {
@@ -10639,7 +10615,8 @@ if ($hero_video_poster === '') {
                     date_from: win.date_from,
                     date_till: win.date_till,
                     items_per_page: '60',
-                    hotel_info: '0',
+                    hotel_info: '1',
+                    hotel_image: '1',
                     currency: '2',
                 };
                 if (params.region && String(countryId || params.country) === String(params.country)) {
@@ -10670,6 +10647,7 @@ if ($hero_video_poster === '') {
                             hotel_id: hid,
                             hotel: o.hotel || '',
                             hotel_rating: o.hotel_stars || o.hotel_rating || '',
+                            country_id: o.country_id || params.country || '',
                             country: o.country || '',
                             region: o.region || '',
                             min_price: null,
@@ -10707,6 +10685,9 @@ if ($hero_video_poster === '') {
                     const prev = hotelsById.get(hotelId);
                     const mergedOffers = dedupeHotels([...(prev.offers || []), ...(hotel.offers || [])]);
                     prev.offers = mergedOffers;
+                    if (!prev.country_id && hotel.country_id) {
+                        prev.country_id = hotel.country_id;
+                    }
                     if (hotel.min_price != null && (prev.min_price == null || Number(hotel.min_price) < Number(prev.min_price))) {
                         prev.min_price = hotel.min_price;
                     }
@@ -14030,7 +14011,7 @@ if ($hero_video_poster === '') {
                     hotel_rating: '3:78',
                     night_from: '5', night_till: '10',
                     date_from: win.date_from, date_till: win.date_till,
-                    items_per_page: '12', hotel_info: '0', currency: '2',
+                    items_per_page: '12', hotel_info: '1', hotel_image: '1', currency: '2',
                 };
             }
 
