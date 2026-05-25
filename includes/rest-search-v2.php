@@ -63,6 +63,8 @@ function anex_search_v2_rest_search( WP_REST_Request $request ): WP_REST_Respons
 			'stale'      => time() > (int) $cached['fresh_until'],
 			'fresh_until'=> (int) $cached['fresh_until'],
 		];
+		$payload['meta']['origin_api_calls'] = (int) ( $payload['meta']['api_calls'] ?? 0 );
+		$payload['meta']['api_calls'] = 0;
 		if ( time() <= (int) $cached['fresh_until'] ) {
 			return rest_ensure_response( $payload );
 		}
