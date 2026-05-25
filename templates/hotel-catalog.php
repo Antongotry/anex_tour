@@ -13133,63 +13133,28 @@ if ($hero_video_poster === '') {
         }
 
         async function moduleExcursionSearchMergeVariants(baseQuery) {
-            const q1 = { ...baseQuery };
-            const variants = [
-                q1,
-                {
-                    country_id: q1.country || '',
-                    from: q1.from_city || '',
-                    d1: q1.date_from || '',
-                    d2: q1.date_till || '',
-                    n1: q1.night_from || '',
-                    n2: q1.night_till || '',
-                    adults: q1.adult || q1.adults || '',
-                    children: q1.child || q1.children || '',
-                    transport_type: q1.transport_type || '',
-                    page: q1.page || '1',
-                    items_per_page: q1.items_per_page || '60',
-                },
-                {
-                    country: q1.country || '',
-                    from: q1.from_city || '',
-                    date_from: q1.date_from || '',
-                    date_till: q1.date_till || '',
-                    night_from: q1.night_from || '',
-                    night_till: q1.night_till || '',
-                    adult_amount: q1.adult || q1.adult_amount || '',
-                    child_amount: q1.child || q1.child_amount || '',
-                    transport_type: q1.transport_type || '',
-                    page: q1.page || '1',
-                    items_per_page: q1.items_per_page || '60',
-                },
-            ];
+            const query = {};
+            Object.keys(baseQuery || {}).forEach((key) => {
+                const value = baseQuery[key];
+                if (value != null && String(value).trim() !== '') {
+                    query[key] = String(value);
+                }
+            });
             const merged = [];
             const seen = new Set();
             const offerUniqueKey = (offer) => String(offer && (offer.key || offer.id || offer.tour_id || '')) + '::' + String(offer && offer.date_from || '') + '::' + String(offer && offer.name || '');
-            for (const variant of variants) {
-                const cleaned = {};
-                Object.keys(variant).forEach((k) => {
-                    const v = variant[k];
-                    if (v != null && String(v) !== '') {
-                        cleaned[k] = v;
+            try {
+                const data = await api('module-excursion/search', query);
+                const list = excursionOffersFromSearchPayload(data);
+                list.forEach((offer) => {
+                    const uk = offerUniqueKey(offer);
+                    if (!offer || seen.has(uk) || merged.length >= 32) {
+                        return;
                     }
+                    seen.add(uk);
+                    merged.push(offer);
                 });
-                try {
-                    const data = await api('module-excursion/search', cleaned);
-                    const list = excursionOffersFromSearchPayload(data);
-                    list.forEach((offer) => {
-                        const uk = offerUniqueKey(offer);
-                        if (!offer || seen.has(uk)) {
-                            return;
-                        }
-                        seen.add(uk);
-                        merged.push(offer);
-                    });
-                } catch (e) {
-                }
-                if (merged.length >= 32) {
-                    break;
-                }
+            } catch (e) {
             }
             return merged;
         }
