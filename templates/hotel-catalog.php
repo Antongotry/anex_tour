@@ -8607,6 +8607,44 @@ if ($hero_video_poster === '') {
             return request;
         }
 
+        async function fetchHotelThumbByHotelId(hotelId) {
+            const id = String(hotelId || '');
+            if (!id) {
+                return '';
+            }
+            if (hotelThumbCache.has(id)) {
+                return hotelThumbCache.get(id);
+            }
+            if (hotelThumbPending.has(id)) {
+                return hotelThumbPending.get(id);
+            }
+
+            const request = (async () => {
+                try {
+                    const data = await api('hotel/' + id + '/hotel-images', {});
+                    const list = Array.isArray(data) ? data : [];
+                    for (const item of list) {
+                        if (!item || typeof item !== 'object') {
+                            continue;
+                        }
+                        const url = fixMediaUrl(item.thumb || item.web || item.full || item.url || item.src || '');
+                        if (url) {
+                            hotelThumbCache.set(id, url);
+                            return url;
+                        }
+                    }
+                } catch (error) {
+                }
+                hotelThumbCache.set(id, '');
+                return '';
+            })().finally(() => {
+                hotelThumbPending.delete(id);
+            });
+
+            hotelThumbPending.set(id, request);
+            return request;
+        }
+
         function replacePickerHotelThumb(hotelId, imageUrl) {
             const id = String(hotelId || '');
             const url = String(imageUrl || '');
@@ -9744,7 +9782,7 @@ if ($hero_video_poster === '') {
                 const travelersLabel = travelerPriceLabel(travelers.adults, travelers.children);
                 const media = img
                     ? '<div class="search-result-photo"><img src="' + escAttr(img) + '" alt="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></div>'
-                    : '<div class="search-result-photo"></div>';
+                    : '<div class="search-result-photo" data-search-photo-for="' + escAttr(String(h.hotel_id || first.hotel_id || '')) + '"></div>';
                 return '' +
                     '<article class="search-result-row">' +
                     media +
@@ -9764,6 +9802,8 @@ if ($hero_video_poster === '') {
                     '</article>';
             }).join('');
 
+            void hydrateSearchResultThumbs(hotels || []);
+
             searchResultsList.querySelectorAll('a.search-result-cta').forEach((link) => {
                 link.addEventListener('click', () => {
                     const key = link.getAttribute('data-key') || '';
@@ -9779,6 +9819,46 @@ if ($hero_video_poster === '') {
                     }
                 });
             });
+        }
+
+        async function hydrateSearchResultThumbs(hotels) {
+            if (!searchResultsList || !Array.isArray(hotels) || !hotels.length) {
+                return;
+            }
+            const queue = [];
+            hotels.forEach((hotel) => {
+                const hotelId = String(hotel && hotel.hotel_id ? hotel.hotel_id : '');
+                if (!hotelId) {
+                    return;
+                }
+                const holder = searchResultsList.querySelector('[data-search-photo-for="' + hotelId + '"]');
+                if (!holder) {
+                    return;
+                }
+                queue.push({ hotelId, holder });
+            });
+            if (!queue.length) {
+                return;
+            }
+
+            let cursor = 0;
+            const workers = Array.from({ length: Math.min(3, queue.length) }, async () => {
+                while (cursor < queue.length) {
+                    const idx = cursor;
+                    cursor += 1;
+                    const item = queue[idx];
+                    if (!item || !item.holder) {
+                        continue;
+                    }
+                    const url = await fetchHotelThumbByHotelId(item.hotelId);
+                    if (!url || !item.holder.isConnected) {
+                        continue;
+                    }
+                    item.holder.innerHTML = '<img src="' + escAttr(url) + '" alt="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">';
+                    item.holder.removeAttribute('data-search-photo-for');
+                }
+            });
+            await Promise.all(workers);
         }
 
         function renderSearchPagination(totalItems, currentPage, perPage, canLoadMore) {
