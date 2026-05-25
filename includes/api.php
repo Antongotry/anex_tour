@@ -49,6 +49,7 @@ function ittour_lab_cache_ttl( string $path, array $data = [] ): int {
     if ( ! empty( $data['error_code'] ) && (string) $data['error_code'] === '108' ) return 15 * MINUTE_IN_SECONDS;
     if ( str_starts_with( $path, 'module/search-list' ) )                           return 6 * HOUR_IN_SECONDS;
     if ( str_starts_with( $path, 'module-excursion/search' ) )                       return 6 * HOUR_IN_SECONDS;
+    if ( str_starts_with( $path, 'module-excursion/params' ) )                       return DAY_IN_SECONDS;
     if ( str_starts_with( $path, 'showcase/hot-offers/' ) )                          return 30 * MINUTE_IN_SECONDS;
     if ( str_starts_with( $path, 'module/params' ) || str_starts_with( $path, 'dictionary/' ) ) return DAY_IN_SECONDS;
     if ( str_starts_with( $path, 'tour/info' ) || str_starts_with( $path, 'tour-excursion/' ) || str_starts_with( $path, 'tour/flights' ) || str_starts_with( $path, 'hotel/' ) ) return 6 * HOUR_IN_SECONDS;

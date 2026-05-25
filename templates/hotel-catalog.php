@@ -10385,6 +10385,16 @@ if ($hero_video_poster === '') {
                 const data = await api('module-excursion/search', cleanExcursionQuery(query));
                 return Array.isArray(data && data.offers) ? data.offers : [];
             };
+            const fetchExcursionCountryIds = async () => {
+                try {
+                    const data = await api('module-excursion/params', {});
+                    return (Array.isArray(data && data.countries) ? data.countries : [])
+                        .map((country) => String(country && country.id || '').trim())
+                        .filter((id) => /^\d+$/.test(id) && Number(id) > 0);
+                } catch (e) {
+                    return [];
+                }
+            };
             const runExcursionBatch = async (queries, target, seenSet, stopAt, maxCalls, scope) => {
                 const unique = [];
                 const keys = new Set();
@@ -10487,8 +10497,10 @@ if ($hero_video_poster === '') {
             let mergedUnique = dedupeExcursionOffers(merged);
 
             if (mergedUnique.length < TARGET_POOL_MIN) {
+                const excursionCountryIds = await fetchExcursionCountryIds();
                 const extraCountries = [
                     ...(params.country ? [String(params.country)] : []),
+                    ...excursionCountryIds,
                     '318', '338', '320', '16', '372', '376', '49', '420', '434', '39',
                 ].filter((value, index, source) => source.indexOf(value) === index);
                 const fallbackQueries = [];
@@ -10503,7 +10515,7 @@ if ($hero_video_poster === '') {
                     });
                 });
                 const beforeFallbackCount = mergedUnique.length;
-                await runExcursionBatch(fallbackQueries, merged, seen, TARGET_POOL_MIN + 12, 12, 'fallback');
+                await runExcursionBatch(fallbackQueries, merged, seen, TARGET_POOL_MIN + 12, 18, 'fallback');
                 mergedUnique = dedupeExcursionOffers(merged);
                 popularSearchState.excursionUsedFallback = mergedUnique.length > beforeFallbackCount;
             }
