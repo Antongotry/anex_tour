@@ -3073,6 +3073,7 @@ if ($hero_video_poster === '') {
         }
         .exc-gal-main, .exc-gal-cell { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); background: #e8eef7; position: relative; }
         .exc-gal-cell { display: block; height: 100%; }
+        .exc-gal-main img,
         .exc-gal-cell img { width: 100%; height: 100%; object-fit: cover; display: block; min-height: 100px; }
         .exc-gal-main { min-height: 280px; }
         .exc-gal-stack { display: grid; grid-template-rows: 1fr 1fr; gap: 10px; min-height: 0; }
@@ -4149,6 +4150,10 @@ if ($hero_video_poster === '') {
             display: none !important;
         }
 
+        body.detail-modal-open {
+            overflow: hidden;
+        }
+
         .detail-modal {
             width: min(1080px, 100%);
             max-height: calc(100vh - 40px);
@@ -4206,6 +4211,141 @@ if ($hero_video_poster === '') {
         .detail-loading {
             padding: 26px 24px 32px;
             color: var(--muted);
+        }
+
+        .detail-modal .detail-content {
+            padding: 0;
+            background:
+                radial-gradient(circle at 8% 0%, rgba(26, 93, 200, 0.10), transparent 28%),
+                linear-gradient(180deg, #f7f9ff 0%, #ffffff 34%);
+        }
+
+        .detail-modal .hotel-detail-shell {
+            padding: 22px 24px 28px;
+        }
+
+        .detail-modal .hotel-detail-head,
+        .detail-modal .detail-section,
+        .detail-modal .advisor-cta {
+            max-width: 100%;
+        }
+
+        .detail-modal .tour-breadcrumbs {
+            display: none;
+        }
+
+        .detail-modal-state {
+            display: grid;
+            gap: 14px;
+            padding: 28px 24px 34px;
+            color: var(--text);
+        }
+
+        .detail-modal-state strong {
+            font-size: 22px;
+            line-height: 1.15;
+        }
+
+        .detail-modal-state p {
+            margin: 0;
+            color: var(--muted);
+            font-weight: 700;
+            line-height: 1.45;
+        }
+
+        .detail-modal-loader {
+            width: 42px;
+            height: 42px;
+            border: 4px solid rgba(26, 93, 200, 0.16);
+            border-top-color: var(--accent);
+            border-radius: 999px;
+            animation: search-loader-spin .9s linear infinite;
+        }
+
+        .detail-modal-fallback-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: fit-content;
+            min-height: 44px;
+            padding: 10px 16px;
+            border-radius: 12px;
+            background: var(--accent);
+            color: #fff !important;
+            font-weight: 900;
+            text-decoration: none !important;
+        }
+
+        .detail-popup-shell {
+            display: grid;
+            gap: 18px;
+            padding: 22px 24px 28px;
+        }
+
+        .detail-popup-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 320px;
+            gap: 18px;
+            align-items: start;
+        }
+
+        .detail-popup-main,
+        .detail-popup-side {
+            display: grid;
+            gap: 16px;
+            min-width: 0;
+        }
+
+        .detail-popup-card {
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 16px 40px rgba(17, 38, 77, 0.07);
+            padding: 18px;
+        }
+
+        .detail-popup-card h3 {
+            margin: 0 0 12px;
+            font-size: 20px;
+            font-weight: 900;
+            color: var(--text);
+        }
+
+        .detail-popup-note {
+            margin: 0;
+            color: var(--muted);
+            font-weight: 700;
+            line-height: 1.45;
+        }
+
+        .detail-popup-facts {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 10px;
+        }
+
+        .detail-popup-fact {
+            padding: 12px 14px;
+            border: 1px solid rgba(26, 93, 200, 0.14);
+            border-radius: 14px;
+            background: rgba(26, 93, 200, 0.06);
+        }
+
+        .detail-popup-fact small {
+            display: block;
+            margin-bottom: 5px;
+            color: var(--muted);
+            font-size: 11px;
+            font-weight: 900;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+        }
+
+        .detail-popup-fact strong {
+            display: block;
+            color: var(--text);
+            font-size: 15px;
+            line-height: 1.22;
         }
 
         .gallery-grid {
@@ -4847,6 +4987,15 @@ if ($hero_video_poster === '') {
                 width: 100%;
                 max-height: 100vh;
                 border-radius: 0;
+            }
+
+            .detail-modal .hotel-detail-shell,
+            .detail-popup-shell {
+                padding: 18px 14px 26px;
+            }
+
+            .detail-popup-grid {
+                grid-template-columns: 1fr;
             }
 
             .hotel-detail-shell {
@@ -7180,6 +7329,19 @@ if ($hero_video_poster === '') {
         </div>
     </div>
 
+    <div class="detail-backdrop" id="detail-modal-backdrop" hidden>
+        <div class="detail-modal" role="dialog" aria-modal="true" aria-labelledby="detail-modal-title" aria-describedby="detail-modal-subtitle">
+            <div class="detail-head">
+                <div>
+                    <h3 id="detail-modal-title">Деталі туру</h3>
+                    <p id="detail-modal-subtitle">Завантажуємо актуальну інформацію…</p>
+                </div>
+                <button type="button" class="detail-close" id="detail-modal-close" aria-label="Закрити">×</button>
+            </div>
+            <div class="detail-content" id="detail-modal-content"></div>
+        </div>
+    </div>
+
     <script>
     (() => {
         const ajaxUrl = <?php echo wp_json_encode($ajax_url); ?>;
@@ -7371,6 +7533,14 @@ if ($hero_video_poster === '') {
         const bookingTourKey = document.getElementById('booking-tour-key');
         const bookingTourTitle = document.getElementById('booking-tour-title');
         const bookingOfferSummary = document.getElementById('booking-offer-summary');
+        const detailModalBackdrop = document.getElementById('detail-modal-backdrop');
+        const detailModal = detailModalBackdrop ? detailModalBackdrop.querySelector('.detail-modal') : null;
+        const detailModalClose = document.getElementById('detail-modal-close');
+        const detailModalTitle = document.getElementById('detail-modal-title');
+        const detailModalSubtitle = document.getElementById('detail-modal-subtitle');
+        const detailModalContent = document.getElementById('detail-modal-content');
+        let detailModalLastFocus = null;
+        let detailModalRequestId = 0;
 
         document.addEventListener('keydown', (event) => {
             if (event.key !== 'Escape') {
@@ -11304,6 +11474,415 @@ if ($hero_video_poster === '') {
             }
         }
 
+        function setDetailModalChrome(title, subtitle) {
+            if (detailModalTitle) {
+                detailModalTitle.textContent = title || 'Деталі туру';
+            }
+            if (detailModalSubtitle) {
+                detailModalSubtitle.textContent = subtitle || 'Актуальна інформація з IT-Tour';
+            }
+        }
+
+        function openDetailModal(title, subtitle) {
+            if (!detailModalBackdrop || !detailModalContent) {
+                return false;
+            }
+            detailModalLastFocus = document.activeElement;
+            setDetailModalChrome(title, subtitle);
+            detailModalContent.innerHTML = '' +
+                '<div class="detail-modal-state" role="status" aria-live="polite">' +
+                    '<div class="detail-modal-loader" aria-hidden="true"></div>' +
+                    '<strong>Завантажуємо деталі</strong>' +
+                    '<p>Підтягуємо фото, програму, ціни та умови з актуальної пропозиції.</p>' +
+                '</div>';
+            detailModalBackdrop.hidden = false;
+            document.body.classList.add('detail-modal-open');
+            window.setTimeout(() => {
+                if (detailModalClose) {
+                    detailModalClose.focus();
+                } else if (detailModal) {
+                    detailModal.focus();
+                }
+            }, 0);
+            return true;
+        }
+
+        function closeDetailModal() {
+            if (!detailModalBackdrop) {
+                return;
+            }
+            detailModalBackdrop.hidden = true;
+            document.body.classList.remove('detail-modal-open');
+            if (detailModalContent) {
+                detailModalContent.innerHTML = '';
+            }
+            detailModalRequestId += 1;
+            if (detailModalLastFocus && typeof detailModalLastFocus.focus === 'function') {
+                window.setTimeout(() => detailModalLastFocus.focus(), 0);
+            }
+        }
+
+        function setDetailModalError(message, fallbackHref) {
+            if (!detailModalContent) {
+                return;
+            }
+            const safeHref = fallbackHref ? escAttr(fallbackHref) : '';
+            detailModalContent.innerHTML = '' +
+                '<div class="detail-modal-state">' +
+                    '<strong>Не вдалося відкрити popup</strong>' +
+                    '<p>' + esc(message || 'Спробуйте відкрити стандартну сторінку деталей.') + '</p>' +
+                    (safeHref ? '<a class="detail-modal-fallback-link" href="' + safeHref + '">Відкрити стандартну сторінку</a>' : '') +
+                '</div>';
+        }
+
+        function detailTitleFromLink(link) {
+            const article = link && link.closest ? link.closest('article') : null;
+            const titleEl = article ? article.querySelector('.search-result-body h3, .hotel-title, h3') : null;
+            return titleEl && titleEl.textContent ? titleEl.textContent.trim() : '';
+        }
+
+        function detailImageFromLink(link) {
+            const article = link && link.closest ? link.closest('article') : null;
+            const img = article ? article.querySelector('img') : null;
+            return img && img.src ? img.src : '';
+        }
+
+        function hotelCardFromDetailLink(link, url) {
+            const key = (link && link.getAttribute('data-key')) || url.searchParams.get('tour_key') || '';
+            const saved = savedDetailCard(key) || {};
+            const hotelId = (link && link.getAttribute('data-hotel-id')) || url.searchParams.get('hotel_id') || saved.hotelId || '';
+            return {
+                key,
+                hotelId,
+                name: saved.name || detailTitleFromLink(link) || 'Деталі туру',
+                country: saved.country || '',
+                region: saved.region || '',
+                rating: saved.rating || '',
+                reviewRate: saved.reviewRate || null,
+                reviewCount: saved.reviewCount || null,
+                image: saved.image || detailImageFromLink(link) || '',
+                priceUAH: saved.priceUAH || null,
+                dateFrom: saved.dateFrom || '',
+                duration: saved.duration || null,
+                mealType: saved.mealType || '',
+                departureName: saved.departureName || '',
+            };
+        }
+
+        async function openHotelDetailModal(card, fallbackHref) {
+            if (!card || !card.key) {
+                if (fallbackHref) {
+                    window.location.href = fallbackHref;
+                }
+                return;
+            }
+            if (!openDetailModal(card.name || 'Деталі готелю', 'Завантажуємо готель, ціни та доступні дати…')) {
+                window.location.href = fallbackHref;
+                return;
+            }
+            const requestId = ++detailModalRequestId;
+            try {
+                const presentation = await buildHotelDetailPresentation(card);
+                if (requestId !== detailModalRequestId || !detailModalBackdrop || detailModalBackdrop.hidden) {
+                    return;
+                }
+                setDetailModalChrome(presentation.title, presentation.subtitle);
+                detailModalContent.innerHTML = presentation.markup;
+                initReviewsCarousel(detailModalContent);
+            } catch (error) {
+                if (requestId !== detailModalRequestId) {
+                    return;
+                }
+                setDetailModalChrome(card.name || 'Деталі готелю', 'Стандартна сторінка залишилась доступною');
+                setDetailModalError(error && error.message ? error.message : String(error), fallbackHref);
+            }
+        }
+
+        function excursionBaseStateFromUrl(url) {
+            const q = url.searchParams;
+            const name = q.get('exc_name') || 'Екскурсійний тур';
+            const country = q.get('exc_country') || '';
+            const cities = q.get('exc_cities') || '';
+            const dateFromRaw = q.get('exc_date') || '';
+            const priceRaw = Number(q.get('exc_price') || 0);
+            return {
+                key: q.get('exc_key') || '',
+                name,
+                country,
+                citiesLine: cities,
+                cityNames: cities ? cities.split(',').map((item) => item.trim()).filter(Boolean) : [],
+                cityRouteLabels: cities ? cities.split(',').map((item) => item.trim()).filter(Boolean) : [],
+                image: q.get('exc_image') || '',
+                galleryImages: [],
+                countryId: '',
+                fromCity: q.get('exc_from') || '',
+                dateFromRaw,
+                dateFrom: dateFromRaw ? formatHumanDate(dateFromRaw) : '',
+                nights: Number(q.get('exc_nights') || 0),
+                mealType: '',
+                roomType: '',
+                accomodation: '',
+                operator: '',
+                transport: '',
+                transfer: '',
+                program: cities,
+                description: '',
+                descriptionHtml: '',
+                hotelDescription: '',
+                hotelLabel: '',
+                price: priceRaw,
+                depTimeList: '',
+                dayDetail: [],
+                hikes: [],
+                include: [],
+                notInclude: [],
+                documents: [],
+                docLead: '',
+                dateRows: [],
+                insurance: '',
+                visa: '',
+                nightMoves: '',
+            };
+        }
+
+        function excursionModalSubtitle(state) {
+            return [
+                state.country || '',
+                state.citiesLine || '',
+                state.dateFrom || '',
+            ].filter(Boolean).join(' · ') || 'Екскурсійний тур';
+        }
+
+        function excursionModalGallery(state) {
+            const images = [];
+            if (state.image) {
+                images.push({ web: state.image, full: state.image, thumb: state.image });
+            }
+            (state.galleryImages || []).forEach((item) => {
+                const src = fixMediaUrl(item && (item.web || item.full || item.thumb) || '');
+                if (src && !images.some((img) => img.web === src || img.full === src || img.thumb === src)) {
+                    images.push({ web: src, full: src, thumb: src });
+                }
+            });
+            const first = images[0] ? (images[0].web || images[0].full || images[0].thumb) : '';
+            const rest = images.slice(1, 3);
+            return '' +
+                '<section class="exc-gallery-sec">' +
+                    '<div class="exc-gal-mosaic">' +
+                        '<div class="exc-gal-main">' + (first ? '<img src="' + escAttr(first) + '" alt="' + escAttr(state.name || '') + '" loading="eager" referrerpolicy="no-referrer-when-downgrade">' : '') + '</div>' +
+                        '<div class="exc-gal-stack">' +
+                            rest.map((img, index) => {
+                                const src = img.web || img.full || img.thumb || '';
+                                return '<div class="exc-gal-stack-row' + (index === rest.length - 1 ? ' exc-gal-stack-row--last' : '') + '">' +
+                                    '<span class="exc-gal-cell">' + (src ? '<img src="' + escAttr(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">' : '') + '</span>' +
+                                '</div>';
+                            }).join('') +
+                        '</div>' +
+                    '</div>' +
+                '</section>';
+        }
+
+        function excursionModalFacts(state) {
+            const facts = [
+                ['Дата', state.dateFrom || (state.dateFromRaw ? formatHumanDate(state.dateFromRaw) : '')],
+                ['Тривалість', state.nights > 0 ? (state.nights + ' ночей') : 'Уточнюється'],
+                ['Виїзд', state.fromCity || 'Уточнюється'],
+                ['Транспорт', state.transport || state.transfer || 'За програмою'],
+                ['Харчування', state.mealType || state.accomodation || 'За програмою'],
+                ['Оператор', state.operator || 'Уточнюється'],
+            ];
+            return '<div class="detail-popup-facts">' + facts.map((item) =>
+                '<div class="detail-popup-fact"><small>' + esc(item[0]) + '</small><strong>' + esc(item[1]) + '</strong></div>'
+            ).join('') + '</div>';
+        }
+
+        function excursionModalRoute(state) {
+            const labels = (state.cityRouteLabels && state.cityRouteLabels.length ? state.cityRouteLabels : state.cityNames) || [];
+            if (!labels.length && !state.citiesLine) {
+                return '<p class="detail-popup-note">Маршрут уточнюється оператором.</p>';
+            }
+            if (!labels.length) {
+                return '<p class="exc-head-route">' + esc(state.citiesLine) + '</p>';
+            }
+            return '<div class="exc-route-line">' + labels.slice(0, 12).map((label, index) =>
+                '<span class="exc-route-step"><span class="exc-route-badge">' + esc(index + 1) + '</span><span class="exc-route-city">' + esc(label) + '</span></span>' +
+                (index < labels.slice(0, 12).length - 1 ? '<span class="exc-route-gap">→</span>' : '')
+            ).join('') + '</div>';
+        }
+
+        function excursionModalProgram(state, loading) {
+            if (loading) {
+                return '<p class="detail-popup-note">Підтягуємо розширену програму, дні туру та включені послуги…</p>';
+            }
+            if (state.dayDetail && state.dayDetail.length) {
+                return '<div class="exc-program-wrap">' + state.dayDetail.slice(0, 14).map((day, index) => {
+                    const html = day.descriptionHtml && excursionHtmlHasMarkup(day.descriptionHtml)
+                        ? '<div class="exc-day-body exc-day-body--html">' + day.descriptionHtml + '</div>'
+                        : '<div class="exc-day-body">' + esc(stripHtml(day.description || '').trim() || 'Опис дня уточнюється.') + '</div>';
+                    const loc = [day.city, day.country].filter(Boolean).join(', ');
+                    const img = fixMediaUrl(day.image || '');
+                    return '<details class="exc-day-acc"' + (index === 0 ? ' open' : '') + '>' +
+                        '<summary>' + esc(day.title || ('День ' + (index + 1))) + '</summary>' +
+                        '<div class="exc-day-inner">' +
+                            (loc ? '<p class="exc-day-loc">' + esc(loc) + '</p>' : '') +
+                            html +
+                            (img ? '<div class="exc-day-media"><img src="' + escAttr(img) + '" alt="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></div>' : '') +
+                        '</div>' +
+                    '</details>';
+                }).join('') + '</div>';
+            }
+            if (state.descriptionHtml && excursionHtmlHasMarkup(state.descriptionHtml)) {
+                return '<div class="exc-program-html">' + state.descriptionHtml + '</div>';
+            }
+            if (state.description || state.program || state.hotelDescription) {
+                return excursionPlainParagraphs(state.description || state.program || state.hotelDescription);
+            }
+            return '<p class="detail-popup-note">Детальна програма не передана в API для цього туру. Менеджер уточнить її перед бронюванням.</p>';
+        }
+
+        function excursionModalIncluded(state) {
+            if ((!state.include || !state.include.length) && (!state.notInclude || !state.notInclude.length)) {
+                return '';
+            }
+            const yes = (state.include || []).slice(0, 12).map((item) => '<li>' + esc(item) + '</li>').join('');
+            const no = (state.notInclude || []).slice(0, 12).map((item) => '<li>' + esc(item) + '</li>').join('');
+            return '<section class="detail-popup-card exc-inc-sec"><h3>Що входить у вартість</h3><div class="exc-inc-grid">' +
+                '<div class="exc-inc-box exc-inc-box--yes"><h3><span class="exc-inc-ic exc-inc-ic--ok">✓</span>Включено</h3><ul>' + (yes || '<li>Уточнюється менеджером</li>') + '</ul></div>' +
+                '<div class="exc-inc-box exc-inc-box--no"><h3><span class="exc-inc-ic exc-inc-ic--no">!</span>Додатково</h3><ul>' + (no || '<li>Немає даних від оператора</li>') + '</ul></div>' +
+            '</div></section>';
+        }
+
+        function excursionModalDates(state) {
+            if (!state.dateRows || !state.dateRows.length) {
+                return '';
+            }
+            const rows = state.dateRows.slice(0, 8).map((row) => {
+                const date = row.dateFrom ? formatHumanDate(row.dateFrom) : 'Дата уточнюється';
+                const price = row.price > 0 ? formatMoneyUAH(row.price) : 'Ціну уточнюємо';
+                return '<tr>' +
+                    '<td>' + esc(date) + (row.dateTill ? '<small>до ' + esc(formatHumanDate(row.dateTill)) + '</small>' : '') + '</td>' +
+                    '<td>' + esc(row.room || '—') + '</td>' +
+                    '<td>' + esc(row.meal || '—') + '</td>' +
+                    '<td><strong>' + esc(price) + '</strong></td>' +
+                    '<td class="exc-dates-actions"><button type="button" class="exc-cta-btn exc-cta-btn--sm booking-open" data-tour-key="' + escAttr(state.key) + '" data-tour-title="' + escAttr(state.name) + '" data-tour-date="' + escAttr(date) + '" data-tour-city="' + escAttr(state.fromCity || '') + '" data-tour-nights="' + escAttr(state.nights > 0 ? state.nights + ' ночей' : '') + '" data-tour-price="' + escAttr(price) + '">Запит</button></td>' +
+                '</tr>';
+            }).join('');
+            return '<section class="detail-popup-card exc-dates-sec"><h3>Доступні дати</h3><div class="exc-dates-wrap"><table class="exc-dates-table"><thead><tr><th>Дата</th><th>Розміщення</th><th>Харчування</th><th>Ціна</th><th></th></tr></thead><tbody>' + rows + '</tbody></table></div></section>';
+        }
+
+        function buildExcursionDetailModalMarkup(state, fallbackHref, loading) {
+            const priceLabel = state.price > 0 ? ('від ' + formatMoneyUAH(state.price)) : 'Ціну уточнюємо';
+            return '' +
+                '<div class="detail-popup-shell detail-popup-shell--excursion">' +
+                    '<div class="detail-popup-grid">' +
+                        '<div class="detail-popup-main">' +
+                            excursionModalGallery(state) +
+                            '<section class="detail-popup-card exc-head">' +
+                                '<h2 class="exc-head-title">' + esc(state.name || 'Екскурсійний тур') + '</h2>' +
+                                (state.country ? '<p class="exc-head-route">' + esc(state.country) + '</p>' : '') +
+                                '<div class="exc-tag-row">' +
+                                    (state.nights > 0 ? '<span class="exc-tag">' + esc(state.nights + ' ночей') + '</span>' : '') +
+                                    (state.fromCity ? '<span class="exc-tag">Виїзд з ' + esc(state.fromCity) + '</span>' : '') +
+                                    (state.dateFrom ? '<span class="exc-tag">' + esc(state.dateFrom) + '</span>' : '') +
+                                '</div>' +
+                            '</section>' +
+                            '<section class="detail-popup-card"><h3>Маршрут</h3>' + excursionModalRoute(state) + '</section>' +
+                            '<section class="detail-popup-card"><h3>Програма туру</h3>' + excursionModalProgram(state, loading) + '</section>' +
+                            excursionModalIncluded(state) +
+                            excursionModalDates(state) +
+                        '</div>' +
+                        '<aside class="detail-popup-side">' +
+                            '<section class="exc-side-card exc-side-card--price">' +
+                                '<p class="exc-side-price-hint">Орієнтовна ціна</p>' +
+                                '<p class="exc-side-price-big">' + esc(priceLabel) + '</p>' +
+                                '<button type="button" class="exc-cta-btn booking-open" data-tour-key="' + escAttr(state.key || '') + '" data-tour-title="' + escAttr(state.name || '') + '" data-tour-date="' + escAttr(state.dateFrom || '') + '" data-tour-city="' + escAttr(state.fromCity || '') + '" data-tour-nights="' + escAttr(state.nights > 0 ? state.nights + ' ночей' : '') + '" data-tour-price="' + escAttr(priceLabel) + '">Залишити заявку</button>' +
+                                '<p class="exc-side-trust"><span class="exc-trust-dot">✓</span> Менеджер перевірить актуальність перед бронюванням</p>' +
+                            '</section>' +
+                            '<section class="detail-popup-card"><h3>Коротко</h3>' + excursionModalFacts(state) + '</section>' +
+                            (fallbackHref ? '<a class="detail-modal-fallback-link" href="' + escAttr(fallbackHref) + '">Відкрити окрему сторінку</a>' : '') +
+                        '</aside>' +
+                    '</div>' +
+                '</div>';
+        }
+
+        async function openExcursionDetailModal(url) {
+            const fallbackHref = url.toString();
+            const baseState = excursionBaseStateFromUrl(url);
+            if (!openDetailModal(baseState.name || 'Екскурсійний тур', 'Завантажуємо програму, дати та умови…')) {
+                window.location.href = fallbackHref;
+                return;
+            }
+            const requestId = ++detailModalRequestId;
+            setDetailModalChrome(baseState.name, excursionModalSubtitle(baseState));
+            detailModalContent.innerHTML = buildExcursionDetailModalMarkup(baseState, fallbackHref, true);
+            if (!baseState.key) {
+                return;
+            }
+            try {
+                const data = await api('tour-excursion/info/' + encodeURIComponent(baseState.key), excursionTourInfoQuery(baseState.dateFromRaw));
+                if (requestId !== detailModalRequestId || !detailModalBackdrop || detailModalBackdrop.hidden) {
+                    return;
+                }
+                const info = data && typeof data === 'object' ? data : {};
+                const state = buildExcursionDetailState(info, {
+                    name: baseState.name,
+                    country: baseState.country,
+                    cities: baseState.citiesLine,
+                    fromCity: baseState.fromCity,
+                    dateFromRaw: baseState.dateFromRaw,
+                    dateFrom: baseState.dateFrom,
+                    nights: baseState.nights,
+                    priceRaw: baseState.price,
+                    image: baseState.image,
+                    key: baseState.key,
+                });
+                setDetailModalChrome(state.name || baseState.name, excursionModalSubtitle(state));
+                detailModalContent.innerHTML = buildExcursionDetailModalMarkup(state, fallbackHref, false);
+            } catch (error) {
+                if (requestId !== detailModalRequestId) {
+                    return;
+                }
+                detailModalContent.innerHTML = buildExcursionDetailModalMarkup(baseState, fallbackHref, false);
+            }
+        }
+
+        function installDetailModalIntercept() {
+            if (!detailModalBackdrop || !detailModalContent) {
+                return;
+            }
+            document.addEventListener('click', (event) => {
+                if (DETAIL_TOUR_KEY) {
+                    return;
+                }
+                if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+                    return;
+                }
+                const link = event.target && event.target.closest
+                    ? event.target.closest('a.search-result-cta, a.card-action, a.similar-card')
+                    : null;
+                if (!link || !link.href || link.target === '_blank') {
+                    return;
+                }
+                let url;
+                try {
+                    url = new URL(link.href, window.location.origin);
+                } catch (error) {
+                    return;
+                }
+                const isExcursion = url.searchParams.get('excursion_detail') === '1';
+                const isHotel = !!(url.searchParams.get('tour_key') || link.getAttribute('data-key'));
+                if (!isExcursion && !isHotel) {
+                    return;
+                }
+                event.preventDefault();
+                if (isExcursion) {
+                    void openExcursionDetailModal(url);
+                    return;
+                }
+                void openHotelDetailModal(hotelCardFromDetailLink(link, url), url.toString());
+            });
+        }
+
         function hotelDetailSlots() {
             return {
                 head: document.getElementById('anex-detail-head'),
@@ -12469,6 +13048,74 @@ if ($hero_video_poster === '') {
             }).join('') + '</div></section>';
         }
 
+        async function buildHotelDetailPresentation(card) {
+            const [info, flights, reviews] = await Promise.all([
+                api('tour/info/' + card.key, {}),
+                api('tour/flights/' + card.key, {}).catch(() => ({ from: [], to: [] })),
+                card.hotelId ? api('hotel/' + card.hotelId + '/reviews', { type: 'tripadvisor,tophotels' }).catch(() => []) : Promise.resolve([]),
+            ]);
+
+            if (apiError(info)) {
+                throw new Error(apiError(info));
+            }
+
+            const hotelInfo = info.hotel_info || {};
+            const title = stripHtml(info.hotel || info.hotel_name || hotelInfo.name || card.name || 'Деталі туру');
+            const hydratedInfo = {
+                ...info,
+                hotel_id: info.hotel_id || card.hotelId,
+                key: info.key || card.key,
+            };
+            const [detailOffers, similarOffers] = await Promise.all([
+                detailLoadOffers(hydratedInfo),
+                detailLoadSimilar(hydratedInfo),
+            ]);
+            const rawTableOffers = detailOffers.length ? detailOffers : [hydratedInfo];
+            const tableOffers = detailVisibleOffers(rawTableOffers);
+            const bestOffer = tableOffers.slice().sort((left, right) => (detailPriceValue(left) || Infinity) - (detailPriceValue(right) || Infinity))[0] || hydratedInfo;
+            const imagesV2 = detailImages(hydratedInfo, bestOffer, card);
+            const hotelLocation = [info.region || card.region, info.country || card.country].filter(Boolean).join(', ');
+            const mapLink = hotelInfo.lat && hotelInfo.lng
+                ? '<a class="hotel-map-cta" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(hotelInfo.lat + ',' + hotelInfo.lng) + '" target="_blank" rel="noopener" aria-label="Відкрити розташування готелю в Google Картах">' +
+                    '<svg class="hotel-map-cta__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
+                    '<path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 10.5A3.5 3.5 0 1 1 12 6a3.5 3.5 0 0 1 0 6.5z"/>' +
+                    '</svg><span class="hotel-map-cta__label">Показати на карті</span></a>'
+                : '';
+
+            const detailMarkup = '' +
+                '<div class="hotel-detail-shell">' +
+                    '<section class="hotel-detail-head">' +
+                        '<nav class="tour-breadcrumbs" aria-label="Навігація">' +
+                            '<a href="' + escAttr(SITE_HOME_URL) + '">Головна</a><span>/</span>' +
+                            '<a href="' + escAttr(CATALOG_BASE_URL) + '#offers-section">Пошук турів</a><span>/</span>' +
+                            '<span>' + esc(title) + '</span>' +
+                        '</nav>' +
+                        '<div class="hotel-detail-title">' +
+                            '<div class="stars">' + esc(starsMarkup(info.hotel_rating || card.rating)) + '</div>' +
+                            '<h1>' + esc(title) + '</h1>' +
+                            '<div class="hotel-location-line"><span class="hotel-location-line__text">' + esc(hotelLocation || 'Локація уточнюється') + '</span>' + mapLink + '</div>' +
+                        '</div>' +
+                        '<div class="hotel-photo-offer">' + detailGallery(imagesV2, title) + detailBestOffer(hydratedInfo, bestOffer, title) + '</div>' +
+                    '</section>' +
+                    detailInfoSection(hydratedInfo, title) +
+                    detailPriceTable(hydratedInfo, tableOffers, title) +
+                    detailCalendar(hydratedInfo, tableOffers, title) +
+                    detailCtas(hydratedInfo, title) +
+                    detailFacilities(hydratedInfo) +
+                    '<section class="detail-section" id="tour-flights"><h2>Рейси</h2>' + detailFlightsMarkup(flights, info) + '</section>' +
+                    '<section class="detail-section" id="tour-reviews"><h2>Відгуки</h2>' + renderReviews(reviews) + '</section>' +
+                    '<div id="tour-similar-price">' + detailSimilar(similarOffers.slice(0, 4), 'Готелі з аналогічною ціною на тури') + '</div>' +
+                    '<div id="tour-similar-beach">' + detailSimilar(similarOffers.slice(4, 8), 'Готелі з аналогічним пляжем') + '</div>' +
+                    '<p class="detail-note">Інформація актуальна на момент завантаження сторінки. Остаточні деталі бронювання менеджер підтвердить перед оформленням туру.</p>' +
+                '</div>';
+
+            return {
+                title,
+                subtitle: hotelLocation || 'Актуальні фото, ціни та умови туру',
+                markup: detailMarkup,
+            };
+        }
+
         async function renderTourDetailPage() {
             const key = DETAIL_TOUR_KEY || '';
             const slots = hotelDetailSlots();
@@ -12504,65 +13151,8 @@ if ($hero_video_poster === '') {
             }
 
             try {
-                const [info, flights, reviews] = await Promise.all([
-                    api('tour/info/' + card.key, {}),
-                    api('tour/flights/' + card.key, {}).catch(() => ({ from: [], to: [] })),
-                    card.hotelId ? api('hotel/' + card.hotelId + '/reviews', { type: 'tripadvisor,tophotels' }).catch(() => []) : Promise.resolve([]),
-                ]);
-
-                if (apiError(info)) {
-                    throw new Error(apiError(info));
-                }
-
-                const hotelInfo = info.hotel_info || {};
-                const title = stripHtml(info.hotel || info.hotel_name || hotelInfo.name || card.name || 'Деталі туру');
-                const hydratedInfo = {
-                    ...info,
-                    hotel_id: info.hotel_id || card.hotelId,
-                    key: info.key || card.key,
-                };
-                const [detailOffers, similarOffers] = await Promise.all([
-                    detailLoadOffers(hydratedInfo),
-                    detailLoadSimilar(hydratedInfo),
-                ]);
-                const rawTableOffers = detailOffers.length ? detailOffers : [hydratedInfo];
-                const tableOffers = detailVisibleOffers(rawTableOffers);
-                const bestOffer = tableOffers.slice().sort((left, right) => (detailPriceValue(left) || Infinity) - (detailPriceValue(right) || Infinity))[0] || hydratedInfo;
-                const imagesV2 = detailImages(hydratedInfo, bestOffer, card);
-                const hotelLocation = [info.region || card.region, info.country || card.country].filter(Boolean).join(', ');
-                const mapLink = hotelInfo.lat && hotelInfo.lng
-                    ? '<a class="hotel-map-cta" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(hotelInfo.lat + ',' + hotelInfo.lng) + '" target="_blank" rel="noopener" aria-label="Відкрити розташування готелю в Google Картах">' +
-                        '<svg class="hotel-map-cta__icon" viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" focusable="false">' +
-                        '<path fill="currentColor" d="M12 2a7 7 0 0 0-7 7c0 5.25 7 13 7 13s7-7.75 7-13a7 7 0 0 0-7-7zm0 10.5A3.5 3.5 0 1 1 12 6a3.5 3.5 0 0 1 0 6.5z"/>' +
-                        '</svg><span class="hotel-map-cta__label">Показати на карті</span></a>'
-                    : '';
-
-                const detailMarkup = '' +
-                    '<div class="hotel-detail-shell">' +
-                        '<section class="hotel-detail-head">' +
-                            '<nav class="tour-breadcrumbs" aria-label="Навігація">' +
-                                '<a href="' + escAttr(SITE_HOME_URL) + '">Головна</a><span>/</span>' +
-                                '<a href="' + escAttr(CATALOG_BASE_URL) + '#offers-section">Пошук турів</a><span>/</span>' +
-                                '<span>' + esc(title) + '</span>' +
-                            '</nav>' +
-                            '<div class="hotel-detail-title">' +
-                                '<div class="stars">' + esc(starsMarkup(info.hotel_rating || card.rating)) + '</div>' +
-                                '<h1>' + esc(title) + '</h1>' +
-                                '<div class="hotel-location-line"><span class="hotel-location-line__text">' + esc(hotelLocation || 'Локація уточнюється') + '</span>' + mapLink + '</div>' +
-                            '</div>' +
-                            '<div class="hotel-photo-offer">' + detailGallery(imagesV2, title) + detailBestOffer(hydratedInfo, bestOffer, title) + '</div>' +
-                        '</section>' +
-                        detailInfoSection(hydratedInfo, title) +
-                        detailPriceTable(hydratedInfo, tableOffers, title) +
-                        detailCalendar(hydratedInfo, tableOffers, title) +
-                        detailCtas(hydratedInfo, title) +
-                        detailFacilities(hydratedInfo) +
-                        '<section class="detail-section" id="tour-flights"><h2>Рейси</h2>' + detailFlightsMarkup(flights, info) + '</section>' +
-                        '<section class="detail-section" id="tour-reviews"><h2>Відгуки</h2>' + renderReviews(reviews) + '</section>' +
-                        '<div id="tour-similar-price">' + detailSimilar(similarOffers.slice(0, 4), 'Готелі з аналогічною ціною на тури') + '</div>' +
-                        '<div id="tour-similar-beach">' + detailSimilar(similarOffers.slice(4, 8), 'Готелі з аналогічним пляжем') + '</div>' +
-                        '<p class="detail-note">Інформація актуальна на момент завантаження сторінки. Остаточні деталі бронювання менеджер підтвердить перед оформленням туру.</p>' +
-                    '</div>';
+                const presentation = await buildHotelDetailPresentation(card);
+                const detailMarkup = presentation.markup;
 
                 if (detailContent) {
                     detailContent.innerHTML = detailMarkup;
@@ -12683,11 +13273,21 @@ if ($hero_video_poster === '') {
         if (bookingClose) {
             bookingClose.addEventListener('click', closeBookingForm);
         }
+        if (detailModalClose) {
+            detailModalClose.addEventListener('click', closeDetailModal);
+        }
 
         if (bookingBackdrop) {
             bookingBackdrop.addEventListener('click', (event) => {
                 if (event.target === bookingBackdrop) {
                     closeBookingForm();
+                }
+            });
+        }
+        if (detailModalBackdrop) {
+            detailModalBackdrop.addEventListener('click', (event) => {
+                if (event.target === detailModalBackdrop) {
+                    closeDetailModal();
                 }
             });
         }
@@ -12791,9 +13391,15 @@ if ($hero_video_poster === '') {
         document.addEventListener('keydown', (event) => {
             if (event.key === 'Escape' && mobileMenu && !mobileMenu.hidden) {
                 closeMobileMenu();
+                return;
             }
             if (event.key === 'Escape' && bookingBackdrop && !bookingBackdrop.hidden) {
                 closeBookingForm();
+                return;
+            }
+            if (event.key === 'Escape' && detailModalBackdrop && !detailModalBackdrop.hidden) {
+                closeDetailModal();
+                return;
             }
             if (event.key === 'Escape' && psPicker && psPicker.classList.contains('is-open')) {
                 closePsPicker();
@@ -13971,6 +14577,8 @@ if ($hero_video_poster === '') {
             }
             return true;
         }
+
+        installDetailModalIntercept();
 
         if (DETAIL_TOUR_KEY) {
             renderTourDetailPage();
