@@ -9899,43 +9899,107 @@ if ($hero_video_poster === '') {
             await Promise.all(workers);
         }
 
-        function renderSearchNoResultsWithSuggestions(message) {
+        function offersToHotelsShape(offers) {
+            const map = new Map();
+            (offers || []).forEach((offer) => {
+                const hotelId = String(offer.hotel_id || offer.hotel || '');
+                if (!hotelId) {
+                    return;
+                }
+                if (!map.has(hotelId)) {
+                    map.set(hotelId, {
+                        hotel_id: hotelId,
+                        hotel: offer.hotel || '',
+                        hotel_rating: offer.hotel_stars || offer.hotel_rating || '',
+                        country: offer.country || '',
+                        region: offer.region || '',
+                        min_price: null,
+                        images: offer.hotel_images || [],
+                        offers: [],
+                    });
+                }
+                const hotel = map.get(hotelId);
+                hotel.offers.push(offer);
+                const price = Number((offer.prices && offer.prices['2']) != null ? offer.prices['2'] : (offer.price || 0));
+                if (price > 0 && (hotel.min_price == null || price < hotel.min_price)) {
+                    hotel.min_price = price;
+                }
+            });
+            return [...map.values()];
+        }
+
+        async function renderSearchNoResultsWithSuggestions(message) {
             if (!searchResultsList) {
                 return;
             }
-            const countries = (FEATURED_COUNTRIES || []).slice(0, 6);
-            searchResultsList.innerHTML = '' +
-                '<div class="empty-state search-empty-wrap">' +
-                    '<h3 class="search-empty-title">Нічого не знайдено за цим запитом</h3>' +
-                    '<p class="search-empty-copy">' + esc(message || 'Спробуйте змінити дати, кількість ночей або оберіть іншу країну.') + '</p>' +
-                    '<div class="search-empty-actions">' +
-                        countries.map((country) =>
-                            '<button type="button" class="search-empty-chip" data-suggest-country="' + escAttr(country.id) + '">' + esc(country.name || '') + '</button>',
-                        ).join('') +
-                    '</div>' +
-                    '<div class="search-empty-actions">' +
-                        '<button type="button" class="search-empty-chip" data-open-popular="1">Показати популярні напрямки</button>' +
-                    '</div>' +
-                '</div>';
+            searchResultsList.innerHTML = '<p class="empty-state">На жаль, за вашим запитом нічого не знайдено. Показуємо найближчі популярні варіанти…</p>';
+            if (searchResultsPagination) {
+                searchResultsPagination.hidden = true;
+            }
+            if (searchResultsBanner) {
+                searchResultsBanner.textContent = message || 'Показуємо найближчі популярні варіанти.';
+            }
 
-            searchResultsList.querySelectorAll('[data-suggest-country]').forEach((btn) => {
-                btn.addEventListener('click', async () => {
-                    const countryId = String(btn.getAttribute('data-suggest-country') || '');
-                    if (!countryId) {
-                        return;
-                    }
-                    await setPsCountryById(countryId, { keepDeparture: false, clearRegion: true });
-                    popularSearchState.page = 1;
-                    await runPopularSearchFromForm({});
-                });
+            const countryIds = [];
+            const lastCountry = popularSearchState.lastQuery && popularSearchState.lastQuery.country ? String(popularSearchState.lastQuery.country) : '';
+            if (lastCountry) {
+                countryIds.push(lastCountry);
+            }
+            (FEATURED_COUNTRIES || []).forEach((country) => {
+                const id = String(country.id || '');
+                if (id && !countryIds.includes(id)) {
+                    countryIds.push(id);
+                }
             });
 
-            const popularBtn = searchResultsList.querySelector('[data-open-popular]');
-            if (popularBtn) {
-                popularBtn.addEventListener('click', () => {
-                    scrollToOffers();
-                });
+            const windows = buildCandidateWindows().slice(0, 2);
+            const collected = [];
+            const seen = new Set();
+            for (const countryId of countryIds.slice(0, 3)) {
+                for (const win of windows) {
+                    try {
+                        const query = {
+                            type: '1',
+                            kind: '1',
+                            country: countryId,
+                            adult_amount: String((psAdults && psAdults.value) || '2'),
+                            child_amount: String((psChildren && psChildren.value) || '0'),
+                            hotel_rating: '1:78',
+                            night_from: String((psN1 && psN1.value) || '5'),
+                            night_till: String((psN2 && psN2.value) || '9'),
+                            date_from: win.date_from,
+                            date_till: win.date_till,
+                            items_per_page: '24',
+                            hotel_info: '0',
+                            currency: '2',
+                        };
+                        const data = await api('showcase/hot-offers/search', query);
+                        const offers = Array.isArray(data && data.offers) ? data.offers : [];
+                        offers.forEach((offer) => {
+                            const key = String(offer.hotel_id || '') + '::' + String(offer.key || '');
+                            if (!key || seen.has(key)) {
+                                return;
+                            }
+                            seen.add(key);
+                            collected.push(offer);
+                        });
+                    } catch (error) {
+                    }
+                }
             }
+
+            const fallbackHotels = offersToHotelsShape(collected).slice(0, 12);
+            if (!fallbackHotels.length) {
+                searchResultsList.innerHTML = '<p class="empty-state">На жаль, за вашим запитом нічого не знайдено. Спробуйте змінити дати, кількість ночей або країну.</p>';
+                return;
+            }
+            if (searchResultsCount) {
+                searchResultsCount.textContent = 'Підібрано ' + fallbackHotels.length + ' популярних готелів';
+            }
+            if (searchResultsBanner) {
+                searchResultsBanner.textContent = 'Точних збігів немає. Показуємо найближчі популярні пропозиції.';
+            }
+            renderSearchResultRows(fallbackHotels);
         }
 
         function renderSearchPagination(totalItems, currentPage, perPage, canLoadMore) {
@@ -10071,7 +10135,7 @@ if ($hero_video_poster === '') {
                 }
                 if (searchResultsList) {
                     if (!popularSearchState.rawHotels || !popularSearchState.rawHotels.length) {
-                        renderSearchNoResultsWithSuggestions('Спробуйте змінити дати, кількість ночей або виберіть інше місто виїзду.');
+                        void renderSearchNoResultsWithSuggestions('Спробуйте змінити дати, кількість ночей або виберіть інше місто виїзду.');
                     } else {
                         searchResultsList.innerHTML = '<p class="empty-state">Нічого не знайдено за обраними фільтрами. Спробуйте змінити бюджет або скинути фільтри.</p>';
                     }
@@ -10348,7 +10412,7 @@ if ($hero_video_poster === '') {
                     searchResultsCount.textContent = 'Знайдено 0 турів';
                 }
                 if (searchResultsList) {
-                    renderSearchNoResultsWithSuggestions('Спробуйте змінити дати, кількість ночей або країну призначення.');
+                    void renderSearchNoResultsWithSuggestions('Спробуйте змінити дати, кількість ночей або країну призначення.');
                 }
                 if (searchResultsPagination) {
                     searchResultsPagination.hidden = true;
