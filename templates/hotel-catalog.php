@@ -11587,7 +11587,9 @@ if ($hero_video_poster === '') {
                     return;
                 }
                 setDetailModalChrome(presentation.title, presentation.subtitle);
-                detailModalContent.innerHTML = presentation.markup;
+                detailModalContent.innerHTML = presentation.markup + (fallbackHref
+                    ? '<div class="detail-popup-shell"><a class="detail-modal-fallback-link" href="' + escAttr(fallbackHref) + '">Відкрити окрему сторінку</a></div>'
+                    : '');
                 initReviewsCarousel(detailModalContent);
             } catch (error) {
                 if (requestId !== detailModalRequestId) {
