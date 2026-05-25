@@ -94,6 +94,9 @@ if (false) {
 
 $ajax_url = admin_url('admin-ajax.php');
 $nonce    = wp_create_nonce('ittour_lab_public');
+$search_v2_endpoint = rest_url( 'anex/v1/search' );
+$search_v2_rest_nonce = wp_create_nonce( 'wp_rest' );
+$search_v2_shadow_enabled = current_user_can( 'manage_options' );
 $detail_tour_key = isset($_GET['tour_key']) ? sanitize_text_field(wp_unslash((string) $_GET['tour_key'])) : '';
 $detail_hotel_id = isset($_GET['hotel_id']) ? sanitize_text_field(wp_unslash((string) $_GET['hotel_id'])) : '';
 $detail_back_url = remove_query_arg(['tour_key', 'hotel_id'], get_permalink());
@@ -7181,6 +7184,9 @@ if ($hero_video_poster === '') {
     (() => {
         const ajaxUrl = <?php echo wp_json_encode($ajax_url); ?>;
         const nonce = <?php echo wp_json_encode($nonce); ?>;
+        const SEARCH_V2_ENDPOINT = <?php echo wp_json_encode( $search_v2_endpoint, JSON_UNESCAPED_SLASHES ); ?>;
+        const SEARCH_V2_REST_NONCE = <?php echo wp_json_encode( $search_v2_rest_nonce ); ?>;
+        const SEARCH_V2_SHADOW_ENABLED = <?php echo wp_json_encode( $search_v2_shadow_enabled ); ?>;
         const ANEX_AGENCY_TELEGRAM = <?php echo wp_json_encode( $anex_agency_telegram, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ); ?>;
         const ANEX_AGENCY_VIBER = <?php echo wp_json_encode( $anex_agency_viber, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE ); ?>;
         const IMG_BASE = 'https://www.ittour.com.ua/';
@@ -9408,6 +9414,98 @@ if ($hero_video_poster === '') {
             };
         }
 
+        function buildSearchV2ShadowUrl(params) {
+            const url = new URL(SEARCH_V2_ENDPOINT, window.location.origin);
+            const map = {
+                country_id: params.country,
+                region: params.region,
+                hotel_id: params.hotel,
+                from: params.from,
+                d1: params.d1,
+                d2: params.d2,
+                n1: params.n1,
+                n2: params.n2,
+                adults: params.adults,
+                children: params.children,
+                limit: '24',
+                shadow: '1',
+            };
+            Object.entries(map).forEach(([key, value]) => {
+                if (value != null && String(value).trim() !== '') {
+                    url.searchParams.set(key, String(value));
+                }
+            });
+            return url;
+        }
+
+        function rememberSearchV2Shadow(entry) {
+            try {
+                const key = 'anex:search-v2-shadow';
+                const list = JSON.parse(sessionStorage.getItem(key) || '[]');
+                list.unshift(entry);
+                sessionStorage.setItem(key, JSON.stringify(list.slice(0, 20)));
+            } catch (e) {}
+        }
+
+        async function runSearchV2Shadow(params, context) {
+            const ctx = context || {};
+            if (!SEARCH_V2_SHADOW_ENABLED || !SEARCH_V2_ENDPOINT || ctx.loadMore) {
+                return;
+            }
+            const startedAt = (window.performance && typeof window.performance.now === 'function')
+                ? window.performance.now()
+                : Date.now();
+            try {
+                const response = await fetch(buildSearchV2ShadowUrl(params).toString(), {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        Accept: 'application/json',
+                        'X-WP-Nonce': SEARCH_V2_REST_NONCE,
+                    },
+                });
+                const payload = await response.json().catch(() => null);
+                const endedAt = (window.performance && typeof window.performance.now === 'function')
+                    ? window.performance.now()
+                    : Date.now();
+                const meta = payload && payload.meta ? payload.meta : {};
+                const cache = payload && payload.cache ? payload.cache : {};
+                const entry = {
+                    ts: new Date().toISOString(),
+                    http: response.status,
+                    ok: Boolean(response.ok && payload && payload.ok),
+                    status: payload && payload.status ? String(payload.status) : 'error',
+                    source: payload && payload.source ? String(payload.source) : '',
+                    count: Number(meta.count || (payload && Array.isArray(payload.cards) ? payload.cards.length : 0) || 0),
+                    cache_hit: Boolean(cache.hit),
+                    cache_stale: Boolean(cache.stale),
+                    api_calls: Number(meta.api_calls || 0),
+                    origin_api_calls: Number(meta.origin_api_calls || 0),
+                    latency_ms: Math.round(endedAt - startedAt),
+                    country: String(params.country || ''),
+                    from: String(params.from || ''),
+                    d1: String(params.d1 || ''),
+                    d2: String(params.d2 || ''),
+                    n1: String(params.n1 || ''),
+                    n2: String(params.n2 || ''),
+                };
+                rememberSearchV2Shadow(entry);
+                if (window.console && typeof window.console.info === 'function') {
+                    window.console.info('[Anex Search V2 shadow]', entry);
+                }
+            } catch (e) {
+                rememberSearchV2Shadow({
+                    ts: new Date().toISOString(),
+                    ok: false,
+                    status: 'network_error',
+                    message: (e && e.message) || 'Search V2 shadow failed',
+                });
+                if (window.console && typeof window.console.warn === 'function') {
+                    window.console.warn('[Anex Search V2 shadow]', e);
+                }
+            }
+        }
+
         function currentSearchModeFromState() {
             const modeInput = document.getElementById('ps-search-mode');
             const urlMode = new URL(window.location.href).searchParams.get('mode');
@@ -10458,6 +10556,9 @@ if ($hero_video_poster === '') {
             }
             if (searchResultsCount) {
                 searchResultsCount.textContent = '';
+            }
+            if (searchMode !== 'excursion') {
+                void runSearchV2Shadow(params, { loadMore: Boolean(opts.loadMore) });
             }
             if (searchMode === 'excursion') {
                 try {

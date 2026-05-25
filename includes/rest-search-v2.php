@@ -11,6 +11,7 @@ defined( 'ABSPATH' ) || exit;
 
 const ANEX_SEARCH_V2_CACHE_TTL       = 10 * MINUTE_IN_SECONDS;
 const ANEX_SEARCH_V2_STALE_CACHE_TTL = 6 * HOUR_IN_SECONDS;
+const ANEX_SEARCH_V2_SHADOW_LOG_LIMIT = 50;
 
 add_action(
 	'rest_api_init',
@@ -34,6 +35,16 @@ add_action(
 				'permission_callback' => '__return_true',
 			]
 		);
+
+		register_rest_route(
+			'anex/v1',
+			'/shadow-log',
+			[
+				'methods'             => WP_REST_Server::READABLE,
+				'callback'            => 'anex_search_v2_rest_shadow_log',
+				'permission_callback' => static fn(): bool => current_user_can( 'manage_options' ),
+			]
+		);
 	}
 );
 
@@ -47,6 +58,16 @@ function anex_search_v2_rest_health(): WP_REST_Response {
 				'search_v2' => true,
 				'cache'     => 'transient',
 			],
+		]
+	);
+}
+
+function anex_search_v2_rest_shadow_log(): WP_REST_Response {
+	$log = get_option( 'anex_search_v2_shadow_log', [] );
+	return rest_ensure_response(
+		[
+			'ok'      => true,
+			'entries' => is_array( $log ) ? array_values( $log ) : [],
 		]
 	);
 }
@@ -66,6 +87,7 @@ function anex_search_v2_rest_search( WP_REST_Request $request ): WP_REST_Respons
 		$payload['meta']['origin_api_calls'] = (int) ( $payload['meta']['api_calls'] ?? 0 );
 		$payload['meta']['api_calls'] = 0;
 		if ( time() <= (int) $cached['fresh_until'] ) {
+			anex_search_v2_maybe_write_shadow_log( $request, $params, $payload );
 			return rest_ensure_response( $payload );
 		}
 	}
@@ -100,6 +122,7 @@ function anex_search_v2_rest_search( WP_REST_Request $request ): WP_REST_Respons
 		];
 		$payload['meta']['api_calls'] = $api_calls;
 		$payload['meta']['errors'] = $errors;
+		anex_search_v2_maybe_write_shadow_log( $request, $params, $payload );
 		return rest_ensure_response( $payload );
 	}
 
@@ -131,7 +154,48 @@ function anex_search_v2_rest_search( WP_REST_Request $request ): WP_REST_Respons
 		ANEX_SEARCH_V2_STALE_CACHE_TTL
 	);
 
+	anex_search_v2_maybe_write_shadow_log( $request, $params, $payload );
+
 	return rest_ensure_response( $payload );
+}
+
+function anex_search_v2_maybe_write_shadow_log( WP_REST_Request $request, array $params, array $payload ): void {
+	if ( (string) $request->get_param( 'shadow' ) !== '1' || ! current_user_can( 'manage_options' ) ) {
+		return;
+	}
+
+	$meta = is_array( $payload['meta'] ?? null ) ? $payload['meta'] : [];
+	$cache = is_array( $payload['cache'] ?? null ) ? $payload['cache'] : [];
+	$cards = is_array( $payload['cards'] ?? null ) ? $payload['cards'] : [];
+	$errors = is_array( $meta['errors'] ?? null ) ? $meta['errors'] : [];
+	$entry = [
+		'ts'               => current_time( 'mysql' ),
+		'status'           => (string) ( $payload['status'] ?? '' ),
+		'source'           => (string) ( $payload['source'] ?? '' ),
+		'count'            => (int) ( $meta['count'] ?? count( $cards ) ),
+		'cache_hit'        => ! empty( $cache['hit'] ),
+		'cache_stale'      => ! empty( $cache['stale'] ),
+		'api_calls'        => (int) ( $meta['api_calls'] ?? 0 ),
+		'origin_api_calls' => (int) ( $meta['origin_api_calls'] ?? 0 ),
+		'errors'           => count( $errors ),
+		'country'          => (string) ( $params['country'] ?? '' ),
+		'from'             => (string) ( $params['from'] ?? '' ),
+		'region'           => (string) ( $params['region'] ?? '' ),
+		'hotel'            => (string) ( $params['hotel'] ?? '' ),
+		'd1'               => (string) ( $params['d1'] ?? '' ),
+		'd2'               => (string) ( $params['d2'] ?? '' ),
+		'n1'               => (int) ( $params['n1'] ?? 0 ),
+		'n2'               => (int) ( $params['n2'] ?? 0 ),
+		'adults'           => (int) ( $params['adults'] ?? 0 ),
+		'children'         => (int) ( $params['children'] ?? 0 ),
+	];
+
+	$log = get_option( 'anex_search_v2_shadow_log', [] );
+	if ( ! is_array( $log ) ) {
+		$log = [];
+	}
+	array_unshift( $log, $entry );
+	update_option( 'anex_search_v2_shadow_log', array_slice( $log, 0, ANEX_SEARCH_V2_SHADOW_LOG_LIMIT ), false );
 }
 
 function anex_search_v2_normalize_request( WP_REST_Request $request ): array {
