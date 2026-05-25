@@ -9564,7 +9564,7 @@ if ($hero_video_poster === '') {
                 adults: String(params && params.adults || ''),
                 children: String(params && params.children || ''),
             };
-            return 'anex:search-render:v3:' + JSON.stringify(payload);
+            return 'anex:search-render:v4:' + JSON.stringify(payload);
         }
 
         function saveSearchRenderCache(params, mode) {
@@ -9779,15 +9779,22 @@ if ($hero_video_poster === '') {
 
         function excursionDedupeSignature(offer) {
             const name = normalizeSearchToken((offer && offer.name) || '');
-            const from = normalizeSearchToken((offer && offer.from_city) || '');
             const countries = normalizeSearchToken(Array.isArray(offer && offer.country_names) ? offer.country_names.join(' ') : ((offer && offer.country) || ''));
             const cities = normalizeSearchToken(Array.isArray(offer && offer.city_names) ? offer.city_names.join(' ') : ((offer && offer.city) || ''));
-            const datePart = normalizeSearchToken(String((offer && offer.date_from) || ''));
             const keyPart = normalizeSearchToken(String((offer && offer.key) || (offer && offer.id) || ''));
-            return [name, from, countries, cities, datePart, keyPart].join('|');
+            if (keyPart) {
+                return 'key:' + keyPart;
+            }
+            const duration = normalizeSearchToken(String((offer && offer.duration) || ''));
+            return [name, countries, cities, duration].join('|');
         }
 
         function excursionPickBetterVariation(left, right) {
+            const leftPrimary = left && left.__excursion_scope !== 'fallback';
+            const rightPrimary = right && right.__excursion_scope !== 'fallback';
+            if (leftPrimary !== rightPrimary) {
+                return leftPrimary ? left : right;
+            }
             const lp = excursionOfferPriceUAH(left);
             const rp = excursionOfferPriceUAH(right);
             if (lp !== rp) {
@@ -9802,13 +9809,16 @@ if ($hero_video_poster === '') {
             const map = new Map();
             (list || []).forEach((offer) => {
                 const sig = excursionDedupeSignature(offer);
-                if (!sig || sig === '|||||') {
+                if (!sig || sig === '|||') {
                     return;
                 }
                 const prev = map.get(sig);
                 map.set(sig, prev ? excursionPickBetterVariation(prev, offer) : offer);
             });
             return [...map.values()].sort((a, b) => {
+                const af = a && a.__excursion_scope === 'fallback' ? 1 : 0;
+                const bf = b && b.__excursion_scope === 'fallback' ? 1 : 0;
+                if (af !== bf) return af - bf;
                 const pa = excursionOfferPriceUAH(a);
                 const pb = excursionOfferPriceUAH(b);
                 if (pa !== pb) return pa - pb;
@@ -10193,6 +10203,7 @@ if ($hero_video_poster === '') {
             const mode = String((modeInput && modeInput.value) || urlMode || 'hotel').trim();
             if (mode === 'excursion') {
                 const pool = popularSearchState.excursionOffersPool || [];
+                const usedFallback = Boolean(popularSearchState.excursionUsedFallback);
                 if (!pool.length) {
                     return;
                 }
@@ -10224,7 +10235,7 @@ if ($hero_video_poster === '') {
                 }
                 if (searchResultsBanner) {
                     searchResultsBanner.textContent = list.length
-                        ? 'Екскурсійні пропозиції за вашим запитом.'
+                        ? (usedFallback ? 'Точних екскурсійних програм мало — показуємо доступні та найближчі популярні варіанти.' : 'Екскурсійні пропозиції за вашим запитом.')
                         : 'Екскурсійні тури не знайдено за цим запитом (спробуйте змінити бюджет у фільтрах).';
                 }
                 if (searchResultsPagination) {
@@ -10348,13 +10359,14 @@ if ($hero_video_poster === '') {
 
         async function runExcursionSearchFromForm(params) {
             popularSearchState.excursionOffersPool = [];
+            popularSearchState.excursionUsedFallback = false;
             const offerUniqueKey = (offer) => String(offer && (offer.key || offer.id || '')) + '::' + String(offer && offer.date_from || '') + '::' + String(offer && offer.name || '');
-            const collectOffers = (target, seenSet, offers) => {
+            const collectOffers = (target, seenSet, offers, scope) => {
                 (offers || []).forEach((offer) => {
                     const key = offerUniqueKey(offer);
                     if (!seenSet.has(key)) {
                         seenSet.add(key);
-                        target.push(offer);
+                        target.push(scope ? Object.assign({}, offer, { __excursion_scope: scope }) : offer);
                     }
                 });
             };
@@ -10373,7 +10385,7 @@ if ($hero_video_poster === '') {
                 const data = await api('module-excursion/search', cleanExcursionQuery(query));
                 return Array.isArray(data && data.offers) ? data.offers : [];
             };
-            const runExcursionBatch = async (queries, target, seenSet, stopAt, maxCalls) => {
+            const runExcursionBatch = async (queries, target, seenSet, stopAt, maxCalls, scope) => {
                 const unique = [];
                 const keys = new Set();
                 (queries || []).forEach((query) => {
@@ -10386,12 +10398,12 @@ if ($hero_video_poster === '') {
                 const limited = unique.slice(0, Math.max(1, maxCalls || 8));
                 let cursor = 0;
                 const workers = Array.from({ length: Math.min(2, limited.length) }, async () => {
-                    while (cursor < limited.length && target.length < stopAt) {
+                    while (cursor < limited.length && dedupeExcursionOffers(target).length < stopAt) {
                         const index = cursor;
                         cursor += 1;
                         try {
                             const offers = await fetchExcursionOffers(limited[index]);
-                            collectOffers(target, seenSet, offers);
+                            collectOffers(target, seenSet, offers, scope);
                         } catch (e) {}
                     }
                 });
@@ -10410,6 +10422,24 @@ if ($hero_video_poster === '') {
                 items_per_page: '60',
                 ...(overrides || {}),
             });
+            const buildExcursionFallbackWindows = () => {
+                const base = new Date();
+                base.setHours(12, 0, 0, 0);
+                return [0, 28, 56, 84, 112, 140].map((offset) => {
+                    const start = new Date(base);
+                    start.setDate(start.getDate() + offset);
+                    const end = new Date(start);
+                    end.setDate(end.getDate() + 27);
+                    return { date_from: formatApiDate(start), date_till: formatApiDate(end) };
+                });
+            };
+            const groupCountryIds = (ids) => {
+                const groups = [];
+                for (let i = 0; i < ids.length; i += 10) {
+                    groups.push(ids.slice(i, i + 10).join(':'));
+                }
+                return groups;
+            };
 
             const countryCandidates = [];
             if (params.country) {
@@ -10442,7 +10472,7 @@ if ($hero_video_poster === '') {
             });
             const primaryWindows = Array.from(windowMap.values()).slice(0, 3);
             const fromCityIds = parseFromCityIds(params.from).slice(0, 2);
-            const primaryFromIds = fromCityIds.length ? fromCityIds : [''];
+            const primaryFromIds = ['', ...fromCityIds].filter((value, index, source) => source.indexOf(value) === index);
             const primaryQueries = [];
             countryCandidates.slice(0, 2).forEach((countryId) => {
                 primaryWindows.forEach((win) => {
@@ -10451,42 +10481,36 @@ if ($hero_video_poster === '') {
                     });
                 });
             });
-            await runExcursionBatch(primaryQueries, merged, seen, 30, 8);
+            await runExcursionBatch(primaryQueries, merged, seen, 30, 8, 'primary');
 
             const TARGET_POOL_MIN = 18;
             let mergedUnique = dedupeExcursionOffers(merged);
 
             if (mergedUnique.length < TARGET_POOL_MIN) {
-                const monthOffsets = [21, 49, 77, 105];
                 const extraCountries = [
                     ...(params.country ? [String(params.country)] : []),
-                    '318', '338', '320', '16', '372', '376', '49', '420',
+                    '318', '338', '320', '16', '372', '376', '49', '420', '434', '39',
                 ].filter((value, index, source) => source.indexOf(value) === index);
                 const fallbackQueries = [];
-                extraCountries.forEach((countryId) => {
-                    monthOffsets.forEach((offset) => {
-                        const start = new Date();
-                        start.setHours(12, 0, 0, 0);
-                        start.setDate(start.getDate() + offset);
-                        const end = new Date(start);
-                        end.setDate(end.getDate() + 10);
-                        fallbackQueries.push(makeExcursionQuery(countryId, {
-                            date_from: formatApiDate(start),
-                            date_till: formatApiDate(end),
-                        }, {
+                groupCountryIds(extraCountries).forEach((countryGroup) => {
+                    buildExcursionFallbackWindows().forEach((win) => {
+                        fallbackQueries.push(makeExcursionQuery(countryGroup, win, {
                             night_from: '1',
                             night_till: '21',
                             transport_type: '',
-                            items_per_page: '80',
+                            items_per_page: '100',
                         }));
                     });
                 });
-                await runExcursionBatch(fallbackQueries, merged, seen, TARGET_POOL_MIN + 12, 10);
+                const beforeFallbackCount = mergedUnique.length;
+                await runExcursionBatch(fallbackQueries, merged, seen, TARGET_POOL_MIN + 12, 12, 'fallback');
                 mergedUnique = dedupeExcursionOffers(merged);
+                popularSearchState.excursionUsedFallback = mergedUnique.length > beforeFallbackCount;
             }
 
             if (!mergedUnique.length) {
                 popularSearchState.excursionOffersPool = [];
+                popularSearchState.excursionUsedFallback = false;
                 popularSearchState.rawHotels = [];
                 if (searchResultsBanner) {
                     searchResultsBanner.textContent = 'Екскурсійні тури не знайдено за цим запитом.';
