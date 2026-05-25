@@ -8059,6 +8059,15 @@ if ($hero_video_poster === '') {
             if (h.min_price != null && Number.isFinite(Number(h.min_price)) && Number(h.min_price) > 0) {
                 return Number(h.min_price);
             }
+            offers.forEach((o) => {
+                const p = offerPriceForTravelers(o, adults, children);
+                if (Number.isFinite(p) && p > 0 && p < min) {
+                    min = p;
+                }
+            });
+            if (min !== Infinity) {
+                return min;
+            }
             return null;
         }
 
@@ -9939,6 +9948,7 @@ if ($hero_video_poster === '') {
                 const firstNights = Number(first.duration || first.hnight || 0);
                 const fallbackN1 = Math.max(1, parseInt(psN1 && psN1.value, 10) || 0);
                 const fallbackN2 = Math.max(1, parseInt(psN2 && psN2.value, 10) || 0);
+                const hasPackageOffer = hasTransportOffers(visibleOffers.length ? visibleOffers : offers);
                 const nightsLabel = firstNights > 0
                     ? 'на ' + firstNights + ' ночей'
                     : (fallbackN1 && fallbackN2
@@ -9961,7 +9971,7 @@ if ($hero_video_poster === '') {
                     '<div class="search-result-stay">' + esc(nightsLabel) + '</div>' +
                     '<div class="search-result-depart">' + esc(dep ? 'Виїзд з ' + dep : '') + '</div>' +
                     '<div class="search-result-price">' + esc(minP != null ? 'від ' + formatMoneyUAH(minP) : 'Ціну уточнюємо') + '</div>' +
-                    '<div class="search-result-price-note">' + esc(minP != null ? travelersLabel : (visibleOffers.length ? 'Є лише варіанти проживання без транспорту' : travelersLabel)) + '</div>' +
+                    '<div class="search-result-price-note">' + esc(minP != null ? (travelersLabel + (hasPackageOffer ? '' : ' · лише проживання без транспорту')) : (visibleOffers.length ? 'Є лише варіанти проживання без транспорту' : travelersLabel)) + '</div>' +
                     '<a class="search-result-cta" href="' + escAttr(href) + '" data-key="' + escAttr(card.key) + '" data-hotel-id="' + escAttr(card.hotelId) + '">Переглянути деталі</a>' +
                     '</div>' +
                     '</article>';
