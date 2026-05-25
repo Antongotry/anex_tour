@@ -42,6 +42,7 @@ if ( ! function_exists( 'ittour_lab_api_fetch' ) ) {
 	require_once ANEX_PLUGIN_DIR . 'includes/api.php';
 	$anex_bundled_api_loaded = true;
 }
+require_once ANEX_PLUGIN_DIR . 'includes/rest-search-v2.php';
 if ( ! function_exists( 'ittour_lab_ajax_booking' ) ) {
 	require_once ANEX_PLUGIN_DIR . 'includes/booking.php';
 }
