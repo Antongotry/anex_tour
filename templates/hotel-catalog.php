@@ -1708,6 +1708,44 @@ if ($hero_video_poster === '') {
             background: #fff7f8;
         }
 
+        .search-empty-wrap {
+            display: grid;
+            gap: 16px;
+        }
+
+        .search-empty-title {
+            margin: 0;
+            color: var(--text);
+            font-size: 20px;
+            line-height: 1.2;
+        }
+
+        .search-empty-copy {
+            margin: 0;
+            color: var(--muted);
+        }
+
+        .search-empty-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .search-empty-chip {
+            min-height: 42px;
+            padding: 10px 16px;
+            border: 1px solid rgba(26, 93, 200, 0.18);
+            border-radius: 999px;
+            background: rgba(26, 93, 200, 0.06);
+            color: #003087;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .search-empty-chip:hover {
+            background: rgba(26, 93, 200, 0.12);
+        }
+
         .directions-section {
             display: grid;
             gap: 22px;
@@ -9861,6 +9899,45 @@ if ($hero_video_poster === '') {
             await Promise.all(workers);
         }
 
+        function renderSearchNoResultsWithSuggestions(message) {
+            if (!searchResultsList) {
+                return;
+            }
+            const countries = (FEATURED_COUNTRIES || []).slice(0, 6);
+            searchResultsList.innerHTML = '' +
+                '<div class="empty-state search-empty-wrap">' +
+                    '<h3 class="search-empty-title">Нічого не знайдено за цим запитом</h3>' +
+                    '<p class="search-empty-copy">' + esc(message || 'Спробуйте змінити дати, кількість ночей або оберіть іншу країну.') + '</p>' +
+                    '<div class="search-empty-actions">' +
+                        countries.map((country) =>
+                            '<button type="button" class="search-empty-chip" data-suggest-country="' + escAttr(country.id) + '">' + esc(country.name || '') + '</button>',
+                        ).join('') +
+                    '</div>' +
+                    '<div class="search-empty-actions">' +
+                        '<button type="button" class="search-empty-chip" data-open-popular="1">Показати популярні напрямки</button>' +
+                    '</div>' +
+                '</div>';
+
+            searchResultsList.querySelectorAll('[data-suggest-country]').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const countryId = String(btn.getAttribute('data-suggest-country') || '');
+                    if (!countryId) {
+                        return;
+                    }
+                    await setPsCountryById(countryId, { keepDeparture: false, clearRegion: true });
+                    popularSearchState.page = 1;
+                    await runPopularSearchFromForm({});
+                });
+            });
+
+            const popularBtn = searchResultsList.querySelector('[data-open-popular]');
+            if (popularBtn) {
+                popularBtn.addEventListener('click', () => {
+                    scrollToOffers();
+                });
+            }
+        }
+
         function renderSearchPagination(totalItems, currentPage, perPage, canLoadMore) {
             if (!searchResultsPagination || !searchPagePrev || !searchPageNext || !searchPageNumbers) {
                 return;
@@ -9994,7 +10071,7 @@ if ($hero_video_poster === '') {
                 }
                 if (searchResultsList) {
                     if (!popularSearchState.rawHotels || !popularSearchState.rawHotels.length) {
-                        searchResultsList.innerHTML = '<p class="empty-state">На жаль, за вашим запитом нічого не знайдено. Спробуйте змінити дати, кількість ночей або виберіть інше місто виїзду.</p>';
+                        renderSearchNoResultsWithSuggestions('Спробуйте змінити дати, кількість ночей або виберіть інше місто виїзду.');
                     } else {
                         searchResultsList.innerHTML = '<p class="empty-state">Нічого не знайдено за обраними фільтрами. Спробуйте змінити бюджет або скинути фільтри.</p>';
                     }
@@ -10271,7 +10348,7 @@ if ($hero_video_poster === '') {
                     searchResultsCount.textContent = 'Знайдено 0 турів';
                 }
                 if (searchResultsList) {
-                    searchResultsList.innerHTML = '<p class="empty-state">На жаль, за вашим запитом нічого не знайдено. Спробуйте змінити дати, кількість ночей або країну призначення.</p>';
+                    renderSearchNoResultsWithSuggestions('Спробуйте змінити дати, кількість ночей або країну призначення.');
                 }
                 if (searchResultsPagination) {
                     searchResultsPagination.hidden = true;
