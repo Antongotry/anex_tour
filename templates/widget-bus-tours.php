@@ -92,12 +92,21 @@ $tabs = [
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-grid{display:grid;grid-template-columns:minmax(0,1.35fr) minmax(320px,.65fr);gap:26px;align-items:start}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-main{display:grid;gap:18px;min-width:0}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-side{position:sticky;top:22px;display:grid;gap:16px;min-width:0}
-#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-hero{display:grid;grid-template-columns:minmax(0,1fr) 180px;gap:14px;min-height:390px}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-hero{display:grid;gap:14px;min-height:0}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-photo{position:relative;overflow:hidden;border-radius:24px;background:#eaf0fa;box-shadow:0 18px 42px rgba(33,51,98,.10)}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-photo img{width:100%;height:100%;object-fit:cover;display:block}
-#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-photo--main{min-height:390px}
-#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumbs{display:grid;gap:14px}
-#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumb{min-height:120px}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-photo--main{min-height:430px}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumbs{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumb{appearance:none;display:block;width:100%;height:86px;padding:0;overflow:hidden;border:2px solid transparent!important;border-radius:16px;background:#eaf0fa!important;cursor:pointer;box-shadow:0 10px 24px rgba(33,51,98,.10);transition:border-color .18s,box-shadow .18s,transform .18s}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumb:hover{transform:translateY(-1px)}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumb.is-active{border-color:var(--abtw-accent)!important;box-shadow:0 0 0 4px rgba(26,93,200,.12),0 12px 26px rgba(33,51,98,.14)}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-gallery-nav{position:absolute;top:50%;z-index:3;display:inline-flex;align-items:center;justify-content:center;width:52px;height:52px;border:0!important;border-radius:999px;background:rgba(255,255,255,.92)!important;color:var(--abtw-red)!important;font:inherit;font-size:40px;font-weight:900;line-height:1;cursor:pointer;box-shadow:0 14px 32px rgba(12,29,62,.18);transform:translateY(-50%);transition:background .18s,transform .18s}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-gallery-nav:hover{background:#fff!important;transform:translateY(-50%) scale(1.04)}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-gallery-prev{left:18px}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-gallery-next{right:18px;background:var(--abtw-red)!important;color:#fff!important;border:3px solid rgba(255,255,255,.9)!important}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-open-photo,#<?php echo esc_attr( $widget_id ); ?> .abtw-open-photo:visited{position:absolute;right:18px;bottom:18px;z-index:3;display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:9px 14px;border-radius:999px;background:rgba(11,20,38,.72);color:#fff!important;font-size:13px;font-weight:900;text-decoration:none!important;backdrop-filter:blur(8px)}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-open-photo:hover{background:rgba(11,20,38,.86);color:#fff!important;text-decoration:none!important}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-card{border:1px solid #d9e4f7;border-radius:22px;background:#fff;padding:24px;box-shadow:0 16px 40px rgba(33,51,98,.06)}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-title{margin:0;color:var(--abtw-text);font-size:clamp(30px,3.4vw,48px);font-weight:900;line-height:1.05;letter-spacing:-.05em}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-route{margin:10px 0 0;color:#65718d;font-size:18px;font-weight:800;line-height:1.4}
@@ -106,6 +115,16 @@ $tabs = [
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-card h3,#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-side h3{margin:0 0 14px;color:var(--abtw-text);font-size:22px;font-weight:900;line-height:1.12}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-copy{display:grid;gap:12px;color:#3d4a68;font-size:16px;font-weight:600;line-height:1.62}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-copy p{margin:0}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-program-html{display:grid;gap:14px;color:#3d4a68;font-size:16px;font-weight:600;line-height:1.68;word-break:normal;overflow-wrap:anywhere}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-program-html p{margin:0 0 12px}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-program-html p:last-child{margin-bottom:0}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-program-html h1,#<?php echo esc_attr( $widget_id ); ?> .abtw-program-html h2,#<?php echo esc_attr( $widget_id ); ?> .abtw-program-html h3,#<?php echo esc_attr( $widget_id ); ?> .abtw-program-html h4{margin:16px 0 8px;color:var(--abtw-text);font-weight:900;line-height:1.16;letter-spacing:-.02em}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-program-html ul,#<?php echo esc_attr( $widget_id ); ?> .abtw-program-html ol{margin:0 0 12px 22px;padding:0}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-program-html li{margin:0 0 8px}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-program-day{display:grid;gap:8px;padding:14px 0;border-bottom:1px solid #e7eef9}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-program-day:first-child{padding-top:0}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-program-day:last-child{padding-bottom:0;border-bottom:0}
+#<?php echo esc_attr( $widget_id ); ?> .abtw-program-day-title{display:block;color:var(--abtw-text);font-size:18px;font-weight:900;line-height:1.25}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-route-list{display:flex;flex-wrap:wrap;gap:10px}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-route-step{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;border-radius:999px;background:#edf3ff;color:#173b7d;font-weight:900}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-route-step span:first-child{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:999px;background:#dbe9ff;color:var(--abtw-accent)}
@@ -126,9 +145,9 @@ $tabs = [
 #<?php echo esc_attr( $widget_id ); ?> .abtw-dates tr:last-child td{border-bottom:0}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-note{margin:12px 0 0;color:#6f7b94;font-size:14px;font-weight:700;line-height:1.45}
 @media(max-width:1180px){#<?php echo esc_attr( $widget_id ); ?> .abtw-grid,#<?php echo esc_attr( $widget_id ); ?> .abtw-skeleton{grid-template-columns:repeat(3,minmax(0,1fr))}}
-@media(max-width:980px){#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-grid{grid-template-columns:1fr}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-side{position:static}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-hero{grid-template-columns:1fr;min-height:0}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-photo--main{min-height:320px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumbs{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:980px){#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-grid{grid-template-columns:1fr}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-side{position:static}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-hero{grid-template-columns:1fr;min-height:0}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-photo--main{min-height:320px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumbs{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:860px){#<?php echo esc_attr( $widget_id ); ?> .abtw-frame{padding:28px 22px 30px}#<?php echo esc_attr( $widget_id ); ?> .abtw-head{align-items:flex-start;flex-direction:column}#<?php echo esc_attr( $widget_id ); ?> .abtw-note{text-align:left}#<?php echo esc_attr( $widget_id ); ?> .abtw-grid,#<?php echo esc_attr( $widget_id ); ?> .abtw-skeleton{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:560px){#<?php echo esc_attr( $widget_id ); ?> .abtw-frame{padding:24px 16px 26px}#<?php echo esc_attr( $widget_id ); ?> .abtw-tabs{display:grid;grid-template-columns:1fr 1fr}#<?php echo esc_attr( $widget_id ); ?> .abtw-tab{justify-content:center;padding:10px 12px;font-size:13px}#<?php echo esc_attr( $widget_id ); ?> .abtw-grid,#<?php echo esc_attr( $widget_id ); ?> .abtw-skeleton{grid-template-columns:1fr}#<?php echo esc_attr( $widget_id ); ?> .abtw-card-title{min-height:0}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal{padding:10px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-dialog{width:calc(100vw - 20px);max-height:92vh;border-radius:22px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-close{width:50px;height:50px;margin:12px 12px 0 0;font-size:28px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-body{padding:14px 14px 22px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-card,#<?php echo esc_attr( $widget_id ); ?> .abtw-side-price{padding:18px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-photo--main{min-height:240px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumbs{display:none}#<?php echo esc_attr( $widget_id ); ?> .abtw-price-big{font-size:32px}}
+@media(max-width:560px){#<?php echo esc_attr( $widget_id ); ?> .abtw-frame{padding:24px 16px 26px}#<?php echo esc_attr( $widget_id ); ?> .abtw-tabs{display:grid;grid-template-columns:1fr 1fr}#<?php echo esc_attr( $widget_id ); ?> .abtw-tab{justify-content:center;padding:10px 12px;font-size:13px}#<?php echo esc_attr( $widget_id ); ?> .abtw-grid,#<?php echo esc_attr( $widget_id ); ?> .abtw-skeleton{grid-template-columns:1fr}#<?php echo esc_attr( $widget_id ); ?> .abtw-card-title{min-height:0}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal{padding:10px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-dialog{width:calc(100vw - 20px);max-height:92vh;border-radius:22px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-close{width:50px;height:50px;margin:12px 12px 0 0;font-size:28px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-body{padding:14px 14px 22px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-card,#<?php echo esc_attr( $widget_id ); ?> .abtw-side-price{padding:18px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-photo--main{min-height:240px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumbs{display:flex;grid-template-columns:none;overflow-x:auto;padding-bottom:2px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumb{min-width:86px;height:76px}#<?php echo esc_attr( $widget_id ); ?> .abtw-gallery-nav{width:42px;height:42px;font-size:30px}#<?php echo esc_attr( $widget_id ); ?> .abtw-gallery-prev{left:12px}#<?php echo esc_attr( $widget_id ); ?> .abtw-gallery-next{right:12px}#<?php echo esc_attr( $widget_id ); ?> .abtw-open-photo{right:12px;bottom:12px;min-height:34px;padding:8px 11px;font-size:12px}#<?php echo esc_attr( $widget_id ); ?> .abtw-price-big{font-size:32px}}
 </style>
 
 <div class="abtw-frame">
@@ -187,6 +206,29 @@ $tabs = [
     function nightsLabel(value){ var n=parseInt(value,10)||0; if(!n) return ''; var mod10=n%10, mod100=n%100; var word='ночей'; if(mod10===1&&mod100!==11) word='ніч'; else if(mod10>=2&&mod10<=4&&(mod100<12||mod100>14)) word='ночі'; return n+' '+word; }
     function apiError(data){ return data&&typeof data==='object'&&!Array.isArray(data)&&data.error ? (data.error_desc||data.error) : ''; }
     function stripHtml(value){ var node=document.createElement('div'); node.innerHTML=value==null?'':String(value); node.querySelectorAll('script,style,noscript').forEach(function(el){ el.remove(); }); return (node.textContent||'').replace(/\s+/g,' ').trim(); }
+    function hasHtml(value){ return /<\/?[a-z][\s\S]*>/i.test(String(value || '')); }
+    function sanitizeProgramHtml(value){
+        var node = document.createElement('div');
+        node.innerHTML = value == null ? '' : String(value);
+        node.querySelectorAll('script,style,noscript,iframe,object,embed,link,meta').forEach(function(el){ el.remove(); });
+        node.querySelectorAll('*').forEach(function(el){
+            Array.prototype.slice.call(el.attributes || []).forEach(function(attr){
+                var name = String(attr.name || '').toLowerCase();
+                var val = String(attr.value || '');
+                if(name.indexOf('on') === 0 || name === 'style' || name === 'class' || name === 'id') el.removeAttribute(attr.name);
+                if((name === 'href' || name === 'src') && /^\s*javascript:/i.test(val)) el.removeAttribute(attr.name);
+            });
+        });
+        return node.innerHTML.trim();
+    }
+    function programTextHtml(value){
+        var text = String(value || '').replace(/\r/g, '\n').trim();
+        if(!text) return '';
+        var chunks = text.split(/\n{2,}/).map(function(part){ return part.trim(); }).filter(Boolean);
+        if(chunks.length < 2) chunks = text.split(/(?=\b\d+\s*день\b)/i).map(function(part){ return part.trim(); }).filter(Boolean);
+        if(!chunks.length) chunks = [text];
+        return '<div class="abtw-program-html">' + chunks.map(function(part){ return '<p>'+esc(part)+'</p>'; }).join('') + '</div>';
+    }
     function parseDateValue(value){
         var text = String(value || '').trim();
         var match = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -352,7 +394,8 @@ $tabs = [
             adult: '2',
             child: '0',
             page: '1',
-            items_per_page: '60'
+            items_per_page: '60',
+            country_image_count: '5'
             // transport_type=2 currently returns empty for some valid bus tours, so we filter by transport_type_id/label after the API response.
         };
     }
@@ -458,13 +501,40 @@ $tabs = [
             return '<div class="abtw-modal-hero"><div class="abtw-modal-photo abtw-modal-photo--main"></div></div>';
         }
         var main = state.images[0];
-        var thumbs = state.images.slice(1, 4).map(function(url){
-            return '<div class="abtw-modal-photo abtw-modal-thumb"><img src="'+escAttr(url)+'" alt="" loading="lazy"></div>';
+        var thumbs = state.images.map(function(url, index){
+            return '<button type="button" class="abtw-modal-thumb'+(index === 0 ? ' is-active' : '')+'" data-abtw-gallery-thumb data-index="'+escAttr(index)+'" data-src="'+escAttr(url)+'" data-alt="'+escAttr(state.name)+'"><img src="'+escAttr(url)+'" alt="" loading="lazy"></button>';
         }).join('');
         return '<div class="abtw-modal-hero">' +
-            '<div class="abtw-modal-photo abtw-modal-photo--main"><img src="'+escAttr(main)+'" alt="'+escAttr(state.name)+'" loading="eager"></div>' +
-            (thumbs ? '<div class="abtw-modal-thumbs">'+thumbs+'</div>' : '') +
+            '<div class="abtw-modal-gallery" data-abtw-gallery data-index="0">' +
+                '<div class="abtw-modal-photo abtw-modal-photo--main">' +
+                    (state.images.length > 1 ? '<button type="button" class="abtw-gallery-nav abtw-gallery-prev" data-abtw-gallery-prev aria-label="Попереднє фото">‹</button>' : '') +
+                    '<img data-abtw-gallery-main src="'+escAttr(main)+'" alt="'+escAttr(state.name)+'" loading="eager">' +
+                    '<a class="abtw-open-photo" data-abtw-gallery-open href="'+escAttr(main)+'" target="_blank" rel="noopener">Відкрити фото</a>' +
+                    (state.images.length > 1 ? '<button type="button" class="abtw-gallery-nav abtw-gallery-next" data-abtw-gallery-next aria-label="Наступне фото">›</button>' : '') +
+                '</div>' +
+                (state.images.length > 1 ? '<div class="abtw-modal-thumbs">'+thumbs+'</div>' : '') +
+            '</div>' +
         '</div>';
+    }
+
+    function setGalleryIndex(gallery, index){
+        if(!gallery) return;
+        var thumbs = Array.prototype.slice.call(gallery.querySelectorAll('[data-abtw-gallery-thumb]'));
+        if(!thumbs.length) return;
+        if(index < 0) index = thumbs.length - 1;
+        if(index >= thumbs.length) index = 0;
+        var thumb = thumbs[index];
+        var url = thumb ? thumb.getAttribute('data-src') : '';
+        var alt = thumb ? thumb.getAttribute('data-alt') : '';
+        var main = gallery.querySelector('[data-abtw-gallery-main]');
+        var open = gallery.querySelector('[data-abtw-gallery-open]');
+        if(main && url){
+            main.src = url;
+            main.alt = alt || main.alt || '';
+        }
+        if(open && url) open.href = url;
+        thumbs.forEach(function(item, itemIndex){ item.classList.toggle('is-active', itemIndex === index); });
+        gallery.setAttribute('data-index', String(index));
     }
 
     function modalRouteHtml(state){
@@ -480,16 +550,21 @@ $tabs = [
         if(error) return '<p class="abtw-modal-note abtw-error">'+esc(error)+'</p>';
         var days = Array.isArray(info && info.day_detail) ? info.day_detail : [];
         if(days.length){
-            return '<div class="abtw-modal-copy">' + days.slice(0, 8).map(function(day, index){
+            return '<div class="abtw-program-html">' + days.map(function(day, index){
                 var title = String((day && (day.title || day.name)) || ('День ' + (index + 1)));
-                var text = stripHtml(day && (day.description || day.descriptionHtml || day.text || ''));
-                return '<p><strong>'+esc(title)+'.</strong> '+esc(text || 'Опис дня уточнюється.')+'</p>';
+                var raw = day && (day.description || day.descriptionHtml || day.description_html || day.text || day.program || '');
+                var body = hasHtml(raw) ? sanitizeProgramHtml(raw) : programTextHtml(raw).replace(/^<div class="abtw-program-html">|<\/div>$/g, '');
+                return '<div class="abtw-program-day"><strong class="abtw-program-day-title">'+esc(title)+'</strong><div>'+ (body || '<p>Опис дня уточнюється.</p>') +'</div></div>';
             }).join('') + '</div>';
         }
-        var desc = stripHtml(info && (info.description || info.description_html || info.desc || ''));
-        if(desc){
-            var parts = desc.split(/(?<=[.!?])\s+/).filter(Boolean).slice(0, 5);
-            return '<div class="abtw-modal-copy">' + parts.map(function(part){ return '<p>'+esc(part)+'</p>'; }).join('') + '</div>';
+        var rawDesc = info && (info.description || info.description_html || info.desc || '');
+        if(rawDesc){
+            if(hasHtml(rawDesc)){
+                var html = sanitizeProgramHtml(rawDesc);
+                if(html) return '<div class="abtw-program-html">'+html+'</div>';
+            }
+            var textHtml = programTextHtml(rawDesc);
+            if(textHtml) return textHtml;
         }
         return '<p class="abtw-modal-note">Детальна програма не передана в API для цього туру. Менеджер уточнить її перед бронюванням.</p>';
     }
@@ -662,6 +737,22 @@ $tabs = [
         });
         if(modalEl){
             modalEl.addEventListener('click', function(event){
+                var target = event.target;
+                var thumb = target && target.closest ? target.closest('[data-abtw-gallery-thumb]') : null;
+                if(thumb){
+                    event.preventDefault();
+                    setGalleryIndex(thumb.closest('[data-abtw-gallery]'), parseInt(thumb.getAttribute('data-index'), 10) || 0);
+                    return;
+                }
+                var prev = target && target.closest ? target.closest('[data-abtw-gallery-prev]') : null;
+                var next = target && target.closest ? target.closest('[data-abtw-gallery-next]') : null;
+                if(prev || next){
+                    event.preventDefault();
+                    var gallery = (prev || next).closest('[data-abtw-gallery]');
+                    var current = parseInt(gallery && gallery.getAttribute('data-index'), 10) || 0;
+                    setGalleryIndex(gallery, current + (next ? 1 : -1));
+                    return;
+                }
                 var close = event.target && event.target.closest ? event.target.closest('[data-abtw-modal-close]') : null;
                 if(close || event.target === modalEl){
                     event.preventDefault();
