@@ -32,10 +32,9 @@ $detail_url = function_exists( 'anex_get_excursion_detail_nav_base_url' )
 $widget_id = function_exists( 'wp_unique_id' ) ? wp_unique_id( 'anex-bus-tours-' ) : ( 'anex-bus-tours-' . wp_rand( 1000, 9999 ) );
 
 $tabs = [
-    [ 'id' => 'all', 'name' => 'Усі автобусні', 'country' => '112:109:53:30:68:420:76:442:318:320' ],
+    [ 'id' => 'all', 'name' => 'Усі автобусні', 'country' => '112:109:53:30:68:420:76:442' ],
     [ 'id' => 'romania', 'name' => 'Румунія', 'country' => '112' ],
     [ 'id' => 'poland-czech', 'name' => 'Польща / Чехія', 'country' => '109:53:30' ],
-    [ 'id' => 'turkey', 'name' => 'Туреччина', 'country' => '318' ],
     [ 'id' => 'italy', 'name' => 'Італія', 'country' => '76:68:30' ],
     [ 'id' => 'croatia', 'name' => 'Хорватія', 'country' => '442' ],
 ];
@@ -195,6 +194,7 @@ $tabs = [
 
     function esc(value){ var node=document.createElement('div'); node.textContent=value==null?'':String(value); return node.innerHTML; }
     function escAttr(value){ return String(value==null?'':value).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); }
+    function normalizeToken(value){ return String(value||'').toLowerCase().replace(/ё/g,'е').replace(/і/g,'и').replace(/ї/g,'и').replace(/є/g,'е').replace(/ґ/g,'г').replace(/\s+/g,' ').trim(); }
     function formatMoneyUAH(value){ if(value==null||Number.isNaN(Number(value))) return '—'; return new Intl.NumberFormat('uk-UA').format(Math.round(Number(value))) + ' грн'; }
     function fixMediaUrl(value){ if(!value||typeof value!=='string') return ''; var url=value.trim(); if(url.indexOf('//')===0) url='https:'+url; if(url.indexOf('http://')===0) url='https://'+url.slice(7); if(!/^https?:\/\//i.test(url)) url=IMG_BASE.replace(/\/$/,'')+'/'+url.replace(/^\//,''); return url; }
     function formatApiDate(date){ var dd=String(date.getDate()).padStart(2,'0'); var mm=String(date.getMonth()+1).padStart(2,'0'); var yy=String(date.getFullYear()).slice(-2); return dd+'.'+mm+'.'+yy; }
@@ -268,6 +268,50 @@ $tabs = [
         if(Number(offer.transport_type_id) === 2) return true;
         var label = String(offer.transport_type || '').toLowerCase();
         return label.indexOf('автоб') !== -1 || label.indexOf('bus') !== -1;
+    }
+
+    var UA_DEPARTURE_CITY_TOKENS = new Set([
+        'киив','львив','одеса','запорижжя','харкив','днипро','била церква','винниця','долина','дубно',
+        'жашкив','житомир','ивано-франкивськ','измаил','камянець-подильський','калуш','коломия','кривий риг',
+        'кропивницький','кременець','луцьк','миколаив','полтава','ривне','тернопиль','ужгород',
+        'хмельницький','черкаси','чернивци','чернигив','берегово','мукачево'
+    ]);
+    var BLOCKED_EXCURSION_COUNTRY_IDS = new Set(['318','338','16']);
+    var BLOCKED_EXCURSION_COUNTRY_TOKENS = new Set(['туреччина','турция','turkey','египет','egypt','оае','uae'].map(normalizeToken));
+
+    function isUkraineDeparture(offer){
+        var from = normalizeToken([
+            offer && offer.from_city,
+            offer && offer.from_city_name,
+            offer && offer.departure_city,
+            offer && offer.departure
+        ].filter(Boolean).join(' '));
+        if(!from) return false;
+        var ok = false;
+        UA_DEPARTURE_CITY_TOKENS.forEach(function(city){
+            if(from === city || from.indexOf(city) !== -1) ok = true;
+        });
+        return ok;
+    }
+
+    function countryAllowed(offer){
+        var ids = [];
+        function pushId(value){ var id = String(value == null ? '' : value).trim(); if(/^\d+$/.test(id)) ids.push(id); }
+        pushId(offer && offer.country_id);
+        pushId(offer && offer.country);
+        (Array.isArray(offer && offer.countries) ? offer.countries : []).forEach(function(item){
+            if(item && typeof item === 'object') pushId(item.id || item.country_id);
+            else pushId(item);
+        });
+        if(ids.some(function(id){ return BLOCKED_EXCURSION_COUNTRY_IDS.has(id); })) return false;
+        var names = [];
+        if(Array.isArray(offer && offer.country_names)) names = names.concat(offer.country_names);
+        if(offer && offer.country && !/^\d+$/.test(String(offer.country))) names.push(offer.country);
+        return !names.some(function(name){ return BLOCKED_EXCURSION_COUNTRY_TOKENS.has(normalizeToken(name)); });
+    }
+
+    function isAllowedBusTour(offer){
+        return isBusOffer(offer) && isUkraineDeparture(offer) && countryAllowed(offer);
     }
 
     function priceUAH(offer){
@@ -351,7 +395,7 @@ $tabs = [
 
     function collectUnique(target, seen, offers){
         (offers||[]).forEach(function(offer){
-            if(!isBusOffer(offer)) return;
+            if(!isAllowedBusTour(offer)) return;
             var sig = signature(offer);
             if(!sig || seen.has(sig)) return;
             seen.add(sig);

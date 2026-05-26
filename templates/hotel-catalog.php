@@ -8203,6 +8203,20 @@ if ($hero_video_poster === '') {
         const SEARCH_RESULTS_PER_PAGE = 24;
         const POPULAR_SEARCH_BATCH_HOTELS = 24;
         const EXCURSION_DISPLAY_CAP = 48;
+        const EXCURSION_QUERY_COUNTRY_IDS = ['112', '109', '53', '30', '68', '420', '76', '442'];
+        const EXCURSION_QUERY_COUNTRY_ID_SET = new Set(EXCURSION_QUERY_COUNTRY_IDS);
+        const EXCURSION_BLOCKED_COUNTRY_IDS = new Set(['318', '338', '16']);
+        const EXCURSION_BLOCKED_COUNTRY_TOKENS = new Set([
+            normalizeSearchToken('Туреччина'),
+            normalizeSearchToken('Турция'),
+            normalizeSearchToken('Turkey'),
+            normalizeSearchToken('Єгипет'),
+            normalizeSearchToken('Египет'),
+            normalizeSearchToken('Egypt'),
+            normalizeSearchToken('ОАЕ'),
+            normalizeSearchToken('ОАЭ'),
+            normalizeSearchToken('UAE'),
+        ]);
         const COUNTRY_PLACEHOLDER_TEXT = 'Всі країни';
         const FROM_PLACEHOLDER_TEXT = 'Оберіть до 3 міст';
         const DETAIL_TOUR_KEY = <?php echo wp_json_encode($detail_tour_key); ?>;
@@ -9360,6 +9374,92 @@ if ($hero_video_poster === '') {
         );
         function isUkrainianCityName(name) {
             return UA_CITY_NAMES_SET.has(normalizeSearchToken(String(name || '')));
+        }
+
+        function textContainsUkrainianCityName(value) {
+            const token = normalizeSearchToken(String(value || ''));
+            if (!token) {
+                return false;
+            }
+            if (UA_CITY_NAMES_SET.has(token)) {
+                return true;
+            }
+            let matched = false;
+            UA_CITY_NAMES_SET.forEach((city) => {
+                if (city && token.includes(city)) {
+                    matched = true;
+                }
+            });
+            return matched;
+        }
+
+        function excursionTransportIsBus(offer) {
+            if (!offer || typeof offer !== 'object') {
+                return false;
+            }
+            if (Number(offer.transport_type_id) === 2 || Number(offer.transport_id) === 2) {
+                return true;
+            }
+            const label = normalizeSearchToken([
+                offer.transport_type,
+                offer.transport,
+                offer.transport_name,
+            ].filter(Boolean).join(' '));
+            return label.includes('bus') || label.includes('автоб');
+        }
+
+        function excursionDepartureIsUkraine(offer) {
+            if (!offer || typeof offer !== 'object') {
+                return false;
+            }
+            const raw = [
+                offer.from_city,
+                offer.from_city_name,
+                offer.departure_city,
+                offer.departure,
+            ].filter(Boolean).join(' ');
+            return textContainsUkrainianCityName(raw);
+        }
+
+        function excursionCountryIdsFromOffer(offer) {
+            const ids = [];
+            const pushId = (value) => {
+                const id = String(value == null ? '' : value).trim();
+                if (/^\d+$/.test(id) && !ids.includes(id)) {
+                    ids.push(id);
+                }
+            };
+            if (!offer || typeof offer !== 'object') {
+                return ids;
+            }
+            pushId(offer.country_id);
+            pushId(offer.country);
+            ['countries', 'country_list'].forEach((key) => {
+                if (Array.isArray(offer[key])) {
+                    offer[key].forEach((item) => {
+                        if (item && typeof item === 'object') {
+                            pushId(item.id || item.country_id);
+                        } else {
+                            pushId(item);
+                        }
+                    });
+                }
+            });
+            return ids;
+        }
+
+        function excursionDestinationAllowed(offer) {
+            const ids = excursionCountryIdsFromOffer(offer);
+            if (ids.some((id) => EXCURSION_BLOCKED_COUNTRY_IDS.has(id))) {
+                return false;
+            }
+            return !excursionCountryLabels(offer).some((country) =>
+                EXCURSION_BLOCKED_COUNTRY_TOKENS.has(normalizeSearchToken(country)),
+            );
+        }
+
+        function excursionOfferAllowed(offer) {
+            return excursionTransportIsBus(offer) && excursionDepartureIsUkraine(offer) && excursionDestinationAllowed(offer);
         }
 
         function departureCountryLabel(city) {
@@ -10899,6 +10999,9 @@ if ($hero_video_poster === '') {
         }
 
         function excursionPassesClientFilters(offer) {
+            if (!excursionOfferAllowed(offer)) {
+                return false;
+            }
             const maxP = sfPriceMax ? parseInt(sfPriceMax.value, 10) : 200000;
             const minPBudget = sfPriceMin ? parseInt(sfPriceMin.value, 10) : 0;
             const priceCap = Number.isFinite(maxP) ? maxP : 200000;
@@ -10964,6 +11067,9 @@ if ($hero_video_poster === '') {
         function dedupeExcursionOffers(list) {
             const map = new Map();
             (list || []).forEach((offer) => {
+                if (!excursionOfferAllowed(offer)) {
+                    return;
+                }
                 const sig = excursionDedupeSignature(offer);
                 if (!sig || sig === '|||') {
                     return;
@@ -11103,7 +11209,7 @@ if ($hero_video_poster === '') {
             const countries = [];
             const fromCities = [];
             const durationBuckets = [];
-            (offers || []).forEach((offer) => {
+            (offers || []).filter((offer) => excursionOfferAllowed(offer)).forEach((offer) => {
                 excursionCountryLabels(offer).forEach((country) => countries.push(country));
                 const from = excursionFromLabel(offer);
                 if (from) {
@@ -11582,6 +11688,9 @@ if ($hero_video_poster === '') {
             const offerUniqueKey = (offer) => String(offer && (offer.key || offer.id || '')) + '::' + String(offer && offer.date_from || '') + '::' + String(offer && offer.name || '');
             const collectOffers = (target, seenSet, offers, scope) => {
                 (offers || []).forEach((offer) => {
+                    if (!excursionOfferAllowed(offer)) {
+                        return;
+                    }
                     const key = offerUniqueKey(offer);
                     if (!seenSet.has(key)) {
                         seenSet.add(key);
@@ -11602,7 +11711,7 @@ if ($hero_video_poster === '') {
             const excursionQueryKey = (query) => JSON.stringify(stableQuery(cleanExcursionQuery(query)));
             const fetchExcursionOffers = async (query) => {
                 const data = await api('module-excursion/search', cleanExcursionQuery(query));
-                return Array.isArray(data && data.offers) ? data.offers : [];
+                return (Array.isArray(data && data.offers) ? data.offers : []).filter((offer) => excursionOfferAllowed(offer));
             };
             const fetchExcursionCountryIds = async () => {
                 try {
@@ -11671,19 +11780,14 @@ if ($hero_video_poster === '') {
             };
 
             const countryCandidates = [];
-            if (params.country) {
+            if (params.country && !EXCURSION_BLOCKED_COUNTRY_IDS.has(String(params.country))) {
                 countryCandidates.push(String(params.country));
-            } else {
-                (FEATURED_COUNTRIES || []).forEach((country) => {
-                    const id = String(country.id || '');
-                    if (id && !countryCandidates.includes(id)) {
-                        countryCandidates.push(id);
-                    }
-                });
-                if (!countryCandidates.length && DEFAULT_COUNTRY_ID) {
-                    countryCandidates.push(String(DEFAULT_COUNTRY_ID));
-                }
             }
+            EXCURSION_QUERY_COUNTRY_IDS.forEach((id) => {
+                if (id && !countryCandidates.includes(id)) {
+                    countryCandidates.push(id);
+                }
+            });
 
             const windows = [];
             if (params.d1 && params.d2) {
@@ -11718,17 +11822,17 @@ if ($hero_video_poster === '') {
             if (mergedUnique.length < TARGET_POOL_MIN) {
                 const excursionCountryIds = await fetchExcursionCountryIds();
                 const extraCountries = [
-                    ...(params.country ? [String(params.country)] : []),
-                    ...excursionCountryIds,
-                    '318', '338', '320', '16', '372', '376', '49', '420', '434', '39',
-                ].filter((value, index, source) => source.indexOf(value) === index);
+                    ...(params.country && !EXCURSION_BLOCKED_COUNTRY_IDS.has(String(params.country)) ? [String(params.country)] : []),
+                    ...EXCURSION_QUERY_COUNTRY_IDS,
+                    ...excursionCountryIds.filter((id) => EXCURSION_QUERY_COUNTRY_ID_SET.has(String(id))),
+                ].filter((value, index, source) => value && source.indexOf(value) === index);
                 const fallbackQueries = [];
                 groupCountryIds(extraCountries).forEach((countryGroup) => {
                     buildExcursionFallbackWindows().forEach((win) => {
                         fallbackQueries.push(makeExcursionQuery(countryGroup, win, {
                             night_from: '1',
                             night_till: '21',
-                            transport_type: '',
+                            transport_type: '2',
                             items_per_page: '100',
                         }));
                     });
@@ -11751,7 +11855,7 @@ if ($hero_video_poster === '') {
                     searchResultsCount.textContent = 'Знайдено 0 турів';
                 }
                 if (searchResultsList) {
-                    void renderSearchNoResultsWithSuggestions('Спробуйте змінити дати, кількість ночей або країну призначення.');
+                    searchResultsList.innerHTML = '<p class="empty-state">Автобусні екскурсійні тури з виїздом з України за цим запитом не знайдено. Спробуйте змінити дати або напрямок.</p>';
                 }
                 if (searchResultsPagination) {
                     searchResultsPagination.hidden = true;
@@ -15007,6 +15111,9 @@ if ($hero_video_poster === '') {
                 const data = await api('module-excursion/search', query);
                 const list = excursionOffersFromSearchPayload(data);
                 list.forEach((offer) => {
+                    if (!excursionOfferAllowed(offer)) {
+                        return;
+                    }
                     const uk = offerUniqueKey(offer);
                     if (!offer || seen.has(uk) || merged.length >= 32) {
                         return;
@@ -15582,9 +15689,6 @@ if ($hero_video_poster === '') {
                     items_per_page: '32',
                 };
                 let offers = await moduleExcursionSearchMergeVariants({ ...baseQ, transport_type: '2' });
-                if (!offers.length) {
-                    offers = await moduleExcursionSearchMergeVariants({ ...baseQ });
-                }
                 const ex = String(excludeKey || '').trim();
                 const exNum = /^\d+$/.test(ex) ? ex : '';
                 if (ex || exNum) {
@@ -15612,7 +15716,7 @@ if ($hero_video_poster === '') {
                 const catalogHref = catalogLink + (catalogLink.includes('?') ? '&' : '?') + 'mode=excursion';
                 const emptyBlock = (bodyHtml) => '' +
                     '<section class="exc-pop-sec">' +
-                        '<h2 class="exc-sec-h">Популярні екскурсії</h2>' +
+                        '<h2 class="exc-sec-h">Популярні автобусні тури</h2>' +
                         '<div class="exc-pop-empty">' + bodyHtml + '</div>' +
                     '</section>';
                 const cid = String(state.countryId || '').trim() || String(DEFAULT_COUNTRY_ID || '').trim();
@@ -15622,15 +15726,11 @@ if ($hero_video_poster === '') {
                 }
                 popularEl.innerHTML = '' +
                     '<section class="exc-pop-sec">' +
-                        '<h2 class="exc-sec-h">Популярні екскурсії</h2>' +
+                        '<h2 class="exc-sec-h">Популярні автобусні тури</h2>' +
                         '<p class="exc-pop-loading">Завантаження…</p>' +
                     '</section>';
                 let offers = await fetchExcursionPopularForDetail(cid, state.key || key);
-                let sectionTitle = 'Популярні екскурсії';
-                if (!offers.length) {
-                    offers = await fetchShowcaseHotOffersForPopular(cid, state.key || key);
-                    sectionTitle = 'Гарячі тури в країні';
-                }
+                let sectionTitle = 'Популярні автобусні тури';
                 if (!offers.length) {
                     popularEl.innerHTML = emptyBlock('<p>За обраними параметрами зараз немає інших турів у цьому напрямку. Перегляньте <a href="' + escAttr(catalogHref) + '">усі екскурсійні тури</a>.</p>');
                     return;

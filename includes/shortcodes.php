@@ -392,8 +392,8 @@ function anex_catalog_search_redirect_script( string $target_url, string $excurs
         var switcher = document.getElementById("anex-search-mode-switch");
         if(!modeInput || !switcher) return;
         var urlMode = (new URL(window.location.href)).searchParams.get("mode");
-        if(urlMode === "sea" || urlMode === "hotel"){ modeInput.value = "sea"; }
-        else { modeInput.value = "excursion"; }
+        if(urlMode === "excursion"){ modeInput.value = "excursion"; }
+        else { modeInput.value = "sea"; }
         var setMode = function(mode){
             modeInput.value = mode === "sea" ? "sea" : "excursion";
             switcher.querySelectorAll("[data-search-mode]").forEach(function(btn){
