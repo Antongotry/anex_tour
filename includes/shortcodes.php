@@ -374,7 +374,7 @@ function anex_boolish( $value, bool $default = false ): bool {
 
 function anex_catalog_search_mode_switch_markup(): string {
     return '<div class="anex-search-mode-switch" id="anex-search-mode-switch" role="tablist" aria-label="Режим пошуку">' .
-        '<button type="button" class="anex-search-mode-btn is-active" data-search-mode="sea" role="tab" aria-selected="true">Морський відпочинок</button>' .
+        '<button type="button" class="anex-search-mode-btn is-active" data-search-mode="sea" role="tab" aria-selected="true">Пляжні тури</button>' .
         '<button type="button" class="anex-search-mode-btn" data-search-mode="excursion" role="tab" aria-selected="false">Екскурсійні тури</button>' .
         '</div>' .
         '<input type="hidden" id="ps-search-mode" value="sea">';
