@@ -13,7 +13,7 @@ function ittour_lab_booking_fields(): array {
         'tour_title' => 'Тур',
         'tour_key'   => 'Ключ туру',
         'tour_date'  => 'Дата вильоту',
-        'tour_city'  => 'Місто вильоту',
+        'tour_city'  => 'Місто виїзду',
         'tour_nights'=> 'Ночей',
         'tour_room'  => 'Номер',
         'tour_meal'  => 'Харчування',
