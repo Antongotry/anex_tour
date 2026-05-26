@@ -8,6 +8,7 @@
  *   [anex_search]                    — форма пошуку з дизайну каталогу
  *   [anex_tour_results]              — фільтри + результати пошуку
  *   [anex_hot_tours]                 — гарячі тури
+ *   [anex_bus_tours]                 — гарячі автобусні екскурсійні тури
  */
 
 defined( 'ABSPATH' ) || exit;
@@ -646,6 +647,18 @@ add_shortcode( 'anex_hot_tours', function ( $atts ) {
         add_action( 'wp_footer', 'anex_katalog_lite_footer_flag', 5 );
     }
     return anex_render_template( ANEX_PLUGIN_DIR . 'templates/widget-hot-tours.php' );
+} );
+
+/* ─── [anex_bus_tours] ─── */
+add_shortcode( 'anex_bus_tours', function ( $atts ) {
+    if ( ! has_action( 'wp_footer', 'anex_katalog_lite_footer_flag' ) ) {
+        add_action( 'wp_footer', 'anex_katalog_lite_footer_flag', 5 );
+    }
+    return anex_render_template( ANEX_PLUGIN_DIR . 'templates/widget-bus-tours.php' );
+} );
+
+add_shortcode( 'anex_hot_bus_tours', function ( $atts ) {
+    return do_shortcode( '[anex_bus_tours]' );
 } );
 
 /* ─── [anex_directions] ─── */

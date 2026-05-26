@@ -349,6 +349,11 @@ function anex_admin_settings_page(): void {
                         <td>Будь-яка сторінка, домашня, лендінг</td>
                     </tr>
                     <tr style="background:#f0f6ff">
+                        <td><code>[anex_bus_tours]</code></td>
+                        <td>Гарячі автобусні екскурсійні тури з <code>module-excursion/search</code></td>
+                        <td>Будь-яка сторінка, домашня, лендінг</td>
+                    </tr>
+                    <tr style="background:#f0f6ff">
                         <td><code>[anex_directions]</code></td>
                         <td>🗺 Популярні напрямки — сітка країн з цінами</td>
                         <td>Будь-яка сторінка, домашня, лендінг</td>
