@@ -5922,12 +5922,14 @@ if ($hero_video_poster === '') {
 
         .ps-resort-group-head {
             width: 100%;
-            border: 0;
-            background: transparent;
+            border: 0 !important;
+            background: #fff !important;
+            background-image: none !important;
             font: inherit;
             font-size: 17px;
             font-weight: 700;
-            color: #1f2a44;
+            color: #1f2a44 !important;
+            -webkit-text-fill-color: #1f2a44;
             text-align: left;
             padding: 14px 18px;
             display: flex;
@@ -5949,13 +5951,15 @@ if ($hero_video_poster === '') {
 
         .ps-resort-subitem {
             width: 100%;
-            border: 0;
-            border-bottom: 1px solid #edf1f8;
-            background: transparent;
+            border: 0 !important;
+            border-bottom: 1px solid #edf1f8 !important;
+            background: #fff !important;
+            background-image: none !important;
             font: inherit;
             font-size: 16px;
             font-weight: 600;
-            color: #1f2a44;
+            color: #1f2a44 !important;
+            -webkit-text-fill-color: #1f2a44;
             text-align: left;
             padding: 12px 18px 12px 48px;
             display: flex;
@@ -5969,8 +5973,32 @@ if ($hero_video_poster === '') {
         }
 
         .ps-resort-subitem:hover,
-        .ps-resort-group-head:hover {
-            background: #f5f8ff;
+        .ps-resort-subitem:focus-visible,
+        .ps-resort-group-head:hover,
+        .ps-resort-group-head:focus-visible {
+            background: #f5f8ff !important;
+            background-image: none !important;
+            color: #1f2a44 !important;
+            -webkit-text-fill-color: #1f2a44;
+            outline: none;
+            box-shadow: inset 4px 0 0 rgba(26, 93, 200, 0.18) !important;
+        }
+
+        .ps-resort-subitem:hover *,
+        .ps-resort-subitem:focus-visible *,
+        .ps-resort-group-head:hover *,
+        .ps-resort-group-head:focus-visible * {
+            color: inherit;
+            -webkit-text-fill-color: currentColor;
+        }
+
+        .ps-resort-subitem .ps-resort-check,
+        .ps-resort-group-head .ps-resort-check,
+        .ps-resort-subitem:hover .ps-resort-check,
+        .ps-resort-subitem:focus-visible .ps-resort-check,
+        .ps-resort-group-head:hover .ps-resort-check,
+        .ps-resort-group-head:focus-visible .ps-resort-check {
+            -webkit-text-fill-color: transparent;
         }
 
         .ps-picker-footer {
