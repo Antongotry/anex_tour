@@ -50,6 +50,7 @@ $catalog_url = function_exists( 'anex_get_catalog_search_page_permalink' )
 .ps-country-dd.is-open{display:block}
 .ps-country-dd button{display:block;width:100%;text-align:left;padding:10px 12px;border:0;border-radius:10px;background:transparent;font:inherit;font-size:14px;font-weight:700;cursor:pointer;color:var(--text)}
 .ps-country-dd button:hover{background:rgba(26,93,200,.08)}
+.ps-country-dd .ps-cw-empty{padding:14px 12px;color:#50575e;font-size:13px;font-weight:600;line-height:1.4;text-align:left;list-style:none}
 .ps-submit{display:flex;align-items:center;justify-content:center;width:100%;min-height:50px;padding:0 22px;border:0;border-radius:14px;background:#f31624;color:#fff;font:inherit;font-size:15px;font-weight:900;cursor:pointer;transition:background .18s,transform .12s}
 .ps-submit:hover{background:#d01020;transform:translateY(-1px)}
 .ps-submit:active{transform:translateY(0)}
@@ -355,16 +356,28 @@ $catalog_url = function_exists( 'anex_get_catalog_search_page_permalink' )
             }).filter(function(c){ return c.id; });
         } catch(e) { allCountries=[]; }
 
-        // Country autocomplete
+        function matchesQuery(name, q){
+            if(!q) return true;
+            return normalizeSearchToken(name).includes(q);
+        }
+
         if(elCountryQ){
             elCountryQ.addEventListener('focus',function(){
-                var q=elCountryQ.value.trim().toLowerCase();
-                var list=allCountries.filter(function(c){ return (c.name||'').toLowerCase().includes(q); }).slice(0,80);
+                var q=normalizeSearchToken(elCountryQ.value);
+                var list=allCountries.filter(function(c){ return matchesQuery(c.name||'', q); }).slice(0,80);
                 openDd(list.length?list:allCountries.slice(0,40));
             });
             elCountryQ.addEventListener('input',function(){
-                var q=elCountryQ.value.trim().toLowerCase();
-                openDd(allCountries.filter(function(c){ return (c.name||'').toLowerCase().includes(q); }).slice(0,80));
+                var q=normalizeSearchToken(elCountryQ.value);
+                var list=allCountries.filter(function(c){ return matchesQuery(c.name||'', q); }).slice(0,80);
+                if(!list.length){
+                    if(elCountryDd){
+                        elCountryDd.innerHTML='<li class="ps-cw-empty">Не знайшли «'+esc(elCountryQ.value)+'». Спробуйте ввести іншу країну.</li>';
+                        elCountryDd.classList.add('is-open');
+                    }
+                    return;
+                }
+                openDd(list);
             });
             elCountryQ.addEventListener('keydown',function(ev){ if(ev.key==='Escape') closeDd(); });
         }

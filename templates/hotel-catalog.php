@@ -2631,6 +2631,85 @@ if ($hero_video_poster === '') {
             line-height: 1;
         }
 
+        .best-offer-price .best-offer-price-scope {
+            font-size: 13px;
+            font-weight: 700;
+            color: #50575e;
+            line-height: 1.35;
+        }
+
+        .best-offer-price .best-offer-price-pernight {
+            font-size: 12px;
+            font-weight: 700;
+            color: #1a5dc8;
+            line-height: 1.35;
+        }
+
+        .best-offer-price .best-offer-price-kind {
+            display: inline-block;
+            margin-top: 2px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(26, 93, 200, 0.12);
+            color: #1a5dc8;
+            font-size: 11px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            width: fit-content;
+        }
+
+        .tour-price-note {
+            margin: 4px 0 16px;
+            padding: 12px 14px;
+            border-radius: 12px;
+            background: rgba(26, 93, 200, 0.08);
+            color: #1f2a44;
+            font-size: 13px;
+            font-weight: 600;
+            line-height: 1.45;
+        }
+
+        .tour-price-cell {
+            white-space: nowrap;
+        }
+
+        .tour-price-cell strong {
+            display: block;
+            color: #003087;
+            font-size: 18px;
+            font-weight: 800;
+            line-height: 1.1;
+        }
+
+        .tour-price-cell .tour-price-scope {
+            display: block;
+            color: #50575e;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 2px;
+        }
+
+        .tour-price-cell .tour-price-pernight {
+            display: block;
+            color: #1a5dc8;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .tour-price-cell .tour-price-kind {
+            display: inline-block;
+            margin-top: 4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            background: rgba(26, 93, 200, 0.12);
+            color: #1a5dc8;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
         .best-offer-card > .detail-buy-button.detail-scroll-to-prices {
             margin-top: 2px;
         }
@@ -4335,14 +4414,12 @@ if ($hero_video_poster === '') {
         }
 
         .detail-popup-side {
-            position: sticky;
-            top: 92px;
+            position: static;
             align-self: start;
         }
 
         .detail-modal .best-offer-card {
-            position: sticky;
-            top: 92px;
+            position: static;
             align-self: start;
         }
 
@@ -5651,6 +5728,49 @@ if ($hero_video_poster === '') {
             font-size: 15px;
             padding: 0 14px;
             color: #1f2a44;
+            transition: border-color .18s ease, box-shadow .18s ease;
+        }
+
+        .ps-picker-search:focus {
+            outline: none;
+            border-color: #1a5dc8;
+            box-shadow: 0 0 0 3px rgba(26, 93, 200, 0.18);
+        }
+
+        .ps-picker-search-hint {
+            margin: 8px 2px 0;
+            color: #50575e;
+            font-size: 12px;
+            font-weight: 600;
+            line-height: 1.55;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ps-picker-hint-chip {
+            display: inline-flex;
+            align-items: center;
+            min-height: 26px;
+            padding: 3px 10px;
+            border: 1px solid rgba(26, 93, 200, 0.3);
+            border-radius: 999px;
+            background: rgba(26, 93, 200, 0.06);
+            color: #003087;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .15s ease, border-color .15s ease, color .15s ease;
+        }
+
+        .ps-picker-hint-chip:hover,
+        .ps-picker-hint-chip:focus-visible {
+            background: #1a5dc8;
+            border-color: #1a5dc8;
+            color: #fff;
+            outline: none;
         }
 
         .ps-picker-body {
@@ -6056,9 +6176,39 @@ if ($hero_video_poster === '') {
         .ps-picker-empty {
             margin: 0;
             padding: 16px 18px;
-            color: #71809e;
+            color: #50575e;
             font-size: 14px;
             font-weight: 600;
+            line-height: 1.55;
+        }
+
+        .ps-picker-empty strong {
+            color: #003087;
+            font-weight: 800;
+        }
+
+        .ps-picker-loading-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 6px 12px 4px;
+            padding: 10px 14px;
+            border-radius: 10px;
+            background: rgba(26, 93, 200, 0.08);
+            color: #003087;
+            font-size: 13px;
+            font-weight: 700;
+            line-height: 1.3;
+            list-style: none;
+        }
+
+        .ps-picker-loading-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 999px;
+            border: 2px solid rgba(26, 93, 200, 0.25);
+            border-top-color: #1a5dc8;
+            animation: search-loader-spin .8s linear infinite;
         }
 
         @media (max-width: 980px) {
@@ -7069,7 +7219,8 @@ if ($hero_video_poster === '') {
                         <button type="button" class="ps-picker-close" id="ps-picker-close" aria-label="Закрити">×</button>
                     </div>
                     <div class="ps-picker-search-wrap">
-                        <input type="text" class="ps-picker-search" id="ps-picker-search" placeholder="Пошук за назвою країни або міста" autocomplete="off">
+                        <input type="text" class="ps-picker-search" id="ps-picker-search" placeholder="Введіть країну, курорт або готель" autocomplete="off">
+                        <p class="ps-picker-search-hint" id="ps-picker-search-hint">Наприклад: <button type="button" class="ps-picker-hint-chip" data-ps-hint="Туреччина">Туреччина</button> <button type="button" class="ps-picker-hint-chip" data-ps-hint="Єгипет">Єгипет</button> <button type="button" class="ps-picker-hint-chip" data-ps-hint="Туніс">Туніс</button> <button type="button" class="ps-picker-hint-chip" data-ps-hint="ОАЕ">ОАЕ</button></p>
                     </div>
                     <div class="ps-picker-body">
                         <div class="ps-picker-col ps-picker-col--primary">
@@ -9379,7 +9530,10 @@ if ($hero_video_poster === '') {
             });
 
             if (!showRoots.length) {
-                psFromList.innerHTML = '<li><p class="ps-picker-empty">Курортів не знайдено.</p></li>';
+                const queryText = String(query || '').trim();
+                psFromList.innerHTML = '<li><p class="ps-picker-empty">' + (queryText
+                    ? 'Не знайшли «' + esc(queryText) + '» серед курортів цього напрямку. Спробуйте інший варіант або очистіть поле пошуку.'
+                    : 'Курортів за обраним напрямком наразі немає. Спробуйте іншу країну.') + '</p></li>';
                 return;
             }
 
@@ -9627,29 +9781,18 @@ if ($hero_video_poster === '') {
             return true;
         }
 
-        async function renderCountryMode() {
-            if (!psCountryList || !psFromList) {
-                return;
+        function renderLocalCountryList(query, currentCountry, options) {
+            if (!psCountryList) {
+                return [];
             }
-            const query = psPickerSearch ? psPickerSearch.value : '';
+            const opts = options || {};
             const q = normalizeSearchToken(query);
-            if (query && query.trim().length >= 3) {
-                try {
-                    const hits = await searchDestinations(query);
-                    const renderedHotels = await renderHotelSearchResults(hits);
-                    if (renderedHotels) {
-                        return;
-                    }
-                    const renderedCountryRegion = renderCountryRegionHits(hits);
-                    if (renderedCountryRegion) {
-                        return;
-                    }
-                } catch (e) {
-                }
-            }
-            const currentCountry = psPickerCountryId || (psCountryId && psCountryId.value ? psCountryId.value : '');
             const countries = ALL_COUNTRIES.filter((country) => !q || normalizeSearchToken(country.name || '').includes(q));
-            psCountryList.innerHTML = countries.map((country) => {
+            const loadingMarkup = opts.loading
+                ? '<li class="ps-picker-loading-row" aria-live="polite"><span class="ps-picker-loading-dot"></span>Шукаємо готелі та курорти…</li>'
+                : '';
+            const emptyMarkup = '<li><p class="ps-picker-empty">Не знайшли «' + esc(String(query || '').trim()) + '». Спробуйте іншу країну, наприклад: <strong>Туреччина</strong>, <strong>Єгипет</strong>, <strong>Туніс</strong>, <strong>ОАЕ</strong>.</p></li>';
+            const listMarkup = countries.map((country) => {
                 const isActive = String(country.id) === String(currentCountry);
                 return '' +
                     '<li>' +
@@ -9658,8 +9801,15 @@ if ($hero_video_poster === '') {
                             '<span class="ps-picker-arrow">›</span>' +
                         '</button>' +
                     '</li>';
-            }).join('') || '<li><p class="ps-picker-empty">Нічого не знайдено.</p></li>';
+            }).join('');
+            psCountryList.innerHTML = loadingMarkup + (listMarkup || (q ? emptyMarkup : ''));
+            return countries;
+        }
 
+        function attachCountryButtonHandlers() {
+            if (!psCountryList) {
+                return;
+            }
             psCountryList.querySelectorAll('button[data-ps-country]').forEach((btn) => {
                 const id = String(btn.getAttribute('data-ps-country') || '');
                 btn.addEventListener('mouseenter', async () => {
@@ -9694,13 +9844,65 @@ if ($hero_video_poster === '') {
                     await renderCountryMode();
                 });
             });
+        }
+
+        let psPickerRenderSeq = 0;
+
+        async function renderCountryMode() {
+            if (!psCountryList || !psFromList) {
+                return;
+            }
+            const renderId = ++psPickerRenderSeq;
+            const query = psPickerSearch ? psPickerSearch.value : '';
+            const trimmedQuery = String(query || '').trim();
+            const useApi = trimmedQuery.length >= 3;
+            const currentCountry = psPickerCountryId || (psCountryId && psCountryId.value ? psCountryId.value : '');
+
+            renderLocalCountryList(query, currentCountry, { loading: useApi });
+            attachCountryButtonHandlers();
 
             if (!currentCountry) {
                 psFromList.innerHTML = '<li><p class="ps-picker-empty">Спочатку оберіть країну.</p></li>';
+            } else {
+                const regions = await getCountryRegions(currentCountry);
+                if (renderId !== psPickerRenderSeq) {
+                    return;
+                }
+                if (!regions.length) {
+                    const countryMeta = countryMetaById.get(String(currentCountry));
+                    const countryName = countryMeta && countryMeta.name ? countryMeta.name : 'цього напрямку';
+                    psFromList.innerHTML = '<li><p class="ps-picker-empty">Для <strong>' + esc(countryName) + '</strong> наразі немає курортів у нашому каталозі. Спробуйте іншу країну або уточніть у менеджера.</p></li>';
+                } else {
+                    renderRegionTree(regions, query);
+                }
+            }
+
+            if (!useApi) {
                 return;
             }
-            const regions = await getCountryRegions(currentCountry);
-            renderRegionTree(regions, query);
+
+            try {
+                const hits = await searchDestinations(query);
+                if (renderId !== psPickerRenderSeq) {
+                    return;
+                }
+                const renderedHotels = await renderHotelSearchResults(hits);
+                if (renderedHotels) {
+                    return;
+                }
+                const renderedCountryRegion = renderCountryRegionHits(hits);
+                if (renderedCountryRegion) {
+                    return;
+                }
+                renderLocalCountryList(query, currentCountry, { loading: false });
+                attachCountryButtonHandlers();
+            } catch (e) {
+                if (renderId !== psPickerRenderSeq) {
+                    return;
+                }
+                renderLocalCountryList(query, currentCountry, { loading: false });
+                attachCountryButtonHandlers();
+            }
         }
 
         async function renderFromMode() {
@@ -11667,6 +11869,20 @@ if ($hero_video_poster === '') {
                 });
             }
 
+            const psPickerSearchHint = document.getElementById('ps-picker-search-hint');
+            if (psPickerSearchHint) {
+                psPickerSearchHint.addEventListener('click', (event) => {
+                    const target = event.target instanceof HTMLElement ? event.target.closest('[data-ps-hint]') : null;
+                    if (!target || !psPickerSearch) {
+                        return;
+                    }
+                    const value = String(target.getAttribute('data-ps-hint') || '');
+                    psPickerSearch.value = value;
+                    psPickerSearch.dispatchEvent(new Event('input', { bubbles: true }));
+                    psPickerSearch.focus();
+                });
+            }
+
             if (searchBackBrowse) {
                 searchBackBrowse.addEventListener('click', () => {
                     closePopularSearchUI();
@@ -13341,7 +13557,19 @@ if ($hero_video_poster === '') {
                     return city.name;
                 }
             }
-            return 'Місто виїзду уточнить менеджер';
+            return '';
+        }
+
+        function detailDepartureLabel(offer, fallback, prefix) {
+            const city = detailOfferCity(offer, fallback);
+            if (!city) {
+                return 'місто на ваш вибір';
+            }
+            return (prefix ? prefix + ' ' : '') + city;
+        }
+
+        function detailHasDeparture(offer, fallback) {
+            return Boolean(detailOfferCity(offer, fallback));
         }
 
         function detailDuration(offer) {
@@ -13408,16 +13636,28 @@ if ($hero_video_poster === '') {
                         '</a>' +
                     '</div>' +
                 '</div>';
-            const priceScopeLabel = detailOfferIsStayOnly(current)
-                ? ('За ' + (info.adult_amount || 2) + ' дор. за весь період проживання')
-                : ('За ' + (info.adult_amount || 2) + ' дор. за весь тур');
+            const adultsForScope = Number(info.adult_amount || current.adult_amount || 2) || 2;
+            const childrenForScope = Number(info.child_amount || current.child_amount || 0) || 0;
+            const nightsForScope = Number(current.duration || current.hnight || info.duration || info.hnight || 7) || 7;
+            const travelersScope = adultsForScope + ' дор.' + (childrenForScope ? ' + ' + childrenForScope + ' дит.' : '');
+            const priceScopeLabel = 'за весь тур · ' + travelersScope + ' · ' + nightsForScope + ' н.';
+            const priceKindLine = detailOfferIsStayOnly(current) ? 'Тільки проживання' : 'З перельотом і трансфером';
+            const priceValueForCard = detailPriceValue(current);
+            const perNightLine = priceValueForCard && nightsForScope > 0
+                ? '~ ' + formatMoneyUAH(Math.round(priceValueForCard / nightsForScope)) + '/ніч'
+                : '';
+            const departureForCard = detailOfferCity(current, info) || 'Місто на ваш вибір';
             return '<aside class="best-offer-card" id="best-offer"><h2>Найкраща пропозиція</h2><div class="best-offer-grid">' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v2H2V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm15 9v8a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-8h20Zm-6 3h-2v2h2v-2Z"/></svg>Дата</span><strong>' + esc(detailDateLabel(current.date_from || info.date_from)) + '</strong></div>' +
-                '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.6 13.2 10 15l4.8 6.2c.3.4.9.2.9-.3l-.4-5.1 4.8 1.2c.9.2 1.8-.3 2-1.2.2-.9-.4-1.8-1.3-2L15.9 12l4.9-1.8c.9-.3 1.4-1.2 1.1-2.1-.3-.9-1.2-1.4-2.1-1.1l-4.8 1.8.4-5.1c0-.5-.6-.7-.9-.3L10 9.6 2.6 11.4c-.5.1-.8.5-.8.9s.3.8.8.9Z"/></svg>Виїзд</span><strong>' + esc(detailOfferCity(current, info)) + '</strong></div>' +
+                '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.6 13.2 10 15l4.8 6.2c.3.4.9.2.9-.3l-.4-5.1 4.8 1.2c.9.2 1.8-.3 2-1.2.2-.9-.4-1.8-1.3-2L15.9 12l4.9-1.8c.9-.3 1.4-1.2 1.1-2.1-.3-.9-1.2-1.4-2.1-1.1l-4.8 1.8.4-5.1c0-.5-.6-.7-.9-.3L10 9.6 2.6 11.4c-.5.1-.8.5-.8.9s.3.8.8.9Z"/></svg>Виїзд</span><strong>' + esc(departureForCard) + '</strong></div>' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm1 5a1 1 0 1 0-2 0v6c0 .3.1.5.3.7l3.6 3.6a1 1 0 0 0 1.4-1.4L13 12.6V7Z"/></svg>Тривалість</span><strong>' + esc(detailDuration(current)) + '</strong></div>' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 2a1 1 0 0 1 .9.6l1.5 3.4h5.2l1.5-3.4a1 1 0 1 1 1.8.8l-1.2 2.6h.3A3 3 0 0 1 20 9v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h.3L6.1 3.4A1 1 0 0 1 7 2Zm1 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm8 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/></svg>Харчування</span><strong>' + esc(detailMeal(current)) + '</strong></div>' +
                 '</div><p class="best-offer-included">' + esc(detailOfferIsStayOnly(current) ? 'У вартості показано лише проживання. Переліт та інші послуги менеджер підтвердить окремо.' : 'У вартість включено: переліт/транспорт, трансфер, страховка та проживання у готелі.') + '</p>' +
-                '<div class="best-offer-price"><strong>' + esc(formatMoneyUAH(detailPriceValue(current))) + '</strong><span>' + esc(priceScopeLabel) + '</span></div>' +
+                '<div class="best-offer-price"><strong>' + esc(formatMoneyUAH(priceValueForCard)) + '</strong>' +
+                    '<span class="best-offer-price-scope">' + esc(priceScopeLabel) + '</span>' +
+                    (perNightLine ? '<span class="best-offer-price-pernight">' + esc(perNightLine) + '</span>' : '') +
+                    '<span class="best-offer-price-kind">' + esc(priceKindLine) + '</span>' +
+                '</div>' +
                 '<button type="button" class="detail-buy-button detail-scroll-to-prices best-offer-prices-btn">Дивитись всі ціни</button>' +
                 consultBlock +
                 '</aside>';
@@ -13434,30 +13674,50 @@ if ($hero_video_poster === '') {
             const rows = detailVisibleOffers(offers.length ? offers : [info]).slice(0, 5);
             const start = parseTourDate(info.date_from) || new Date();
             const end = addDays(start, Number(info.duration || info.hnight || 7) || 7);
+            const adultsHeader = Number(info.adult_amount || 2) || 2;
+            const childrenHeader = Number(info.child_amount || 0) || 0;
+            const travelersHeader = adultsHeader + ' дор.' + (childrenHeader ? ' + ' + childrenHeader + ' дит.' : '');
+            const headerCity = detailOfferCity(info, info);
+            const headerNote = '<p class="tour-price-note">Ціни вказано за весь тур (' + esc(travelersHeader) + ', ' + esc((info.duration || info.hnight || 7) + ' ночей') + '), у гривнях. Натисніть «Купити онлайн», щоб залишити заявку.</p>';
             return '<section class="detail-section" id="tour-prices"><h2>Ціни на тури в готель ' + esc(title) + ', ' + esc(info.hotel_rating_kn || ((info.hotel_rating || '') + '*')) + '</h2>' +
-                '<div class="price-filter-row"><div class="price-filter-cell"><span>Звідки</span><strong>' + esc(detailOfferCity(info, info)) + '</strong></div><div class="price-filter-cell"><span>Початок туру</span><strong>' + esc(detailDateLabel(start) + ' - ' + detailDateLabel(end)) + '</strong></div><div class="price-filter-cell"><span>Тривалість</span><strong>' + esc((info.duration || info.hnight || 7) + ' ночей') + '</strong></div><div class="price-filter-cell"><span>Туристи</span><strong>' + esc((info.adult_amount || 2) + ' дорослих') + '</strong></div><button type="button" class="detail-buy-button booking-open" data-tour-key="' + escAttr(info.key || DETAIL_TOUR_KEY) + '" data-tour-title="' + escAttr(title) + '">Шукати</button></div>' +
-                '<div class="tour-price-table-wrap"><table class="tour-price-table"><thead><tr><th>Дата вильоту</th><th>Тривалість</th><th>Номер</th><th>Харчування</th><th>Вартість</th><th></th></tr></thead><tbody>' +
+                '<div class="price-filter-row"><div class="price-filter-cell"><span>Звідки</span><strong>' + esc(headerCity || 'Уточнюється') + '</strong></div><div class="price-filter-cell"><span>Початок туру</span><strong>' + esc(detailDateLabel(start) + ' - ' + detailDateLabel(end)) + '</strong></div><div class="price-filter-cell"><span>Тривалість</span><strong>' + esc((info.duration || info.hnight || 7) + ' ночей') + '</strong></div><div class="price-filter-cell"><span>Туристи</span><strong>' + esc(travelersHeader) + '</strong></div><button type="button" class="detail-buy-button booking-open" data-tour-key="' + escAttr(info.key || DETAIL_TOUR_KEY) + '" data-tour-title="' + escAttr(title) + '">Шукати</button></div>' +
+                headerNote +
+                '<div class="tour-price-table-wrap"><table class="tour-price-table"><thead><tr><th>Дата вильоту</th><th>Тривалість</th><th>Номер</th><th>Харчування</th><th>Вартість за весь тур</th><th></th></tr></thead><tbody>' +
                 rows.map((offer) => {
                     const offerDate = detailDateLabel(offer.date_from || info.date_from);
-                    const offerCity = detailOfferCity(offer, info);
+                    const offerCityRaw = detailOfferCity(offer, info);
+                    const offerCityLabel = offerCityRaw ? ('з ' + offerCityRaw) : 'Місто на ваш вибір';
+                    const offerCityAttr = offerCityRaw || '';
                     const offerNights = detailDuration(offer);
                     const offerRoom = detailRoom(offer);
                     const offerMeal = offer.meal_type || '';
                     const offerMealFull = detailMeal(offer);
-                    const offerPrice = formatMoneyUAH(detailPriceValue(offer));
-                    const offerPriceCaption = detailOfferIsStayOnly(offer) ? 'Лише проживання' : 'Пакетний тур';
+                    const offerAdults = Number(offer.adult_amount || info.adult_amount || 2) || 2;
+                    const offerChildren = Number(offer.child_amount || info.child_amount || 0) || 0;
+                    const offerNightsNum = Number(offer.duration || offer.hnight || info.duration || info.hnight || 7) || 7;
+                    const offerPriceValue = detailPriceValue(offer);
+                    const offerPrice = formatMoneyUAH(offerPriceValue);
+                    const offerScope = (offerAdults + ' дор.' + (offerChildren ? ' + ' + offerChildren + ' дит.' : '') + ' · ' + offerNightsNum + ' н.');
+                    const offerPriceKind = detailOfferIsStayOnly(offer) ? 'Тільки проживання' : 'З перельотом і трансфером';
+                    const perNight = offerPriceValue && offerNightsNum > 0
+                        ? '~ ' + formatMoneyUAH(Math.round(offerPriceValue / offerNightsNum)) + '/ніч'
+                        : '';
                     const offerOperator = detailOperator(offer, info);
                     return '<tr>' +
-                        '<td data-label="Дата вильоту">' + esc(offerDate) + '<small>з ' + esc(offerCity) + '</small></td>' +
+                        '<td data-label="Дата вильоту">' + esc(offerDate) + '<small>' + esc(offerCityLabel) + '</small></td>' +
                         '<td data-label="Тривалість">' + esc(offerNights) + '</td>' +
                         '<td data-label="Номер">' + esc(offerRoom) + '</td>' +
                         '<td data-label="Харчування">' + esc(offerMeal) + '<small>' + esc(offerMealFull) + '</small></td>' +
-                        '<td data-label="Вартість">' + esc(offerPrice) + '<small>' + esc(offerPriceCaption) + '</small></td>' +
+                        '<td data-label="Вартість за весь тур" class="tour-price-cell"><strong>' + esc(offerPrice) + '</strong>' +
+                            '<small class="tour-price-scope">' + esc(offerScope) + '</small>' +
+                            (perNight ? '<small class="tour-price-pernight">' + esc(perNight) + '</small>' : '') +
+                            '<small class="tour-price-kind">' + esc(offerPriceKind) + '</small>' +
+                        '</td>' +
                         '<td><button type="button" class="table-buy-button booking-open"' +
                             ' data-tour-key="' + escAttr(offer.key || info.key || DETAIL_TOUR_KEY) + '"' +
                             ' data-tour-title="' + escAttr(title) + '"' +
                             ' data-tour-date="' + escAttr(offerDate) + '"' +
-                            ' data-tour-city="' + escAttr(offerCity) + '"' +
+                            ' data-tour-city="' + escAttr(offerCityAttr) + '"' +
                             ' data-tour-nights="' + escAttr(offerNights) + '"' +
                             ' data-tour-room="' + escAttr(offerRoom) + '"' +
                             ' data-tour-meal="' + escAttr(offerMeal + (offerMealFull ? ' — ' + offerMealFull : '')) + '"' +
