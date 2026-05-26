@@ -10335,6 +10335,8 @@ if ($hero_video_poster === '') {
             u.searchParams.delete('search');
             if (currentMode === 'excursion') {
                 u.searchParams.set('mode', 'excursion');
+            } else if (currentMode === 'sea') {
+                u.searchParams.set('mode', 'sea');
             } else {
                 u.searchParams.delete('mode');
             }
