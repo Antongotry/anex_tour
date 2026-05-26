@@ -7357,7 +7357,7 @@ if ($hero_video_poster === '') {
 
                 <div class="hero-search-card hero-search-card--catalog">
                     <form class="hero-catalog-form" id="popular-search-form" autocomplete="off">
-                        <p class="hero-catalog-title">Пошук туру в каталозі</p>
+                        <p class="hero-catalog-title">Вигідні тури онлайн</p>
                         <div class="hero-catalog-grid">
                             <div class="ps-field ps-field--grow ps-country-wrap">
                                 <span class="ps-label" id="ps-country-label">Країна, курорт, готель</span>
@@ -10507,7 +10507,7 @@ if ($hero_video_poster === '') {
             if (value === 'excursion') {
                 return 'excursion';
             }
-            return 'excursion';
+            return 'sea';
         }
 
         function applySearchModeFromUrl() {
@@ -10516,7 +10516,7 @@ if ($hero_video_poster === '') {
                 return;
             }
             const urlMode = new URL(window.location.href).searchParams.get('mode');
-            modeInput.value = normalizeSearchMode(urlMode || modeInput.value || 'excursion');
+            modeInput.value = normalizeSearchMode(urlMode || modeInput.value || 'sea');
             if (typeof window.anexInitSearchModeSwitch === 'function') {
                 window.anexInitSearchModeSwitch();
             }
@@ -10525,7 +10525,7 @@ if ($hero_video_poster === '') {
         function currentSearchModeFromState() {
             const modeInput = document.getElementById('ps-search-mode');
             const urlMode = new URL(window.location.href).searchParams.get('mode');
-            return normalizeSearchMode((modeInput && modeInput.value) || urlMode || 'excursion');
+            return normalizeSearchMode((modeInput && modeInput.value) || urlMode || 'sea');
         }
 
         function searchRenderCacheKey(params, mode) {
