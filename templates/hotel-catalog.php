@@ -11989,8 +11989,12 @@ if ($hero_video_poster === '') {
             }
             ensurePsPickerPortal();
             hardenPickerInputsVisual();
-            bindDateMask(psD1);
-            bindDateMask(psD2);
+            if (typeof window.anexInitSearchDatePickers === 'function') {
+                window.anexInitSearchDatePickers();
+            } else {
+                bindDateMask(psD1);
+                bindDateMask(psD2);
+            }
             bindShortNumericMask(psN1, 2, '6');
             bindShortNumericMask(psN2, 2, '8');
             const dates = defaultSearchDatesPs();
@@ -15827,6 +15831,11 @@ if ($hero_video_poster === '') {
         void renderCountryShowcase();
     })();
     </script>
+<?php
+if ( function_exists( 'anex_catalog_search_date_picker_script' ) ) {
+    echo anex_catalog_search_date_picker_script(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+}
+?>
 <?php if (!$_anex_embed): ?>
 </body>
 </html>

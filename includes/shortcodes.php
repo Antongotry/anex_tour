@@ -222,7 +222,118 @@ box-shadow:0 0 0 2px rgba(25,93,198,.10)!important;
 .anex-catalog-results-widget .search-filters .search-filters-reset:focus{background:transparent!important;border:0!important;box-shadow:none!important;color:var(--accent)!important;text-decoration:underline!important}
 @media(max-width:720px){.anex-catalog-search-widget .anex-search-mode-switch{display:grid;grid-template-columns:1fr 1fr;width:100%}.anex-catalog-search-widget .anex-search-mode-btn{padding:9px 10px;font-size:13px}}
 @media(max-width:820px){.anex-catalog-results-widget > .search-results-inner{display:block}.anex-catalog-results-widget .search-filters{display:none}}
+.ps-date-input-wrap{position:relative;display:block;width:100%}
+.ps-date-input-wrap>input[type="text"]{width:100%;padding-right:42px!important;cursor:pointer}
+.ps-date-trigger{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:#1a5dc8;cursor:pointer}
+.ps-date-trigger:hover,.ps-date-trigger:focus-visible{background:rgba(26,93,200,.1);outline:none}
+.ps-date-native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;clip:rect(0,0,0,0)}
 </style>';
+}
+
+function anex_catalog_search_date_picker_script(): string {
+    return '<script>
+(function(){
+    function formatApiDate(date){
+        var dd=String(date.getDate()).padStart(2,"0");
+        var mm=String(date.getMonth()+1).padStart(2,"0");
+        var yy=String(date.getFullYear()).slice(-2);
+        return dd+"."+mm+"."+yy;
+    }
+    function defaultSearchDates(){
+        var a=new Date(); a.setHours(12,0,0,0); a.setDate(a.getDate()+14);
+        var b=new Date(a); b.setDate(b.getDate()+7);
+        return {d1:formatApiDate(a), d2:formatApiDate(b)};
+    }
+    function ddmmyyToIso(v){
+        var m=String(v||"").match(/^(\d{2})\.(\d{2})\.(\d{2})$/);
+        return m ? ("20"+m[3]+"-"+m[2]+"-"+m[1]) : "";
+    }
+    function isoToDdmmyy(iso){
+        if(!iso) return "";
+        var p=iso.split("-");
+        return (p.length===3) ? (p[2]+"."+p[1]+"."+p[0].slice(-2)) : "";
+    }
+    function todayIso(){
+        var t=new Date();
+        return t.getFullYear()+"-"+String(t.getMonth()+1).padStart(2,"0")+"-"+String(t.getDate()).padStart(2,"0");
+    }
+    function bindSearchDatePicker(textInput, opts){
+        if(!textInput || textInput.dataset.anexDatePicker==="1") return;
+        textInput.dataset.anexDatePicker="1";
+        opts = opts || {};
+        var wrap=document.createElement("div");
+        wrap.className="ps-date-input-wrap";
+        textInput.parentNode.insertBefore(wrap, textInput);
+        wrap.appendChild(textInput);
+        textInput.setAttribute("autocomplete","off");
+        textInput.setAttribute("readonly","readonly");
+        var native=document.createElement("input");
+        native.type="date";
+        native.className="ps-date-native";
+        native.tabIndex=-1;
+        native.setAttribute("aria-hidden","true");
+        native.min=opts.min || todayIso();
+        var btn=document.createElement("button");
+        btn.type="button";
+        btn.className="ps-date-trigger";
+        btn.setAttribute("aria-label","Відкрити календар");
+        btn.innerHTML="<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z\"/></svg>";
+        wrap.appendChild(native);
+        wrap.appendChild(btn);
+        function openPicker(){
+            var iso=ddmmyyToIso(textInput.value);
+            if(iso) native.value=iso;
+            if(typeof native.showPicker==="function"){
+                try{ native.showPicker(); return; }catch(e){}
+            }
+            native.focus();
+        }
+        function syncFromNative(){
+            if(native.value) textInput.value=isoToDdmmyy(native.value);
+        }
+        textInput.addEventListener("click", function(e){ e.preventDefault(); openPicker(); });
+        btn.addEventListener("click", function(e){ e.preventDefault(); openPicker(); });
+        native.addEventListener("change", syncFromNative);
+        native.addEventListener("input", syncFromNative);
+        if(opts.syncMinFrom){
+            var src=document.getElementById(opts.syncMinFrom);
+            if(src){
+                var applyMin=function(){
+                    var iso=ddmmyyToIso(src.value);
+                    native.min=iso || todayIso();
+                };
+                src.addEventListener("change", applyMin);
+                applyMin();
+            }
+        }
+    }
+    window.anexInitSearchDatePickers=function(root){
+        root=root||document;
+        var defaults=defaultSearchDates();
+        var d1=root.getElementById("ps-d1");
+        var d2=root.getElementById("ps-d2");
+        if(d1){
+            bindSearchDatePicker(d1, {min: todayIso()});
+            if(!d1.value) d1.value=defaults.d1;
+        }
+        if(d2){
+            bindSearchDatePicker(d2, {min: todayIso(), syncMinFrom: "ps-d1"});
+            if(!d2.value) d2.value=defaults.d2;
+        }
+        ["asw-d1","asw-d2"].forEach(function(id, idx){
+            var el=root.getElementById(id);
+            if(!el) return;
+            bindSearchDatePicker(el, {min: todayIso(), syncMinFrom: idx===1 ? "asw-d1" : ""});
+            if(!el.value) el.value=idx===0 ? defaults.d1 : defaults.d2;
+        });
+    };
+    if(document.readyState==="loading"){
+        document.addEventListener("DOMContentLoaded", function(){ window.anexInitSearchDatePickers(); });
+    } else {
+        window.anexInitSearchDatePickers();
+    }
+})();
+</script>';
 }
 
 function anex_catalog_widgets_footer_assets(): void {
@@ -357,7 +468,7 @@ function anex_catalog_search_redirect_script( string $target_url, string $excurs
         window.location.href = url.toString();
     }, true);
 })();
-</script>';
+</script>' . anex_catalog_search_date_picker_script();
 }
 
 function anex_render_catalog_search_widget( array $atts = [] ): string {
