@@ -264,7 +264,6 @@ function anex_boolish( $value, bool $default = false ): bool {
 function anex_catalog_search_mode_switch_markup(): string {
     return '<div class="anex-search-mode-switch" id="anex-search-mode-switch" role="tablist" aria-label="Режим пошуку">' .
         '<button type="button" class="anex-search-mode-btn is-active" data-search-mode="hotel" role="tab" aria-selected="true">Вигідні тури онлайн</button>' .
-        '<button type="button" class="anex-search-mode-btn" data-search-mode="excursion" role="tab" aria-selected="false">Екскурсійні тури</button>' .
         '<button type="button" class="anex-search-mode-btn" data-search-mode="sea" role="tab" aria-selected="false">Морський відпочинок</button>' .
         '</div>' .
         '<input type="hidden" id="ps-search-mode" value="hotel">';
@@ -282,10 +281,9 @@ function anex_catalog_search_redirect_script( string $target_url, string $excurs
         var switcher = document.getElementById("anex-search-mode-switch");
         if(!modeInput || !switcher) return;
         var urlMode = (new URL(window.location.href)).searchParams.get("mode");
-        if(urlMode === "excursion"){ modeInput.value = "excursion"; }
-        else if(urlMode === "sea"){ modeInput.value = "sea"; }
+        if(urlMode === "sea" || urlMode === "excursion"){ modeInput.value = "sea"; }
         var setMode = function(mode){
-            modeInput.value = (mode === "excursion" || mode === "sea") ? mode : "hotel";
+            modeInput.value = mode === "sea" ? "sea" : "hotel";
             switcher.querySelectorAll("[data-search-mode]").forEach(function(btn){
                 var active = btn.getAttribute("data-search-mode") === modeInput.value;
                 btn.classList.toggle("is-active", active);
@@ -312,8 +310,7 @@ function anex_catalog_search_redirect_script( string $target_url, string $excurs
         event.stopImmediatePropagation();
         var q = function(id){ var el = document.getElementById(id); return el ? String(el.value || "").trim() : ""; };
         mode = mode || q("ps-search-mode") || "hotel";
-        var base = (mode === "excursion" && excursTargetUrl) ? excursTargetUrl : targetUrl;
-        mode = (mode === "sea") ? "sea" : mode;
+        var base = targetUrl;
         var url = new URL(base, window.location.origin);
         url.searchParams.delete("search");
         var countryId = q("ps-country-id");

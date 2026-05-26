@@ -7837,7 +7837,6 @@ if ($hero_video_poster === '') {
                 <div class="toolbar">
                     <div class="toolbar-copy">
                         <h2>Гарячі тури</h2>
-                        <p>Актуальні готелі по найпопулярніших країнах — оновлюються автоматично.</p>
                     </div>
                 </div>
                 <div class="country-showcase" id="country-showcase">
