@@ -2658,33 +2658,6 @@ if ($hero_video_poster === '') {
             color: var(--muted);
         }
 
-        .best-offer-operator-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            padding-top: 4px;
-        }
-
-        .best-offer-operator-name {
-            font-size: 13px;
-            color: var(--muted);
-            font-weight: 600;
-        }
-
-        .best-offer-operator-badge {
-            display: inline-flex;
-            align-items: center;
-            padding: 4px 10px;
-            border-radius: 8px;
-            background: rgba(26, 93, 200, 0.08);
-            border: 1px solid rgba(26, 93, 200, 0.18);
-            font-size: 13px;
-            font-weight: 800;
-            color: var(--accent-strong);
-            white-space: nowrap;
-        }
-
         .best-offer-price {
             display: grid;
             gap: 4px;
@@ -13933,16 +13906,12 @@ if ($hero_video_poster === '') {
                 includedItems.map(([label, yes]) =>
                     '<li class="' + (yes ? '' : 'included-no') + '">' + (yes ? checkIcon : xIcon) + esc(label) + '</li>'
                 ).join('') + '</ul>';
-            const operatorRow = operatorRaw
-                ? '<div class="best-offer-operator-row"><span class="best-offer-operator-name">Туроператор</span><span class="best-offer-operator-badge">' + esc(operatorRaw) + '</span></div>'
-                : '';
             return '<aside class="best-offer-card" id="best-offer"><h2>Найкраща пропозиція</h2><div class="best-offer-grid">' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v2H2V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm15 9v8a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-8h20Zm-6 3h-2v2h2v-2Z"/></svg>Дата</span><strong>' + esc(detailDateLabel(current.date_from || info.date_from)) + '</strong></div>' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.6 13.2 10 15l4.8 6.2c.3.4.9.2.9-.3l-.4-5.1 4.8 1.2c.9.2 1.8-.3 2-1.2.2-.9-.4-1.8-1.3-2L15.9 12l4.9-1.8c.9-.3 1.4-1.2 1.1-2.1-.3-.9-1.2-1.4-2.1-1.1l-4.8 1.8.4-5.1c0-.5-.6-.7-.9-.3L10 9.6 2.6 11.4c-.5.1-.8.5-.8.9s.3.8.8.9Z"/></svg>Виїзд</span><strong>' + esc(departureForCard) + '</strong></div>' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm1 5a1 1 0 1 0-2 0v6c0 .3.1.5.3.7l3.6 3.6a1 1 0 0 0 1.4-1.4L13 12.6V7Z"/></svg>Тривалість</span><strong>' + esc(detailDuration(current)) + '</strong></div>' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 2a1 1 0 0 1 .9.6l1.5 3.4h5.2l1.5-3.4a1 1 0 1 1 1.8.8l-1.2 2.6h.3A3 3 0 0 1 20 9v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h.3L6.1 3.4A1 1 0 0 1 7 2Zm1 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm8 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/></svg>Харчування</span><strong>' + esc(detailMeal(current)) + '</strong></div>' +
                 '</div><div class="best-offer-included"><span class="best-offer-included-title">У вартість включено</span>' + includedList + '</div>' +
-                operatorRow +
                 '<div class="best-offer-price"><strong>' + esc(formatMoneyUAH(priceValueForCard)) + '</strong>' +
                     '<span class="best-offer-price-scope">' + esc(priceScopeLabel) + '</span>' +
                     (perNightLine ? '<span class="best-offer-price-pernight">' + esc(perNightLine) + '</span>' : '') +
