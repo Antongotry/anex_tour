@@ -12330,6 +12330,7 @@ if ($hero_video_poster === '') {
 
             void (async () => {
                 await refreshPsFromSelect();
+                applySearchModeFromUrl();
                 const initial = readPopularSearchFromUrl();
                 if (initial) {
                     await applyPopularSearchParamsToForm(initial);

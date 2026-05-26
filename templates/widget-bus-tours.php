@@ -49,8 +49,6 @@ $tabs = [
 #<?php echo esc_attr( $widget_id ); ?> .abtw-head{display:flex;align-items:flex-end;justify-content:space-between;gap:18px;margin-bottom:26px}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-copy{display:grid;gap:8px;max-width:780px}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-title{margin:0;color:#003087;font-size:clamp(30px,4vw,48px);font-weight:900;line-height:.98;letter-spacing:-.04em}
-#<?php echo esc_attr( $widget_id ); ?> .abtw-subtitle{margin:0;color:var(--abtw-muted);font-size:clamp(16px,1.6vw,20px);line-height:1.45}
-#<?php echo esc_attr( $widget_id ); ?> .abtw-note{margin:0;color:#6f7b94;font-size:13px;font-weight:700;text-align:right;max-width:360px}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-tabs{display:flex;flex-wrap:wrap;gap:10px;margin:0 0 24px}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-tab{appearance:none;display:inline-flex;align-items:center;gap:8px;min-height:48px;padding:11px 20px;border:1px solid var(--abtw-line)!important;border-radius:999px;background:#fff!important;background-image:none!important;color:var(--abtw-text)!important;font:inherit;font-size:15px;font-weight:900;line-height:1;cursor:pointer;box-shadow:none!important;text-decoration:none!important;transition:background .18s,color .18s,border-color .18s,box-shadow .18s,transform .18s}
 #<?php echo esc_attr( $widget_id ); ?> .abtw-tab:hover{border-color:var(--abtw-accent)!important;color:var(--abtw-accent)!important;transform:translateY(-1px)}
@@ -146,7 +144,7 @@ $tabs = [
 #<?php echo esc_attr( $widget_id ); ?> .abtw-modal-note{margin:12px 0 0;color:#6f7b94;font-size:14px;font-weight:700;line-height:1.45}
 @media(max-width:1180px){#<?php echo esc_attr( $widget_id ); ?> .abtw-grid,#<?php echo esc_attr( $widget_id ); ?> .abtw-skeleton{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:980px){#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-grid{grid-template-columns:1fr}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-side{position:static}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-hero{grid-template-columns:1fr;min-height:0}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-photo--main{min-height:320px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumbs{grid-template-columns:repeat(4,minmax(0,1fr))}}
-@media(max-width:860px){#<?php echo esc_attr( $widget_id ); ?> .abtw-frame{padding:28px 22px 30px}#<?php echo esc_attr( $widget_id ); ?> .abtw-head{align-items:flex-start;flex-direction:column}#<?php echo esc_attr( $widget_id ); ?> .abtw-note{text-align:left}#<?php echo esc_attr( $widget_id ); ?> .abtw-grid,#<?php echo esc_attr( $widget_id ); ?> .abtw-skeleton{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:860px){#<?php echo esc_attr( $widget_id ); ?> .abtw-frame{padding:28px 22px 30px}#<?php echo esc_attr( $widget_id ); ?> .abtw-head{align-items:flex-start;flex-direction:column}#<?php echo esc_attr( $widget_id ); ?> .abtw-grid,#<?php echo esc_attr( $widget_id ); ?> .abtw-skeleton{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:560px){#<?php echo esc_attr( $widget_id ); ?> .abtw-frame{padding:24px 16px 26px}#<?php echo esc_attr( $widget_id ); ?> .abtw-tabs{display:grid;grid-template-columns:1fr 1fr}#<?php echo esc_attr( $widget_id ); ?> .abtw-tab{justify-content:center;padding:10px 12px;font-size:13px}#<?php echo esc_attr( $widget_id ); ?> .abtw-grid,#<?php echo esc_attr( $widget_id ); ?> .abtw-skeleton{grid-template-columns:1fr}#<?php echo esc_attr( $widget_id ); ?> .abtw-card-title{min-height:0}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal{padding:10px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-dialog{width:calc(100vw - 20px);max-height:92vh;border-radius:22px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-close{width:50px;height:50px;margin:12px 12px 0 0;font-size:28px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-body{padding:14px 14px 22px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-card,#<?php echo esc_attr( $widget_id ); ?> .abtw-side-price{padding:18px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-photo--main{min-height:240px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumbs{display:flex;grid-template-columns:none;overflow-x:auto;padding-bottom:2px}#<?php echo esc_attr( $widget_id ); ?> .abtw-modal-thumb{min-width:86px;height:76px}#<?php echo esc_attr( $widget_id ); ?> .abtw-gallery-nav{width:42px;height:42px;font-size:30px}#<?php echo esc_attr( $widget_id ); ?> .abtw-gallery-prev{left:12px}#<?php echo esc_attr( $widget_id ); ?> .abtw-gallery-next{right:12px}#<?php echo esc_attr( $widget_id ); ?> .abtw-open-photo{right:12px;bottom:12px;min-height:34px;padding:8px 11px;font-size:12px}#<?php echo esc_attr( $widget_id ); ?> .abtw-price-big{font-size:32px}}
 </style>
 
@@ -154,9 +152,7 @@ $tabs = [
     <div class="abtw-head">
         <div class="abtw-copy">
             <h2 class="abtw-title">Гарячі автобусні тури</h2>
-            <p class="abtw-subtitle">Актуальні автобусні екскурсійні програми з IT-Tour — ціна показана за 2 дорослих за весь тур.</p>
         </div>
-        <p class="abtw-note">Дані оновлюються автоматично. Перед бронюванням менеджер перевіряє актуальність.</p>
     </div>
     <div class="abtw-tabs" data-abtw-tabs></div>
     <div class="abtw-panel" data-abtw-panel>
