@@ -4191,15 +4191,28 @@ if ($hero_video_poster === '') {
 
         .detail-close {
             flex: 0 0 auto;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             width: 44px;
             height: 44px;
             border: 0;
             border-radius: 999px;
-            background: rgba(26, 93, 200, 0.08);
-            color: var(--accent);
-            font-size: 30px;
+            background: var(--accent-strong);
+            color: #fff;
+            font-size: 28px;
             line-height: 1;
+            font-weight: 700;
             cursor: pointer;
+            box-shadow: 0 12px 26px rgba(243, 22, 36, 0.24);
+            transition: transform .16s ease, box-shadow .16s ease, background .16s ease;
+        }
+
+        .detail-close:hover,
+        .detail-close:focus-visible {
+            background: #d91420;
+            transform: translateY(-1px);
+            box-shadow: 0 14px 30px rgba(243, 22, 36, 0.32);
         }
 
         .detail-content {
@@ -4296,6 +4309,18 @@ if ($hero_video_poster === '') {
             min-width: 0;
         }
 
+        .detail-popup-side {
+            position: sticky;
+            top: 92px;
+            align-self: start;
+        }
+
+        .detail-modal .best-offer-card {
+            position: sticky;
+            top: 92px;
+            align-self: start;
+        }
+
         .detail-popup-card {
             border: 1px solid var(--line);
             border-radius: 20px;
@@ -4346,6 +4371,132 @@ if ($hero_video_poster === '') {
             color: var(--text);
             font-size: 15px;
             line-height: 1.22;
+        }
+
+        .popup-gallery {
+            display: grid;
+            gap: 12px;
+        }
+
+        .popup-gallery-main-wrap {
+            position: relative;
+        }
+
+        .popup-gallery-main {
+            position: relative;
+            display: block;
+            min-height: 360px;
+            aspect-ratio: 16 / 10;
+            overflow: hidden;
+            border: 1px solid var(--line);
+            border-radius: 22px;
+            background: #e8eef7;
+            box-shadow: 0 18px 44px rgba(17, 38, 77, 0.11);
+            text-decoration: none !important;
+        }
+
+        .popup-gallery-main img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .popup-gallery-main::after {
+            content: "Відкрити фото";
+            position: absolute;
+            right: 14px;
+            bottom: 14px;
+            padding: 8px 12px;
+            border-radius: 999px;
+            background: rgba(17, 28, 52, 0.72);
+            color: #fff;
+            font-size: 12px;
+            font-weight: 900;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity .16s ease, transform .16s ease;
+        }
+
+        .popup-gallery-main:hover::after {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .popup-gallery-nav {
+            position: absolute;
+            top: 50%;
+            z-index: 2;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 44px;
+            height: 44px;
+            border: 1px solid rgba(255, 255, 255, 0.68);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+            color: var(--text);
+            font-size: 28px;
+            font-weight: 900;
+            line-height: 1;
+            cursor: pointer;
+            box-shadow: 0 10px 24px rgba(17, 38, 77, 0.18);
+            transform: translateY(-50%);
+            transition: transform .16s ease, background .16s ease, color .16s ease;
+        }
+
+        .popup-gallery-nav:hover {
+            background: var(--accent);
+            color: #fff;
+            transform: translateY(-50%) scale(1.04);
+        }
+
+        .popup-gallery-nav--prev { left: 14px; }
+        .popup-gallery-nav--next { right: 14px; }
+
+        .popup-gallery-thumbs {
+            display: grid;
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .popup-gallery-thumb {
+            position: relative;
+            min-height: 72px;
+            aspect-ratio: 4 / 3;
+            padding: 0;
+            overflow: hidden;
+            border: 2px solid transparent;
+            border-radius: 14px;
+            background: #e8eef7;
+            cursor: pointer;
+            opacity: .76;
+            transition: opacity .16s ease, border-color .16s ease, transform .16s ease;
+        }
+
+        .popup-gallery-thumb img {
+            display: block;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .popup-gallery-thumb.is-active,
+        .popup-gallery-thumb:hover {
+            opacity: 1;
+            border-color: var(--accent);
+            transform: translateY(-1px);
+        }
+
+        .popup-gallery-placeholder {
+            display: grid;
+            min-height: 260px;
+            place-items: center;
+            border: 1px dashed var(--line);
+            border-radius: 22px;
+            background: #eef3fb;
+            color: var(--muted);
+            font-weight: 800;
         }
 
         .gallery-grid {
@@ -4996,6 +5147,26 @@ if ($hero_video_poster === '') {
 
             .detail-popup-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .detail-popup-side,
+            .detail-modal .best-offer-card {
+                position: static;
+            }
+
+            .popup-gallery-main {
+                min-height: 240px;
+                border-radius: 18px;
+            }
+
+            .popup-gallery-thumbs {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .popup-gallery-nav {
+                width: 38px;
+                height: 38px;
+                font-size: 24px;
             }
 
             .hotel-detail-shell {
@@ -5947,6 +6118,7 @@ if ($hero_video_poster === '') {
             border-bottom: 1px solid var(--line);
             padding: 12px 0;
         }
+        .filter-block[hidden] { display: none !important; }
         .filter-block:last-child { border-bottom: none; }
 
         .filter-label-row {
@@ -6983,6 +7155,46 @@ if ($hero_video_poster === '') {
                         </div>
                     </div>
 
+                    <!-- Фільтри екскурсійних турів -->
+                    <div class="filter-block" id="fb-exc-country" hidden>
+                        <button type="button" class="filter-label-row" data-filter-toggle>
+                            <span class="filter-label-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm6.93 9h-3.08a15.5 15.5 0 0 0-1.04-5.02A8.02 8.02 0 0 1 18.93 11ZM12 4.04c.68.98 1.5 3.08 1.78 6.96H10.2C10.5 7.12 11.32 5.02 12 4.04ZM4.26 13h3.1c.15 1.85.52 3.58 1.04 5.02A8.02 8.02 0 0 1 4.26 13Zm3.1-2h-3.1A8.02 8.02 0 0 1 8.4 5.98 15.5 15.5 0 0 0 7.36 11ZM12 19.96c-.68-.98-1.5-3.08-1.8-6.96h3.58c-.28 3.88-1.1 5.98-1.78 6.96Zm3.6-1.94c.52-1.44.89-3.17 1.04-5.02h3.1a8.02 8.02 0 0 1-4.14 5.02Z"/></svg>
+                            </span>
+                            <span class="filter-label">Напрямок туру</span>
+                            <svg class="filter-toggle-icon" viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M7 14l5-5 5 5H7z"/></svg>
+                        </button>
+                        <div class="filter-block-body">
+                            <div class="sf-chip-grid" id="sf-exc-country-chips"></div>
+                        </div>
+                    </div>
+
+                    <div class="filter-block" id="fb-exc-from" hidden>
+                        <button type="button" class="filter-label-row" data-filter-toggle>
+                            <span class="filter-label-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M2 16v-2l8-5V3.5a1.5 1.5 0 0 1 3 0V9l8 5v2l-8-2.5V19l2 1.5V22l-3.5-1-3.5 1v-1.5l2-1.5v-5.5L2 16Z"/></svg>
+                            </span>
+                            <span class="filter-label">Виїзд</span>
+                            <svg class="filter-toggle-icon" viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M7 14l5-5 5 5H7z"/></svg>
+                        </button>
+                        <div class="filter-block-body">
+                            <div class="sf-chip-grid" id="sf-exc-from-chips"></div>
+                        </div>
+                    </div>
+
+                    <div class="filter-block" id="fb-exc-duration" hidden>
+                        <button type="button" class="filter-label-row" data-filter-toggle>
+                            <span class="filter-label-icon">
+                                <svg viewBox="0 0 24 24" fill="currentColor" width="16" height="16"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm13 9H4v8a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-8Z"/></svg>
+                            </span>
+                            <span class="filter-label">Тривалість</span>
+                            <svg class="filter-toggle-icon" viewBox="0 0 24 24" fill="currentColor" width="14" height="14"><path d="M7 14l5-5 5 5H7z"/></svg>
+                        </button>
+                        <div class="filter-block-body">
+                            <div class="sf-chip-grid" id="sf-exc-duration-chips"></div>
+                        </div>
+                    </div>
+
                     <!-- Категорія готелю (зірки) -->
                     <div class="filter-block" id="fb-stars">
                         <button type="button" class="filter-label-row" data-filter-toggle>
@@ -7457,6 +7669,9 @@ if ($hero_video_poster === '') {
         const sfRatingChips = document.getElementById('sf-rating-chips');
         const sfHotelSearch = document.getElementById('sf-hotel-search');
         const sfHotelList = document.getElementById('sf-hotel-list');
+        const sfExcCountryChips = document.getElementById('sf-exc-country-chips');
+        const sfExcFromChips = document.getElementById('sf-exc-from-chips');
+        const sfExcDurationChips = document.getElementById('sf-exc-duration-chips');
         const searchFiltersReset = document.getElementById('search-filters-reset');
 
         function hardenPickerInputsVisual() {
@@ -7586,6 +7801,23 @@ if ($hero_video_poster === '') {
             }
             if (event.target && event.target.classList && event.target.classList.contains('best-offer-lead-backdrop')) {
                 event.target.hidden = true;
+                return;
+            }
+            const galleryControl = event.target.closest && event.target.closest('[data-popup-gallery-prev], [data-popup-gallery-next], [data-popup-gallery-thumb]');
+            if (galleryControl) {
+                event.preventDefault();
+                const gallery = galleryControl.closest('[data-popup-gallery]');
+                if (!gallery) {
+                    return;
+                }
+                const current = Number(gallery.getAttribute('data-popup-gallery-index') || 0);
+                if (galleryControl.hasAttribute('data-popup-gallery-prev')) {
+                    setPopupGalleryIndex(gallery, current - 1);
+                } else if (galleryControl.hasAttribute('data-popup-gallery-next')) {
+                    setPopupGalleryIndex(gallery, current + 1);
+                } else {
+                    setPopupGalleryIndex(gallery, Number(galleryControl.getAttribute('data-index') || 0));
+                }
                 return;
             }
             const bookingBtn = event.target.closest && event.target.closest('.booking-open');
@@ -9593,9 +9825,6 @@ if ($hero_video_poster === '') {
         }
 
         function readPopularSearchFromUrl() {
-            if (ANEX_CATALOG_LITE) {
-                return null;
-            }
             const u = new URL(window.location.href);
             const legacySearch = u.searchParams.get('search') === '1';
             const hasSearchPayload = legacySearch || [
@@ -9753,6 +9982,7 @@ if ($hero_video_poster === '') {
 
         function restoreSearchRenderCache(params, mode) {
             if (!searchResultsList) return false;
+            if (String(mode || '') === 'excursion') return false;
             try {
                 const key = searchRenderCacheKey(params, mode);
                 const raw = sessionStorage.getItem(key);
@@ -9874,6 +10104,46 @@ if ($hero_video_poster === '') {
             if (!sfHotelList) return [];
             return [...sfHotelList.querySelectorAll('input[type="checkbox"]:checked')].map((i) => i.value);
         }
+        function selectedExcursionCountryValues() {
+            if (!sfExcCountryChips) return [];
+            return [...sfExcCountryChips.querySelectorAll('input[type="checkbox"]:checked')].map((i) => i.value);
+        }
+        function selectedExcursionFromValues() {
+            if (!sfExcFromChips) return [];
+            return [...sfExcFromChips.querySelectorAll('input[type="checkbox"]:checked')].map((i) => i.value);
+        }
+        function selectedExcursionDurationValues() {
+            if (!sfExcDurationChips) return [];
+            return [...sfExcDurationChips.querySelectorAll('input[type="checkbox"]:checked')].map((i) => i.value);
+        }
+        function excursionCountryLabels(offer) {
+            if (!offer || typeof offer !== 'object') {
+                return [];
+            }
+            if (Array.isArray(offer.country_names)) {
+                return offer.country_names.map((value) => String(value || '').trim()).filter(Boolean);
+            }
+            const country = String(offer.country || '').trim();
+            return country ? [country] : [];
+        }
+        function excursionFromLabel(offer) {
+            return String((offer && offer.from_city) || '').trim();
+        }
+        function excursionDurationBucket(offer) {
+            const nights = Number((offer && offer.duration) || 0);
+            if (!Number.isFinite(nights) || nights <= 0) {
+                return '';
+            }
+            if (nights <= 3) return 'short';
+            if (nights <= 6) return 'medium';
+            return 'long';
+        }
+        function excursionDurationBucketLabel(bucket) {
+            if (bucket === 'short') return '1-3 ночі';
+            if (bucket === 'medium') return '4-6 ночей';
+            if (bucket === 'long') return '7+ ночей';
+            return '';
+        }
         function ratingInBucket(rate, bucket) {
             const r = parseFloat(rate) || 0;
             if (bucket === '1-5') return r < 6;
@@ -9932,6 +10202,18 @@ if ($hero_video_poster === '') {
             const price = Number((offer && offer.prices && offer.prices['2']) != null ? offer.prices['2'] : ((offer && offer.price) || 0));
             if (price > 0 && price > priceCap) return false;
             if (price > 0 && priceFloor > 0 && price < priceFloor) return false;
+            const countries = selectedExcursionCountryValues();
+            if (countries.length) {
+                const labels = excursionCountryLabels(offer).map((value) => value.toLowerCase());
+                if (!countries.some((country) => labels.includes(country.toLowerCase()))) return false;
+            }
+            const fromCities = selectedExcursionFromValues();
+            if (fromCities.length) {
+                const from = excursionFromLabel(offer).toLowerCase();
+                if (!fromCities.some((city) => city.toLowerCase() === from)) return false;
+            }
+            const durations = selectedExcursionDurationValues();
+            if (durations.length && !durations.includes(excursionDurationBucket(offer))) return false;
             return true;
         }
 
@@ -9998,23 +10280,22 @@ if ($hero_video_poster === '') {
 
         function setSearchUiMode(mode) {
             const isExc = mode === 'excursion';
-            const filtersKeepForExcursion = ['fb-budget'];
-            const allBlocks = ['fb-rating', 'fb-budget', 'fb-stars', 'fb-meals', 'fb-hotels', 'fb-beach', 'fb-inhotel', 'fb-sports'];
+            const hotelBlocks = ['fb-rating', 'fb-stars', 'fb-meals', 'fb-hotels', 'fb-beach', 'fb-inhotel', 'fb-sports'];
+            const excursionBlocks = ['fb-exc-country', 'fb-exc-from', 'fb-exc-duration'];
+            const allBlocks = ['fb-budget'].concat(hotelBlocks, excursionBlocks);
             allBlocks.forEach((id) => {
                 const el = document.getElementById(id);
                 if (!el) return;
-                if (!isExc) {
-                    el.hidden = false;
-                    return;
-                }
-                el.hidden = !filtersKeepForExcursion.includes(id);
+                el.hidden = isExc ? hotelBlocks.includes(id) : excursionBlocks.includes(id);
             });
-            const fallbackHideByLabel = ['Рейтинг готелю', 'Категорія готелю', 'Харчування', 'Готелі', 'Пляж', 'В готелі', 'Спорт і розваги'];
+            const fallbackHideByLabel = isExc
+                ? ['Рейтинг готелю', 'Категорія готелю', 'Харчування', 'Готелі', 'Пляж', 'В готелі', 'Спорт і розваги']
+                : ['Напрямок туру', 'Виїзд', 'Тривалість'];
             document.querySelectorAll('#search-filters-aside .filter-block').forEach((block) => {
                 const labelNode = block.querySelector('.filter-label');
                 const label = (labelNode && labelNode.textContent ? labelNode.textContent : '').trim();
                 if (!label) return;
-                if (isExc && fallbackHideByLabel.includes(label)) {
+                if (fallbackHideByLabel.includes(label)) {
                     block.hidden = true;
                 }
             });
@@ -10084,6 +10365,61 @@ if ($hero_video_poster === '') {
             buildHotelListFilter(hotels);
         }
 
+        function countValues(items) {
+            const map = new Map();
+            (items || []).forEach((value) => {
+                const label = String(value || '').trim();
+                if (!label) return;
+                map.set(label, (map.get(label) || 0) + 1);
+            });
+            return [...map.entries()].sort((left, right) => {
+                if (right[1] !== left[1]) return right[1] - left[1];
+                return left[0].localeCompare(right[0], 'uk');
+            });
+        }
+
+        function renderDynamicChips(container, name, rows, limit) {
+            if (!container) return;
+            const visible = (rows || []).slice(0, limit || 12);
+            container.innerHTML = visible.map((row) => {
+                const value = Array.isArray(row) ? row[0] : row.value;
+                const count = Array.isArray(row) ? row[1] : row.count;
+                const label = Array.isArray(row) ? row[0] : (row.label || row.value);
+                return '<label><input type="checkbox" name="' + escAttr(name) + '" value="' + escAttr(value) + '"><span>' + esc(label) + (count ? ' · ' + esc(count) : '') + '</span></label>';
+            }).join('');
+            container.querySelectorAll('input').forEach((input) => {
+                input.addEventListener('change', () => {
+                    popularSearchState.page = 1;
+                    applySearchClientFiltersAndRender();
+                });
+            });
+        }
+
+        function buildExcursionFilterOptions(offers) {
+            const countries = [];
+            const fromCities = [];
+            const durationBuckets = [];
+            (offers || []).forEach((offer) => {
+                excursionCountryLabels(offer).forEach((country) => countries.push(country));
+                const from = excursionFromLabel(offer);
+                if (from) {
+                    fromCities.push(from);
+                }
+                const bucket = excursionDurationBucket(offer);
+                if (bucket) {
+                    durationBuckets.push(bucket);
+                }
+            });
+            renderDynamicChips(sfExcCountryChips, 'sf_exc_country', countValues(countries), 10);
+            renderDynamicChips(sfExcFromChips, 'sf_exc_from', countValues(fromCities), 8);
+            const bucketOrder = ['short', 'medium', 'long'];
+            const bucketCounts = new Map(countValues(durationBuckets));
+            const durationRows = bucketOrder
+                .filter((bucket) => bucketCounts.has(bucket))
+                .map((bucket) => ({ value: bucket, label: excursionDurationBucketLabel(bucket), count: bucketCounts.get(bucket) }));
+            renderDynamicChips(sfExcDurationChips, 'sf_exc_duration', durationRows, 3);
+        }
+
         function resetSearchSidebarFilters() {
             if (sfPriceMax) { sfPriceMax.value = '200000'; }
             if (sfPriceMin) { sfPriceMin.value = '0'; }
@@ -10095,6 +10431,15 @@ if ($hero_video_poster === '') {
             }
             if (sfStarFilters) {
                 sfStarFilters.querySelectorAll('input[type="checkbox"]').forEach((i) => { i.checked = false; });
+            }
+            if (sfExcCountryChips) {
+                sfExcCountryChips.querySelectorAll('input[type="checkbox"]').forEach((i) => { i.checked = false; });
+            }
+            if (sfExcFromChips) {
+                sfExcFromChips.querySelectorAll('input[type="checkbox"]').forEach((i) => { i.checked = false; });
+            }
+            if (sfExcDurationChips) {
+                sfExcDurationChips.querySelectorAll('input[type="checkbox"]').forEach((i) => { i.checked = false; });
             }
             buildMealAndOperatorFilters(popularSearchState.rawHotels || []);
         }
@@ -10694,6 +11039,7 @@ if ($hero_video_poster === '') {
                 popularSearchState.excursionOffersPool = [];
                 popularSearchState.excursionUsedFallback = false;
                 popularSearchState.rawHotels = [];
+                buildExcursionFilterOptions([]);
                 if (searchResultsBanner) {
                     searchResultsBanner.textContent = 'Екскурсійні тури не знайдено за цим запитом.';
                 }
@@ -10713,6 +11059,7 @@ if ($hero_video_poster === '') {
 
             popularSearchState.excursionOffersPool = mergedUnique;
             popularSearchState.rawHotels = [];
+            buildExcursionFilterOptions(mergedUnique);
             if (searchResultsPagination) {
                 searchResultsPagination.hidden = true;
             }
@@ -11081,7 +11428,7 @@ if ($hero_video_poster === '') {
         }
 
         function initPopularSearchFlow() {
-            if (ANEX_CATALOG_LITE || DETAIL_TOUR_KEY || !popularSearchForm) {
+            if (DETAIL_TOUR_KEY || !popularSearchForm) {
                 return;
             }
             ensurePsPickerPortal();
@@ -11209,7 +11556,7 @@ if ($hero_video_poster === '') {
                     const modeInput = document.getElementById('ps-search-mode');
                     const mode = String((modeInput && modeInput.value) || new URL(window.location.href).searchParams.get('mode') || 'hotel').trim();
                     if (mode === 'excursion') {
-                        void runPopularSearchFromForm({ skipPush: true });
+                        applySearchClientFiltersAndRender();
                         return;
                     }
                     applySearchClientFiltersAndRender();
@@ -11259,7 +11606,8 @@ if ($hero_video_poster === '') {
                     const modeInput = document.getElementById('ps-search-mode');
                     const mode = String((modeInput && modeInput.value) || new URL(window.location.href).searchParams.get('mode') || 'hotel').trim();
                     if (mode === 'excursion') {
-                        void runPopularSearchFromForm({ skipPush: true });
+                        popularSearchState.page = 1;
+                        applySearchClientFiltersAndRender();
                         return;
                     }
                     popularSearchState.page = 1;
@@ -11351,7 +11699,9 @@ if ($hero_video_poster === '') {
                         applySearchClientFiltersAndRender();
                         /* Sync reset to drawer inputs */
                         if (drawerBody) {
-                            drawerBody.querySelectorAll('input[type="number"]').forEach(inp => { inp.value = '200000'; });
+                            drawerBody.querySelectorAll('input[type="number"]').forEach(inp => {
+                                inp.value = inp.id && inp.id.includes('price-min') ? '0' : '200000';
+                            });
                             drawerBody.querySelectorAll('input[type="checkbox"]').forEach(inp => { inp.checked = false; });
                         }
                         updateMobileCount();
@@ -11569,6 +11919,77 @@ if ($hero_video_poster === '') {
             };
         }
 
+        function popupGalleryUrls(images) {
+            const out = [];
+            const seen = new Set();
+            (images || []).forEach((item) => {
+                const raw = typeof item === 'string'
+                    ? item
+                    : (item && (item.web || item.full || item.thumb || item.url || item.src || item.image || item.photo)) || '';
+                const url = fixMediaUrl(String(raw || ''));
+                const key = url.split('?')[0];
+                if (url && !seen.has(key)) {
+                    seen.add(key);
+                    out.push(url);
+                }
+            });
+            return out;
+        }
+
+        function popupGalleryMarkup(images, title, modifier) {
+            const urls = popupGalleryUrls(images);
+            if (!urls.length) {
+                return '<div class="popup-gallery-placeholder">Фото оновлюються</div>';
+            }
+            const first = urls[0];
+            const thumbs = urls.slice(0, 10);
+            const nav = urls.length > 1
+                ? '<button type="button" class="popup-gallery-nav popup-gallery-nav--prev" data-popup-gallery-prev aria-label="Попереднє фото">‹</button>' +
+                  '<button type="button" class="popup-gallery-nav popup-gallery-nav--next" data-popup-gallery-next aria-label="Наступне фото">›</button>'
+                : '';
+            return '' +
+                '<div class="popup-gallery popup-gallery--' + escAttr(modifier || 'default') + '" data-popup-gallery data-popup-gallery-index="0">' +
+                    '<div class="popup-gallery-main-wrap">' +
+                        '<a class="popup-gallery-main" data-popup-gallery-main href="' + escAttr(first) + '" target="_blank" rel="noopener noreferrer">' +
+                            '<img data-popup-gallery-main-img src="' + escAttr(first) + '" alt="' + escAttr(title || '') + '" loading="eager" referrerpolicy="no-referrer-when-downgrade">' +
+                        '</a>' +
+                        nav +
+                    '</div>' +
+                    (thumbs.length > 1 ? '<div class="popup-gallery-thumbs">' + thumbs.map((url, index) =>
+                        '<button type="button" class="popup-gallery-thumb' + (index === 0 ? ' is-active' : '') + '" data-popup-gallery-thumb data-index="' + escAttr(index) + '" data-src="' + escAttr(url) + '" aria-label="Фото ' + escAttr(index + 1) + '">' +
+                            '<img src="' + escAttr(url) + '" alt="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">' +
+                        '</button>'
+                    ).join('') + '</div>' : '') +
+                '</div>';
+        }
+
+        function setPopupGalleryIndex(gallery, nextIndex) {
+            if (!gallery) return;
+            const thumbs = [...gallery.querySelectorAll('[data-popup-gallery-thumb]')];
+            if (!thumbs.length) return;
+            const count = thumbs.length;
+            let index = Number(nextIndex);
+            if (!Number.isFinite(index)) {
+                index = 0;
+            }
+            if (index < 0) index = count - 1;
+            if (index >= count) index = 0;
+            const active = thumbs[index];
+            const src = active ? active.getAttribute('data-src') : '';
+            const img = gallery.querySelector('[data-popup-gallery-main-img]');
+            const link = gallery.querySelector('[data-popup-gallery-main]');
+            if (src && img) {
+                img.src = src;
+            }
+            if (src && link) {
+                link.href = src;
+            }
+            thumbs.forEach((thumb, thumbIndex) => {
+                thumb.classList.toggle('is-active', thumbIndex === index);
+            });
+            gallery.setAttribute('data-popup-gallery-index', String(index));
+        }
+
         async function openHotelDetailModal(card, fallbackHref) {
             if (!card || !card.key) {
                 if (fallbackHref) {
@@ -11582,7 +12003,7 @@ if ($hero_video_poster === '') {
             }
             const requestId = ++detailModalRequestId;
             try {
-                const presentation = await buildHotelDetailPresentation(card);
+                const presentation = await buildHotelDetailPresentation(card, { modal: true });
                 if (requestId !== detailModalRequestId || !detailModalBackdrop || detailModalBackdrop.hidden) {
                     return;
                 }
@@ -11666,22 +12087,7 @@ if ($hero_video_poster === '') {
                     images.push({ web: src, full: src, thumb: src });
                 }
             });
-            const first = images[0] ? (images[0].web || images[0].full || images[0].thumb) : '';
-            const rest = images.slice(1, 3);
-            return '' +
-                '<section class="exc-gallery-sec">' +
-                    '<div class="exc-gal-mosaic">' +
-                        '<div class="exc-gal-main">' + (first ? '<img src="' + escAttr(first) + '" alt="' + escAttr(state.name || '') + '" loading="eager" referrerpolicy="no-referrer-when-downgrade">' : '') + '</div>' +
-                        '<div class="exc-gal-stack">' +
-                            rest.map((img, index) => {
-                                const src = img.web || img.full || img.thumb || '';
-                                return '<div class="exc-gal-stack-row' + (index === rest.length - 1 ? ' exc-gal-stack-row--last' : '') + '">' +
-                                    '<span class="exc-gal-cell">' + (src ? '<img src="' + escAttr(src) + '" alt="" loading="lazy" referrerpolicy="no-referrer-when-downgrade">' : '') + '</span>' +
-                                '</div>';
-                            }).join('') +
-                        '</div>' +
-                    '</div>' +
-                '</section>';
+            return '<section class="exc-gallery-sec">' + popupGalleryMarkup(images, state.name || 'Екскурсійний тур', 'excursion') + '</section>';
         }
 
         function excursionModalFacts(state) {
@@ -13050,7 +13456,8 @@ if ($hero_video_poster === '') {
             }).join('') + '</div></section>';
         }
 
-        async function buildHotelDetailPresentation(card) {
+        async function buildHotelDetailPresentation(card, options) {
+            const opts = options || {};
             const [info, flights, reviews] = await Promise.all([
                 api('tour/info/' + card.key, {}),
                 api('tour/flights/' + card.key, {}).catch(() => ({ from: [], to: [] })),
@@ -13076,6 +13483,7 @@ if ($hero_video_poster === '') {
             const tableOffers = detailVisibleOffers(rawTableOffers);
             const bestOffer = tableOffers.slice().sort((left, right) => (detailPriceValue(left) || Infinity) - (detailPriceValue(right) || Infinity))[0] || hydratedInfo;
             const imagesV2 = detailImages(hydratedInfo, bestOffer, card);
+            const galleryMarkup = opts.modal ? popupGalleryMarkup(imagesV2, title, 'hotel') : detailGallery(imagesV2, title);
             const hotelLocation = [info.region || card.region, info.country || card.country].filter(Boolean).join(', ');
             const mapLink = hotelInfo.lat && hotelInfo.lng
                 ? '<a class="hotel-map-cta" href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(hotelInfo.lat + ',' + hotelInfo.lng) + '" target="_blank" rel="noopener" aria-label="Відкрити розташування готелю в Google Картах">' +
@@ -13097,7 +13505,7 @@ if ($hero_video_poster === '') {
                             '<h1>' + esc(title) + '</h1>' +
                             '<div class="hotel-location-line"><span class="hotel-location-line__text">' + esc(hotelLocation || 'Локація уточнюється') + '</span>' + mapLink + '</div>' +
                         '</div>' +
-                        '<div class="hotel-photo-offer">' + detailGallery(imagesV2, title) + detailBestOffer(hydratedInfo, bestOffer, title) + '</div>' +
+                        '<div class="hotel-photo-offer">' + galleryMarkup + detailBestOffer(hydratedInfo, bestOffer, title) + '</div>' +
                     '</section>' +
                     detailInfoSection(hydratedInfo, title) +
                     detailPriceTable(hydratedInfo, tableOffers, title) +
@@ -14606,9 +15014,8 @@ if ($hero_video_poster === '') {
             PRESET_SEARCH && PRESET_SEARCH.countryId ? PRESET_SEARCH.countryId : activeCountryId,
             false
         ).then(() => {
-            if (!ANEX_CATALOG_LITE) {
-                initPopularSearchFlow();
-            } else {
+            initPopularSearchFlow();
+            if (ANEX_CATALOG_LITE && !readPopularSearchFromUrl()) {
                 stripLegacySearchQueryFromUrl();
             }
         });
