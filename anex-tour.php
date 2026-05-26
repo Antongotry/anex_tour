@@ -18,7 +18,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /* ─────────────────────────────────────────────
    Constants
 ───────────────────────────────────────────── */
-define( 'ANEX_VERSION',     '1.5.0' );
+define( 'ANEX_VERSION',     '1.5.1' );
 define( 'ANEX_PLUGIN_DIR',  plugin_dir_path( __FILE__ ) );
 define( 'ANEX_PLUGIN_URL',  plugin_dir_url( __FILE__ ) );
 define( 'ANEX_PLUGIN_FILE', __FILE__ );
