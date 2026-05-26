@@ -8117,7 +8117,7 @@ if ($hero_video_poster === '') {
                 <button type="button" class="booking-close" id="booking-close" aria-label="Закрити">×</button>
             </div>
             <div class="booking-offer-summary" id="booking-offer-summary" hidden>
-                <div class="bos-row" id="bos-date-row" hidden><span class="bos-label">Дата вильоту</span><span class="bos-value" id="bos-date"></span></div>
+                <div class="bos-row" id="bos-date-row" hidden><span class="bos-label" id="bos-date-label">Дата вильоту</span><span class="bos-value" id="bos-date"></span></div>
                 <div class="bos-row" id="bos-city-row" hidden><span class="bos-label">Звідки</span><span class="bos-value" id="bos-city"></span></div>
                 <div class="bos-row" id="bos-nights-row" hidden><span class="bos-label">Тривалість</span><span class="bos-value" id="bos-nights"></span></div>
                 <div class="bos-row" id="bos-room-row" hidden><span class="bos-label">Номер</span><span class="bos-value" id="bos-room"></span></div>
@@ -12625,6 +12625,22 @@ if ($hero_video_poster === '') {
             if (summaryEl) {
                 summaryEl.hidden = !(od.date || od.city || od.nights || od.room || od.meal || od.price || od.operator);
             }
+            const pageUrlForBooking = window.location.href;
+            const isExcursionBooking = (() => {
+                try {
+                    const u = new URL(pageUrlForBooking);
+                    return u.searchParams.get('mode') === 'excursion'
+                        || u.searchParams.get('excursion_detail') === '1'
+                        || u.searchParams.get('transport_type') === '2'
+                        || textContainsUkrainianCityName(od.city || '');
+                } catch (e) {
+                    return textContainsUkrainianCityName(od.city || '');
+                }
+            })();
+            const dateLabel = document.getElementById('bos-date-label');
+            if (dateLabel) {
+                dateLabel.textContent = isExcursionBooking ? 'Дата виїзду' : 'Дата вильоту';
+            }
             setField('bos-date-row', 'bos-date', 'booking-tour-date', od.date || '');
             setField('bos-city-row', 'bos-city', 'booking-tour-city', od.city || '');
             setField('bos-nights-row', 'bos-nights', 'booking-tour-nights', od.nights || '');
@@ -12632,6 +12648,10 @@ if ($hero_video_poster === '') {
             setField('bos-meal-row', 'bos-meal', 'booking-tour-meal', od.meal || '');
             setField('bos-price-row', 'bos-price', 'booking-tour-price', od.price || '');
             setField('bos-operator-row', 'bos-operator', 'booking-tour-operator', od.operator || '');
+            const pageUrlInput = bookingForm.querySelector('input[name="page_url"]');
+            if (pageUrlInput) {
+                pageUrlInput.value = pageUrlForBooking;
+            }
 
             if (bookingStatus) {
                 bookingStatus.classList.remove('is-success', 'is-error');

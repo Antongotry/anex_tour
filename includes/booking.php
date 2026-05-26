@@ -5,14 +5,49 @@
 
 defined( 'ABSPATH' ) || exit;
 
-function ittour_lab_booking_fields(): array {
+function ittour_lab_is_excursion_booking( array $booking ): bool {
+    $page_url = (string) ( $booking['page_url'] ?? '' );
+    $raw_tour_city = (string) ( $booking['tour_city'] ?? '' );
+    $tour_city = function_exists( 'mb_strtolower' ) ? mb_strtolower( $raw_tour_city ) : strtolower( $raw_tour_city );
+    $ukraine_departures = [
+        'київ', 'киев', 'львів', 'львов', 'одеса', 'одесса', 'харків', 'харьков', 'дніпро', 'днепр',
+        'біла церква', 'белая церковь', 'вінниця', 'винница', 'житомир', 'рівне', 'ровно',
+        'тернопіль', 'тернополь', 'чернівці', 'черновцы', 'черкаси', 'ужгород', 'мукачево',
+        'івано-франківськ', 'ивано-франковск', 'луцьк', 'луцк', 'полтава', 'хмельницький',
+    ];
+
+    if ( $page_url !== '' ) {
+        $query = wp_parse_url( $page_url, PHP_URL_QUERY );
+        if ( is_string( $query ) && $query !== '' ) {
+            parse_str( $query, $params );
+            if (
+                ( isset( $params['mode'] ) && (string) $params['mode'] === 'excursion' )
+                || isset( $params['excursion_detail'] )
+                || ( isset( $params['transport_type'] ) && (string) $params['transport_type'] === '2' )
+            ) {
+                return true;
+            }
+        }
+    }
+
+    foreach ( $ukraine_departures as $city ) {
+        if ( $city !== '' && str_contains( $tour_city, $city ) ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function ittour_lab_booking_fields( array $booking = [] ): array {
+    $date_label = ittour_lab_is_excursion_booking( $booking ) ? 'Дата виїзду' : 'Дата вильоту';
     return [
         'name'       => 'Імʼя',
         'phone'      => 'Телефон',
         'email'      => 'Email',
         'tour_title' => 'Тур',
         'tour_key'   => 'Ключ туру',
-        'tour_date'  => 'Дата вильоту',
+        'tour_date'  => $date_label,
         'tour_city'  => 'Місто виїзду',
         'tour_nights'=> 'Ночей',
         'tour_room'  => 'Номер',
@@ -88,7 +123,7 @@ function ittour_lab_ajax_booking(): void {
     );
     $subject = 'Нова заявка на тур — ' . ( $tour_title ?: $tour_key );
     $lines   = [ 'Нова заявка з сайту ' . get_bloginfo( 'name' ) . ':', '' ];
-    foreach ( ittour_lab_booking_fields() as $key => $label ) {
+    foreach ( ittour_lab_booking_fields( $booking ) as $key => $label ) {
         if ( ! empty( $booking[ $key ] ) ) $lines[] = $label . ': ' . $booking[ $key ];
     }
     $lines[] = ''; $lines[] = 'ID заявки: ' . $booking['id'];
