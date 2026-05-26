@@ -5386,6 +5386,145 @@ if ($hero_video_poster === '') {
                 color: var(--text);
                 font-size: 16px;
             }
+
+            /* ── Hotel + Excursion modal: mobile ── */
+            .detail-backdrop {
+                padding: 0;
+                align-items: flex-end;
+            }
+
+            .detail-modal {
+                width: 100%;
+                max-height: 96dvh;
+                max-height: 96vh;
+                border-radius: 24px 24px 0 0;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+            }
+
+            .detail-head {
+                position: sticky;
+                top: 0;
+                z-index: 10;
+                padding: 14px 16px 12px;
+                gap: 10px;
+            }
+
+            .detail-head h3 {
+                font-size: clamp(17px, 4.5vw, 22px);
+                line-height: 1.2;
+            }
+
+            .detail-head p {
+                font-size: 13px;
+            }
+
+            .detail-close {
+                width: 36px;
+                height: 36px;
+                font-size: 22px;
+                flex-shrink: 0;
+            }
+
+            .detail-modal .hotel-detail-shell,
+            .detail-popup-shell {
+                padding: 14px 12px 28px;
+            }
+
+            /* Hotel photo + offer side-by-side → stack */
+            .hotel-photo-offer {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+
+            .hotel-gallery-mosaic {
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: minmax(110px, 140px) minmax(80px, 100px) minmax(60px, 80px);
+                max-height: none;
+            }
+
+            /* Excursion modal: tighten cards */
+            .detail-popup-card {
+                padding: 14px;
+                border-radius: 16px;
+            }
+
+            .detail-popup-card h3 {
+                font-size: 17px;
+                margin-bottom: 10px;
+            }
+
+            .exc-head-title {
+                font-size: clamp(18px, 5vw, 24px);
+            }
+
+            .exc-tag-row {
+                gap: 6px;
+            }
+
+            .exc-tag {
+                font-size: 13px;
+                padding: 4px 10px;
+            }
+
+            .detail-popup-facts {
+                grid-template-columns: 1fr 1fr;
+                gap: 8px;
+            }
+
+            .detail-popup-fact {
+                padding: 10px 12px;
+            }
+
+            .detail-popup-fact small {
+                font-size: 11px;
+            }
+
+            .detail-popup-fact strong {
+                font-size: 14px;
+            }
+
+            /* Excursion side card on mobile: full width, moves before main */
+            .detail-popup-side {
+                order: -1;
+            }
+
+            .exc-side-card {
+                padding: 16px 14px;
+                border-radius: 16px;
+            }
+
+            .exc-side-price-big {
+                font-size: clamp(1.4rem, 7vw, 1.85rem);
+                margin: 6px 0 12px;
+            }
+
+            .exc-cta-btn {
+                min-height: 52px;
+                font-size: 17px;
+            }
+
+            /* Excursion dates: scroll horizontally, reduce padding */
+            .exc-dates-table {
+                min-width: 520px;
+                font-size: 13px;
+            }
+
+            .exc-dates-table th,
+            .exc-dates-table td {
+                padding: 10px 10px;
+            }
+
+            /* Best offer card on mobile */
+            .best-offer-card {
+                padding: 18px 16px;
+            }
+
+            #best-offer .best-offer-grid {
+                grid-template-columns: 1fr 1fr;
+                gap: 10px 8px;
+            }
         }
 
         /* ——— Каталог-пошук у hero (форма всередині картки, як раніше «швидкий підбір») ——— */
