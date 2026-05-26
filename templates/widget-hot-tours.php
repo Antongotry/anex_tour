@@ -310,7 +310,7 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
                     '<h3 class="hotel-title">'+esc(card.name)+'</h3>'+
                     '<p class="hotel-location">'+esc(card.region||card.country)+'</p>'+
                     '<div class="hotel-meta">'+departure+'<span>'+esc('Від '+formatHumanDate(card.dateFrom))+'</span>'+(dur?'<span>'+esc(dur+(card.mealType?' · '+card.mealType:''))+'</span>':'')+'</div>'+
-                    '<div class="hotel-price">Пакетний тур за 2 дорослих<strong>'+esc(formatMoneyUAH(card.priceUAH))+'</strong></div>'+
+                    '<div class="hotel-price">Ціна за 2 дорослих за весь тур<strong>'+esc(formatMoneyUAH(card.priceUAH))+'</strong></div>'+
                     '<a class="card-action" href="'+escAttr(detailUrl(card))+'" data-key="'+escAttr(card.key)+'">Переглянути деталі</a>'+
                 '</div></article>';
         }).join('') + '</div>';

@@ -12652,7 +12652,7 @@ if ($hero_video_poster === '') {
                                 '<span>' + esc('Від ' + formatHumanDate(card.dateFrom)) + '</span>' +
                                 '<span>' + esc(duration) + (card.mealType ? ' • ' + esc(card.mealType) : '') + '</span>' +
                             '</div>' +
-                            '<div class="hotel-price">Пакетний тур за 2 дорослих<strong>' + esc(formatMoneyUAH(card.priceUAH)) + '</strong></div>' +
+                            '<div class="hotel-price">Ціна за 2 дорослих за весь тур<strong>' + esc(formatMoneyUAH(card.priceUAH)) + '</strong></div>' +
                             '<a class="card-action" href="' + escAttr(url) + '" data-key="' + escAttr(card.key) + '" data-hotel-id="' + escAttr(card.hotelId) + '">Переглянути деталі</a>' +
                         '</div>' +
                     '</article>';
@@ -13309,13 +13309,16 @@ if ($hero_video_poster === '') {
                         '</a>' +
                     '</div>' +
                 '</div>';
+            const priceScopeLabel = detailOfferIsStayOnly(current)
+                ? ('За ' + (info.adult_amount || 2) + ' дор. за весь період проживання')
+                : ('За ' + (info.adult_amount || 2) + ' дор. за весь тур');
             return '<aside class="best-offer-card" id="best-offer"><h2>Найкраща пропозиція</h2><div class="best-offer-grid">' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 2a1 1 0 0 1 1 1v1h8V3a1 1 0 1 1 2 0v1h1a3 3 0 0 1 3 3v2H2V7a3 3 0 0 1 3-3h1V3a1 1 0 0 1 1-1Zm15 9v8a3 3 0 0 1-3 3H5a3 3 0 0 1-3-3v-8h20Zm-6 3h-2v2h2v-2Z"/></svg>Дата</span><strong>' + esc(detailDateLabel(current.date_from || info.date_from)) + '</strong></div>' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.6 13.2 10 15l4.8 6.2c.3.4.9.2.9-.3l-.4-5.1 4.8 1.2c.9.2 1.8-.3 2-1.2.2-.9-.4-1.8-1.3-2L15.9 12l4.9-1.8c.9-.3 1.4-1.2 1.1-2.1-.3-.9-1.2-1.4-2.1-1.1l-4.8 1.8.4-5.1c0-.5-.6-.7-.9-.3L10 9.6 2.6 11.4c-.5.1-.8.5-.8.9s.3.8.8.9Z"/></svg>Виїзд</span><strong>' + esc(detailOfferCity(current, info)) + '</strong></div>' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm1 5a1 1 0 1 0-2 0v6c0 .3.1.5.3.7l3.6 3.6a1 1 0 0 0 1.4-1.4L13 12.6V7Z"/></svg>Тривалість</span><strong>' + esc(detailDuration(current)) + '</strong></div>' +
                 '<div class="best-offer-fact"><span class="best-offer-fact-label"><svg class="best-offer-fact-icon" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 2a1 1 0 0 1 .9.6l1.5 3.4h5.2l1.5-3.4a1 1 0 1 1 1.8.8l-1.2 2.6h.3A3 3 0 0 1 20 9v8a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h.3L6.1 3.4A1 1 0 0 1 7 2Zm1 9a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Zm8 0a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3Z"/></svg>Харчування</span><strong>' + esc(detailMeal(current)) + '</strong></div>' +
                 '</div><p class="best-offer-included">' + esc(detailOfferIsStayOnly(current) ? 'У вартості показано лише проживання. Переліт та інші послуги менеджер підтвердить окремо.' : 'У вартість включено: переліт/транспорт, трансфер, страховка та проживання у готелі.') + '</p>' +
-                '<div class="best-offer-price"><strong>' + esc(formatMoneyUAH(detailPriceValue(current))) + '</strong><span>За ' + esc(info.adult_amount || 2) + ' дор.</span></div>' +
+                '<div class="best-offer-price"><strong>' + esc(formatMoneyUAH(detailPriceValue(current))) + '</strong><span>' + esc(priceScopeLabel) + '</span></div>' +
                 '<button type="button" class="detail-buy-button detail-scroll-to-prices best-offer-prices-btn">Дивитись всі ціни</button>' +
                 consultBlock +
                 '</aside>';
@@ -15117,7 +15120,7 @@ if ($hero_video_poster === '') {
                                     '<span>' + esc('Від ' + formatHumanDate(card.dateFrom)) + '</span>' +
                                     (duration ? '<span>' + esc(duration + (card.mealType ? ' · ' + card.mealType : '')) + '</span>' : '') +
                                 '</div>' +
-                                '<div class="hotel-price">Ціна за 2 дорослих<strong>' + esc(formatMoneyUAH(card.priceUAH)) + '</strong></div>' +
+                                '<div class="hotel-price">Ціна за 2 дорослих за весь тур<strong>' + esc(formatMoneyUAH(card.priceUAH)) + '</strong></div>' +
                                 '<a class="card-action" href="' + escAttr(url) + '" data-key="' + escAttr(card.key) + '">Переглянути деталі</a>' +
                             '</div>' +
                         '</article>';
