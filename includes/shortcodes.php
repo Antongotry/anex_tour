@@ -222,11 +222,10 @@ box-shadow:0 0 0 2px rgba(25,93,198,.10)!important;
 .anex-catalog-results-widget .search-filters .search-filters-reset:focus{background:transparent!important;border:0!important;box-shadow:none!important;color:var(--accent)!important;text-decoration:underline!important}
 @media(max-width:720px){.anex-catalog-search-widget .anex-search-mode-switch{display:grid;grid-template-columns:1fr 1fr;width:100%}.anex-catalog-search-widget .anex-search-mode-btn{padding:9px 10px;font-size:13px}}
 @media(max-width:820px){.anex-catalog-results-widget > .search-results-inner{display:block}.anex-catalog-results-widget .search-filters{display:none}}
-.ps-date-input-wrap{position:relative;display:block;width:100%}
-.ps-date-input-wrap>input[type="text"]{width:100%;padding-right:42px!important;cursor:pointer}
-.ps-date-trigger{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:#1a5dc8;cursor:pointer}
-.ps-date-trigger:hover,.ps-date-trigger:focus-visible{background:rgba(26,93,200,.1);outline:none}
-.ps-date-native{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none;overflow:hidden;clip:rect(0,0,0,0)}
+.ps-date-input-wrap{position:relative;display:block;width:100%;min-height:46px}
+.ps-date-input-wrap>input[type="text"]{width:100%;padding-right:42px!important;pointer-events:none;position:relative;z-index:1;background:#fff}
+.ps-date-trigger{position:absolute;right:6px;top:50%;transform:translateY(-50%);z-index:1;display:flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;border:0;border-radius:8px;background:transparent;color:#1a5dc8;pointer-events:none}
+.ps-date-native{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;border-radius:12px;opacity:0.01;cursor:pointer;z-index:3;-webkit-appearance:none;appearance:none;background:transparent;font-size:16px;line-height:46px}
 </style>';
 }
 
@@ -267,32 +266,27 @@ function anex_catalog_search_date_picker_script(): string {
         wrap.appendChild(textInput);
         textInput.setAttribute("autocomplete","off");
         textInput.setAttribute("readonly","readonly");
+        textInput.setAttribute("tabindex","-1");
         var native=document.createElement("input");
         native.type="date";
         native.className="ps-date-native";
-        native.tabIndex=-1;
-        native.setAttribute("aria-hidden","true");
+        var label=textInput.getAttribute("aria-label")||textInput.id||"дату";
+        native.setAttribute("aria-label",label);
         native.min=opts.min || todayIso();
-        var btn=document.createElement("button");
-        btn.type="button";
+        var btn=document.createElement("span");
         btn.className="ps-date-trigger";
-        btn.setAttribute("aria-label","Відкрити календар");
+        btn.setAttribute("aria-hidden","true");
         btn.innerHTML="<svg viewBox=\"0 0 24 24\" width=\"18\" height=\"18\" aria-hidden=\"true\"><path fill=\"currentColor\" d=\"M19 4h-1V2h-2v2H8V2H6v2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zM5 8V6h14v2H5z\"/></svg>";
-        wrap.appendChild(native);
         wrap.appendChild(btn);
-        function openPicker(){
+        wrap.appendChild(native);
+        function syncToNative(){
             var iso=ddmmyyToIso(textInput.value);
             if(iso) native.value=iso;
-            if(typeof native.showPicker==="function"){
-                try{ native.showPicker(); return; }catch(e){}
-            }
-            native.focus();
         }
         function syncFromNative(){
             if(native.value) textInput.value=isoToDdmmyy(native.value);
         }
-        textInput.addEventListener("click", function(e){ e.preventDefault(); openPicker(); });
-        btn.addEventListener("click", function(e){ e.preventDefault(); openPicker(); });
+        syncToNative();
         native.addEventListener("change", syncFromNative);
         native.addEventListener("input", syncFromNative);
         if(opts.syncMinFrom){
@@ -303,6 +297,12 @@ function anex_catalog_search_date_picker_script(): string {
                     native.min=iso || todayIso();
                 };
                 src.addEventListener("change", applyMin);
+                var srcWrap=src.closest(".ps-date-input-wrap");
+                var srcNative=srcWrap&&srcWrap.querySelector(".ps-date-native");
+                if(srcNative){
+                    srcNative.addEventListener("change", applyMin);
+                    srcNative.addEventListener("input", applyMin);
+                }
                 applyMin();
             }
         }
