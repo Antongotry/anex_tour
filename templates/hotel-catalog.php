@@ -3279,7 +3279,7 @@ if ($hero_video_poster === '') {
         .exc-day-acc[open] > summary::after { content: "▴"; }
         .exc-day-inner { padding: 0 16px 16px; border-top: 1px solid var(--line); }
         .exc-day-loc { margin: 10px 0 0; font-size: 13px; color: var(--muted); font-weight: 600; }
-        .exc-day-body { margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #36435f; white-space: pre-wrap; }
+        .exc-day-body { margin: 8px 0 0; font-size: 15px; line-height: 1.55; color: #36435f; white-space: pre-wrap; overflow-wrap: break-word; word-break: break-word; max-width: 100%; }
         .exc-day-media { margin-top: 12px; border-radius: 12px; overflow: hidden; max-height: 240px; }
         .exc-day-media img { width: 100%; height: 100%; object-fit: cover; display: block; }
         .exc-fallback { font-size: 15px; color: #4a5878; margin: 0; }
@@ -5429,16 +5429,24 @@ if ($hero_video_poster === '') {
                 align-items: flex-end;
             }
 
-            /* Modal: full-width bottom sheet, overflow-x hidden at root */
+            /* Modal: full-width bottom sheet.
+               overflow-x:clip (not hidden!) — spec: hidden+auto = both auto.
+               clip truly blocks horizontal scroll even with overflow-y:auto. */
             .detail-modal {
                 width: 100%;
                 max-height: 96dvh;
                 max-height: 96vh;
                 border-radius: 24px 24px 0 0;
-                overflow-x: hidden;
+                overflow-x: clip;
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 overscroll-behavior: contain;
+            }
+
+            /* Inner content must also clip so nothing bleeds out */
+            #detail-modal-content {
+                overflow-x: clip;
+                max-width: 100%;
             }
 
             /* Sticky title bar */
