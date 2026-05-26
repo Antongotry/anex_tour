@@ -9009,6 +9009,13 @@ if ($hero_video_poster === '') {
             return map;
         })();
 
+        const UA_CITY_NAMES_SET = new Set(
+            (departureCountryGroups['Україна'] || []).map((n) => normalizeSearchToken(n))
+        );
+        function isUkrainianCityName(name) {
+            return UA_CITY_NAMES_SET.has(normalizeSearchToken(String(name || '')));
+        }
+
         function departureCountryLabel(city) {
             const byName = departureCityToCountry.get(normalizeSearchToken(city && city.name ? city.name : ''));
             if (byName) {
@@ -11189,7 +11196,7 @@ if ($hero_video_poster === '') {
                         '</div>' +
                         '<div class="search-result-side">' +
                             '<div class="search-result-stay">' + esc(nights > 0 ? ('на ' + nights + ' ночей') : '') + '</div>' +
-                            '<div class="search-result-depart">' + esc(fromCity ? ('Виїзд з ' + fromCity) : '') + '</div>' +
+                            '<div class="search-result-depart">' + esc(fromCity ? ((isUkrainianCityName(fromCity) ? 'Відправлення: ' : 'Виліт з ') + fromCity) : '') + '</div>' +
                             '<div class="search-result-price">' + esc(price > 0 ? ('від ' + formatMoneyUAH(price)) : 'Ціну уточнюємо') + '</div>' +
                             '<div class="search-result-price-note">' + esc(travelersLabel + (dateFrom ? (' · ' + dateFrom) : '')) + '</div>' +
                             '<a class="search-result-cta" href="' + escAttr(buildExcursionDetailUrl(offer)) + '">Деталі</a>' +
@@ -12431,10 +12438,13 @@ if ($hero_video_poster === '') {
         }
 
         function excursionModalFacts(state) {
+            const fromCityLabel = state.fromCity
+                ? (isUkrainianCityName(state.fromCity) ? 'Відправлення' : 'Виліт з')
+                : 'Виїзд';
             const facts = [
                 ['Дата', state.dateFrom || (state.dateFromRaw ? formatHumanDate(state.dateFromRaw) : '')],
                 ['Тривалість', state.nights > 0 ? (state.nights + ' ночей') : 'Уточнюється'],
-                ['Виїзд', state.fromCity || 'Уточнюється'],
+                [fromCityLabel, state.fromCity || 'Уточнюється'],
                 ['Транспорт', state.transport || state.transfer || 'За програмою'],
                 ['Харчування', state.mealType || state.accomodation || 'За програмою'],
                 ['Оператор', state.operator || 'Уточнюється'],
@@ -12530,7 +12540,7 @@ if ($hero_video_poster === '') {
                                 (state.country ? '<p class="exc-head-route">' + esc(state.country) + '</p>' : '') +
                                 '<div class="exc-tag-row">' +
                                     (state.nights > 0 ? '<span class="exc-tag">' + esc(state.nights + ' ночей') + '</span>' : '') +
-                                    (state.fromCity ? '<span class="exc-tag">Виїзд з ' + esc(state.fromCity) + '</span>' : '') +
+                                    (state.fromCity ? '<span class="exc-tag">' + esc(isUkrainianCityName(state.fromCity) ? 'Відправлення: ' + state.fromCity : 'Виліт з ' + state.fromCity) + '</span>' : '') +
                                     (state.dateFrom ? '<span class="exc-tag">' + esc(state.dateFrom) + '</span>' : '') +
                                 '</div>' +
                             '</section>' +
@@ -13548,12 +13558,16 @@ if ($hero_video_poster === '') {
         function detailOfferCity(offer, fallback) {
             const direct = firstValue(offer, ['from_city', 'from_city_name']) || firstValue(fallback || {}, ['from_city', 'from_city_name']);
             if (direct) {
+                // For flight-included tours Ukrainian cities are bus pickup points, not airports — hide them
+                if (isUkrainianCityName(direct) && offerHasTransport(offer || fallback || {})) {
+                    return '';
+                }
                 return direct;
             }
             if (activeDepartureId) {
                 const cities = departureCache.get(activeCountryId) || [];
                 const city = cities.find((item) => String(item.id) === String(activeDepartureId));
-                if (city && city.name) {
+                if (city && city.name && !isUkrainianCityName(city.name)) {
                     return city.name;
                 }
             }
