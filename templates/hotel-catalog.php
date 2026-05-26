@@ -5693,11 +5693,14 @@ if ($hero_video_poster === '') {
 
         .ps-picker-item {
             width: 100%;
-            border: 0;
-            border-bottom: 1px solid #edf1f8;
-            border-radius: 0;
-            background: #fff;
-            color: #1f2a44;
+            min-width: 0;
+            border: 0 !important;
+            border-bottom: 1px solid #edf1f8 !important;
+            border-radius: 0 !important;
+            background: #fff !important;
+            background-image: none !important;
+            color: #1f2a44 !important;
+            -webkit-text-fill-color: #1f2a44;
             font: inherit;
             font-size: 18px;
             font-weight: 700;
@@ -5715,7 +5718,8 @@ if ($hero_video_poster === '') {
             margin-top: 2px;
             font-size: 12px;
             font-weight: 700;
-            color: #7b869f;
+            color: #7b869f !important;
+            -webkit-text-fill-color: #7b869f;
         }
 
         .ps-hotel-item {
@@ -5744,15 +5748,23 @@ if ($hero_video_poster === '') {
             font-size: 18px;
             font-weight: 800;
             line-height: 1.25;
-            color: #1f2a44;
+            color: #1f2a44 !important;
+            -webkit-text-fill-color: #1f2a44;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+            overflow: hidden;
+            overflow-wrap: anywhere;
         }
 
         .ps-hotel-meta {
             font-size: 14px;
             font-weight: 600;
-            color: #5f6c89;
+            color: #5f6c89 !important;
+            -webkit-text-fill-color: #5f6c89;
             line-height: 1.35;
             white-space: normal;
+            overflow-wrap: anywhere;
         }
 
         .ps-hotel-stars {
@@ -5764,13 +5776,56 @@ if ($hero_video_poster === '') {
 
         .ps-picker-item:hover,
         .ps-picker-item:focus-visible {
-            background: #f5f8ff;
+            background: #f5f8ff !important;
+            background-image: none !important;
+            color: #1f2a44 !important;
+            -webkit-text-fill-color: #1f2a44;
             outline: none;
+            box-shadow: inset 4px 0 0 rgba(26, 93, 200, 0.18) !important;
         }
 
         .ps-picker-item.is-active {
-            background: #edf3ff;
-            color: #12387e;
+            background: #edf3ff !important;
+            background-image: none !important;
+            color: #12387e !important;
+            -webkit-text-fill-color: #12387e;
+            box-shadow: inset 4px 0 0 var(--accent) !important;
+        }
+
+        .ps-picker-item.is-active:hover,
+        .ps-picker-item.is-active:focus-visible {
+            background: #e8f1ff !important;
+            color: #12387e !important;
+            -webkit-text-fill-color: #12387e;
+        }
+
+        .ps-picker-item:hover *,
+        .ps-picker-item:focus-visible *,
+        .ps-picker-item.is-active *,
+        .ps-picker-item.is-active:hover *,
+        .ps-picker-item.is-active:focus-visible * {
+            color: inherit;
+            -webkit-text-fill-color: currentColor;
+        }
+
+        .ps-picker-item .ps-hotel-stars,
+        .ps-picker-item:hover .ps-hotel-stars,
+        .ps-picker-item:focus-visible .ps-hotel-stars,
+        .ps-picker-item.is-active .ps-hotel-stars {
+            color: #f6b73c !important;
+            -webkit-text-fill-color: #f6b73c;
+        }
+
+        .ps-picker-item .ps-hotel-meta,
+        .ps-picker-item:hover .ps-hotel-meta,
+        .ps-picker-item:focus-visible .ps-hotel-meta,
+        .ps-picker-item.is-active .ps-hotel-meta,
+        .ps-picker-item small,
+        .ps-picker-item:hover small,
+        .ps-picker-item:focus-visible small,
+        .ps-picker-item.is-active small {
+            color: #5f6c89 !important;
+            -webkit-text-fill-color: #5f6c89;
         }
 
         .ps-picker-arrow {
@@ -5798,23 +5853,39 @@ if ($hero_video_poster === '') {
             display: flex;
             align-items: center;
             gap: 12px;
+            min-width: 0;
+            color: inherit;
+        }
+
+        .ps-resort-row > span:last-child {
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
 
         .ps-from-meta {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            color: #7b7b7b;
+            color: #6b7280 !important;
+            -webkit-text-fill-color: #6b7280;
             font-size: 16px;
             font-weight: 600;
             white-space: nowrap;
+            flex: 0 0 auto;
         }
 
         .ps-from-meta svg {
             width: 20px;
             height: 20px;
-            color: #7b7b7b;
+            color: currentColor;
             flex: 0 0 auto;
+        }
+
+        .ps-picker-item:hover .ps-from-meta,
+        .ps-picker-item:focus-visible .ps-from-meta,
+        .ps-picker-item.is-active .ps-from-meta {
+            color: #5f6c89 !important;
+            -webkit-text-fill-color: #5f6c89;
         }
 
         .ps-resort-check {
