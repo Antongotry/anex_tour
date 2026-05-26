@@ -4874,6 +4874,158 @@ if ($hero_video_poster === '') {
             }
         }
 
+        @media (max-width: 820px) {
+            .detail-backdrop {
+                padding: 0;
+                align-items: flex-end;
+            }
+
+            .detail-modal {
+                width: 100%;
+                max-width: 100%;
+                max-height: 96dvh;
+                max-height: 96vh;
+                border-radius: 24px 24px 0 0;
+                overflow-x: clip;
+                overflow-y: auto;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+            }
+
+            .detail-head {
+                position: sticky;
+                top: 0;
+                z-index: 10;
+                padding: 14px 16px 12px;
+                gap: 10px;
+            }
+
+            .detail-head h3 {
+                font-size: clamp(20px, 5.2vw, 28px);
+                line-height: 1.12;
+                overflow-wrap: anywhere;
+            }
+
+            .detail-head p {
+                font-size: 14px;
+                line-height: 1.45;
+                overflow-wrap: anywhere;
+            }
+
+            .detail-close {
+                width: 44px;
+                height: 44px;
+                font-size: 26px;
+                flex-shrink: 0;
+            }
+
+            #detail-modal-content,
+            .detail-popup-shell,
+            .detail-popup-grid,
+            .detail-popup-main,
+            .detail-popup-side {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+                overflow-x: clip;
+                box-sizing: border-box;
+            }
+
+            .detail-popup-shell {
+                padding: 14px 12px 28px;
+            }
+
+            .detail-popup-grid {
+                grid-template-columns: minmax(0, 1fr) !important;
+            }
+
+            .detail-popup-shell--excursion .detail-popup-main,
+            .detail-popup-shell--excursion .detail-popup-side {
+                order: initial;
+            }
+
+            .detail-popup-card,
+            .exc-side-card {
+                padding: 14px;
+                border-radius: 16px;
+            }
+
+            .popup-gallery,
+            .popup-gallery-main-wrap,
+            .popup-gallery-main {
+                width: 100%;
+                max-width: 100%;
+                min-width: 0;
+            }
+
+            .popup-gallery-main {
+                min-height: 0;
+                aspect-ratio: 4 / 3;
+                border-radius: 16px;
+            }
+
+            .popup-gallery-thumbs {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 10px;
+            }
+
+            .popup-gallery-thumb {
+                min-height: 0;
+                border-radius: 12px;
+            }
+
+            .popup-gallery-nav {
+                width: 40px;
+                height: 40px;
+                font-size: 26px;
+            }
+
+            .exc-head-title {
+                font-size: clamp(22px, 6.2vw, 32px);
+                line-height: 1.08;
+                overflow-wrap: anywhere;
+            }
+
+            .exc-head-route,
+            .exc-route-line,
+            .exc-program-html,
+            .exc-day-body,
+            .exc-day-body--html,
+            .exc-program-fallback-wrap,
+            .detail-popup-note {
+                max-width: 100%;
+                overflow-wrap: anywhere;
+                word-break: normal;
+            }
+
+            .exc-program-html,
+            .exc-day-body,
+            .exc-day-body--html,
+            .exc-program-fallback-wrap {
+                font-size: 16px;
+                line-height: 1.6;
+            }
+
+            .exc-program-html *,
+            .exc-day-body--html * {
+                max-width: 100%;
+            }
+
+            .exc-inc-grid,
+            .detail-popup-facts {
+                grid-template-columns: 1fr;
+            }
+
+            .exc-dates-wrap {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .exc-dates-table {
+                min-width: 520px;
+            }
+        }
+
         @media (max-width: 980px) {
             .page-shell {
                 padding-inline: 10px;
