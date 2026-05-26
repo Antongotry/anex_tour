@@ -5301,64 +5301,7 @@ if ($hero_video_poster === '') {
                 font-size: 12px;
             }
 
-            .detail-backdrop {
-                padding: 0;
-            }
-
-            .detail-modal {
-                width: 100%;
-                max-height: 100vh;
-                border-radius: 0;
-            }
-
-            .detail-modal .hotel-detail-shell,
-            .detail-popup-shell {
-                padding: 18px 14px 26px;
-            }
-
-            .detail-popup-grid {
-                grid-template-columns: 1fr;
-            }
-
-            .detail-popup-side,
-            .detail-modal .best-offer-card {
-                position: static;
-            }
-
-            /* Gallery: kill min-height so aspect-ratio drives size from width */
-            .popup-gallery-main {
-                min-height: 0;
-                border-radius: 14px;
-                width: 100%;
-                max-width: 100%;
-            }
-
-            .popup-gallery-thumbs {
-                grid-template-columns: repeat(4, minmax(0, 1fr));
-            }
-
-            .popup-gallery-thumb {
-                min-height: 0;
-                border-radius: 10px;
-            }
-
-            .popup-gallery-nav {
-                width: 36px;
-                height: 36px;
-                font-size: 22px;
-            }
-
-            /* Prevent any child from causing horizontal overflow */
-            .detail-popup-shell,
-            .detail-popup-shell--excursion,
-            .detail-popup-grid,
-            .detail-popup-main,
-            .exc-gallery-sec,
-            .popup-gallery,
-            .popup-gallery-main-wrap {
-                max-width: 100%;
-                overflow-x: hidden;
-            }
+            /* stubs removed – see consolidated modal block below */
 
             .hotel-detail-shell {
                 gap: 30px;
@@ -5476,22 +5419,29 @@ if ($hero_video_poster === '') {
                 font-size: 16px;
             }
 
-            /* ── Hotel + Excursion modal: mobile ── */
+            /* ═══════════════════════════════════════════════
+               Hotel + Excursion modal — consolidated mobile
+               ═══════════════════════════════════════════════ */
+
+            /* Backdrop: slide up from bottom */
             .detail-backdrop {
                 padding: 0;
                 align-items: flex-end;
             }
 
+            /* Modal: full-width bottom sheet, overflow-x hidden at root */
             .detail-modal {
                 width: 100%;
                 max-height: 96dvh;
                 max-height: 96vh;
                 border-radius: 24px 24px 0 0;
+                overflow-x: hidden;
                 overflow-y: auto;
                 -webkit-overflow-scrolling: touch;
                 overscroll-behavior: contain;
             }
 
+            /* Sticky title bar */
             .detail-head {
                 position: sticky;
                 top: 0;
@@ -5505,9 +5455,7 @@ if ($hero_video_poster === '') {
                 line-height: 1.2;
             }
 
-            .detail-head p {
-                font-size: 13px;
-            }
+            .detail-head p { font-size: 13px; }
 
             .detail-close {
                 width: 36px;
@@ -5516,12 +5464,60 @@ if ($hero_video_poster === '') {
                 flex-shrink: 0;
             }
 
+            /* Shell padding */
             .detail-modal .hotel-detail-shell,
             .detail-popup-shell {
                 padding: 14px 12px 28px;
+                box-sizing: border-box;
+                width: 100%;
             }
 
-            /* Hotel photo + offer side-by-side → stack */
+            /* Single-column grid for both hotel and excursion modals */
+            .detail-popup-grid {
+                grid-template-columns: 1fr;
+            }
+
+            /* Side card moves above main content on mobile */
+            .detail-popup-side {
+                order: -1;
+                position: static;
+            }
+
+            .detail-modal .best-offer-card {
+                position: static;
+            }
+
+            /* ── Gallery ── */
+            /* Root: min-width:0 prevents grid blowout */
+            .popup-gallery,
+            .popup-gallery-main-wrap {
+                min-width: 0;
+                width: 100%;
+            }
+
+            /* Remove fixed min-height so aspect-ratio scales from width */
+            .popup-gallery-main {
+                min-height: 0;
+                width: 100%;
+                border-radius: 14px;
+            }
+
+            .popup-gallery-thumbs {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .popup-gallery-thumb {
+                min-height: 0;
+                border-radius: 10px;
+            }
+
+            .popup-gallery-nav {
+                width: 36px;
+                height: 36px;
+                font-size: 22px;
+            }
+
+            /* ── Hotel photo block → stack ── */
             .hotel-photo-offer {
                 grid-template-columns: 1fr;
                 gap: 12px;
@@ -5529,11 +5525,14 @@ if ($hero_video_poster === '') {
 
             .hotel-gallery-mosaic {
                 grid-template-columns: 1fr 1fr;
-                grid-template-rows: minmax(110px, 140px) minmax(80px, 100px) minmax(60px, 80px);
+                grid-template-rows:
+                    minmax(110px, 140px)
+                    minmax(80px, 100px)
+                    minmax(60px, 80px);
                 max-height: none;
             }
 
-            /* Excursion modal: tighten cards */
+            /* ── Excursion content cards ── */
             .detail-popup-card {
                 padding: 14px;
                 border-radius: 16px;
@@ -5544,13 +5543,9 @@ if ($hero_video_poster === '') {
                 margin-bottom: 10px;
             }
 
-            .exc-head-title {
-                font-size: clamp(18px, 5vw, 24px);
-            }
+            .exc-head-title { font-size: clamp(18px, 5vw, 24px); }
 
-            .exc-tag-row {
-                gap: 6px;
-            }
+            .exc-tag-row { gap: 6px; }
 
             .exc-tag {
                 font-size: 13px;
@@ -5562,23 +5557,11 @@ if ($hero_video_poster === '') {
                 gap: 8px;
             }
 
-            .detail-popup-fact {
-                padding: 10px 12px;
-            }
+            .detail-popup-fact { padding: 10px 12px; }
+            .detail-popup-fact small { font-size: 11px; }
+            .detail-popup-fact strong { font-size: 14px; }
 
-            .detail-popup-fact small {
-                font-size: 11px;
-            }
-
-            .detail-popup-fact strong {
-                font-size: 14px;
-            }
-
-            /* Excursion side card on mobile: full width, moves before main */
-            .detail-popup-side {
-                order: -1;
-            }
-
+            /* ── Excursion price side card ── */
             .exc-side-card {
                 padding: 16px 14px;
                 border-radius: 16px;
@@ -5594,21 +5577,24 @@ if ($hero_video_poster === '') {
                 font-size: 17px;
             }
 
-            /* Excursion dates: scroll horizontally, reduce padding */
+            /* Dates table: horizontal scroll within its own wrapper */
+            .exc-dates-wrap {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
             .exc-dates-table {
-                min-width: 520px;
+                min-width: 480px;
                 font-size: 13px;
             }
 
             .exc-dates-table th,
             .exc-dates-table td {
-                padding: 10px 10px;
+                padding: 10px;
             }
 
-            /* Best offer card on mobile */
-            .best-offer-card {
-                padding: 18px 16px;
-            }
+            /* ── Hotel best-offer card ── */
+            .best-offer-card { padding: 18px 16px; }
 
             #best-offer .best-offer-grid {
                 grid-template-columns: 1fr 1fr;
