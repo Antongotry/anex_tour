@@ -3499,6 +3499,7 @@ if ($hero_video_poster === '') {
             background:
                 linear-gradient(135deg, rgba(7, 18, 42, 0.92) 0%, rgba(26, 93, 200, 0.92) 52%, rgba(15, 61, 155, 0.88) 100%);
             color: #ffffff;
+            font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif;
         }
 
         .advisor-cta h2 {
@@ -3518,12 +3519,16 @@ if ($hero_video_poster === '') {
 
         .advisor-form {
             display: grid;
-            grid-template-columns: minmax(170px, 0.85fr) minmax(260px, 1.25fr) minmax(220px, 1fr);
+            grid-template-columns: minmax(180px, 0.85fr) minmax(260px, 1.2fr) minmax(220px, 0.95fr);
+            align-items: stretch;
             gap: 16px;
             margin-top: 34px;
         }
 
         .advisor-form input {
+            box-sizing: border-box;
+            width: 100%;
+            min-width: 0;
             min-height: 62px;
             padding: 0 18px;
             border: 1px solid rgba(255, 255, 255, 0.35);
@@ -3534,22 +3539,42 @@ if ($hero_video_poster === '') {
             font-weight: 800;
         }
 
-        .advisor-submit {
+        .advisor-cta .advisor-submit {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            box-sizing: border-box;
+            width: 100%;
+            min-width: 0;
             min-height: 62px;
+            padding: 0 24px;
             border: 0;
             border-radius: var(--radius-md);
-            background: #1a5dc8;
-            color: #ffffff;
-            font: inherit;
-            font-size: 16px;
-            font-weight: 600;
+            background: #f31624 !important;
+            color: #ffffff !important;
+            font-family: "Montserrat", system-ui, -apple-system, "Segoe UI", sans-serif !important;
+            font-size: 18px;
+            font-weight: 900;
+            line-height: 1.1;
+            text-align: center;
+            white-space: nowrap;
             cursor: pointer;
+            box-shadow: 0 18px 36px rgba(7, 18, 42, 0.18);
+            transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+            appearance: none;
         }
 
-        .advisor-submit:hover,
-        .advisor-submit:focus-visible {
-            background: #1348a8;
-            color: #ffffff;
+        .advisor-cta .advisor-submit:hover,
+        .advisor-cta .advisor-submit:focus-visible {
+            background: #d91420 !important;
+            color: #ffffff !important;
+            transform: translateY(-1px);
+            box-shadow: 0 22px 44px rgba(7, 18, 42, 0.22);
+        }
+
+        .advisor-cta .advisor-submit:focus-visible {
+            outline: 3px solid rgba(255, 255, 255, 0.52);
+            outline-offset: 3px;
         }
 
         .advisor-lead-status {
