@@ -452,7 +452,7 @@ function anex_catalog_search_redirect_script( string $target_url, string $excurs
 
         if(mode === "excursion"){
             url.searchParams.set("mode", "excursion");
-            url.searchParams.set("country", countryId);
+            url.searchParams.delete("country");
             url.searchParams.set("from_city", fromCity);
             url.searchParams.set("date_from", d1);
             url.searchParams.set("date_till", d2);
