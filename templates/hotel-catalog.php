@@ -10499,10 +10499,33 @@ if ($hero_video_poster === '') {
             }
         }
 
+        function normalizeSearchMode(mode) {
+            const value = String(mode || '').trim();
+            if (value === 'sea' || value === 'hotel') {
+                return 'sea';
+            }
+            if (value === 'excursion') {
+                return 'excursion';
+            }
+            return 'excursion';
+        }
+
+        function applySearchModeFromUrl() {
+            const modeInput = document.getElementById('ps-search-mode');
+            if (!modeInput) {
+                return;
+            }
+            const urlMode = new URL(window.location.href).searchParams.get('mode');
+            modeInput.value = normalizeSearchMode(urlMode || modeInput.value || 'excursion');
+            if (typeof window.anexInitSearchModeSwitch === 'function') {
+                window.anexInitSearchModeSwitch();
+            }
+        }
+
         function currentSearchModeFromState() {
             const modeInput = document.getElementById('ps-search-mode');
             const urlMode = new URL(window.location.href).searchParams.get('mode');
-            return String((modeInput && modeInput.value) || urlMode || 'hotel').trim();
+            return normalizeSearchMode((modeInput && modeInput.value) || urlMode || 'excursion');
         }
 
         function searchRenderCacheKey(params, mode) {
@@ -11271,7 +11294,7 @@ if ($hero_video_poster === '') {
         function applySearchClientFiltersAndRender() {
             const modeInput = document.getElementById('ps-search-mode');
             const urlMode = new URL(window.location.href).searchParams.get('mode');
-            const mode = String((modeInput && modeInput.value) || urlMode || 'hotel').trim();
+            const mode = currentSearchModeFromState();
             if (mode === 'excursion') {
                 const pool = popularSearchState.excursionOffersPool || [];
                 const usedFallback = Boolean(popularSearchState.excursionUsedFallback);
@@ -11639,7 +11662,8 @@ if ($hero_video_poster === '') {
             openPopularSearchUI();
             const modeInput = document.getElementById('ps-search-mode');
             const urlMode = new URL(window.location.href).searchParams.get('mode');
-            const searchMode = String((modeInput && modeInput.value) || urlMode || 'hotel').trim();
+            applySearchModeFromUrl();
+            const searchMode = currentSearchModeFromState();
             setSearchUiMode(searchMode);
             setSearchResultsLoading(true);
             if (searchResultsList && !opts.loadMore) {
@@ -11989,6 +12013,10 @@ if ($hero_video_poster === '') {
             }
             ensurePsPickerPortal();
             hardenPickerInputsVisual();
+            applySearchModeFromUrl();
+            if (typeof window.anexInitSearchModeSwitch === 'function') {
+                window.anexInitSearchModeSwitch();
+            }
             if (typeof window.anexInitSearchDatePickers === 'function') {
                 window.anexInitSearchDatePickers();
             } else {
@@ -12127,9 +12155,7 @@ if ($hero_video_poster === '') {
                 searchFiltersReset.addEventListener('click', () => {
                     popularSearchState.page = 1;
                     resetSearchSidebarFilters();
-                    const modeInput = document.getElementById('ps-search-mode');
-                    const mode = String((modeInput && modeInput.value) || new URL(window.location.href).searchParams.get('mode') || 'hotel').trim();
-                    if (mode === 'excursion') {
+                    if (currentSearchModeFromState() === 'excursion') {
                         applySearchClientFiltersAndRender();
                         return;
                     }
@@ -12177,9 +12203,7 @@ if ($hero_video_poster === '') {
             const filterAside = document.getElementById('search-filters-aside');
             if (filterAside) {
                 filterAside.addEventListener('change', () => {
-                    const modeInput = document.getElementById('ps-search-mode');
-                    const mode = String((modeInput && modeInput.value) || new URL(window.location.href).searchParams.get('mode') || 'hotel').trim();
-                    if (mode === 'excursion') {
+                    if (currentSearchModeFromState() === 'excursion') {
                         popularSearchState.page = 1;
                         applySearchClientFiltersAndRender();
                         return;
