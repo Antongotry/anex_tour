@@ -4543,10 +4543,14 @@ if ($hero_video_poster === '') {
         .popup-gallery {
             display: grid;
             gap: 12px;
+            min-width: 0;
+            max-width: 100%;
         }
 
         .popup-gallery-main-wrap {
             position: relative;
+            min-width: 0;
+            max-width: 100%;
         }
 
         .popup-gallery-main {
@@ -5321,19 +5325,39 @@ if ($hero_video_poster === '') {
                 position: static;
             }
 
+            /* Gallery: kill min-height so aspect-ratio drives size from width */
             .popup-gallery-main {
-                min-height: 240px;
-                border-radius: 18px;
+                min-height: 0;
+                border-radius: 14px;
+                width: 100%;
+                max-width: 100%;
             }
 
             .popup-gallery-thumbs {
                 grid-template-columns: repeat(4, minmax(0, 1fr));
             }
 
+            .popup-gallery-thumb {
+                min-height: 0;
+                border-radius: 10px;
+            }
+
             .popup-gallery-nav {
-                width: 38px;
-                height: 38px;
-                font-size: 24px;
+                width: 36px;
+                height: 36px;
+                font-size: 22px;
+            }
+
+            /* Prevent any child from causing horizontal overflow */
+            .detail-popup-shell,
+            .detail-popup-shell--excursion,
+            .detail-popup-grid,
+            .detail-popup-main,
+            .exc-gallery-sec,
+            .popup-gallery,
+            .popup-gallery-main-wrap {
+                max-width: 100%;
+                overflow-x: hidden;
             }
 
             .hotel-detail-shell {
