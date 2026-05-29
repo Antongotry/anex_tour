@@ -180,13 +180,30 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
 
     function offerHasTransport(offer){
         if(!offer) return false;
-        if(Number(offer.type)===2) return false;
+        // type 2 = hotel-only (no transport)
+        var ot = Number(offer.type);
+        if(ot===2) return false;
+        // explicit transport_type string
         var t=String(offer.transport_type||'').toLowerCase();
         if(t==='flight'||t==='bus') return true;
+        // Ukrainian/alternate transport labels
+        if(t==='авіа'||t==='авіаперліт'||t==='авіапереліт'||t.indexOf('avia')!==-1||t.indexOf('flight')!==-1) return true;
+        // numeric transport_type_id: 1 = flight, 2 = bus
+        var ttid = Number(offer.transport_type_id||offer.transport_id||0);
+        if(ttid===1||ttid===2) return true;
+        // flights arrays with actual content (not just empty arrays or null entries)
         var fl=offer.flights;
-        if(fl&&((fl.from&&fl.from.length)||(fl.to&&fl.to.length))) return true;
+        if(fl){
+            var hasFrom = Array.isArray(fl.from) && fl.from.some(function(f){ return f&&typeof f==='object'&&Object.keys(f).length>0; });
+            var hasTo   = Array.isArray(fl.to)   && fl.to.some(function(f){ return f&&typeof f==='object'&&Object.keys(f).length>0; });
+            if(hasFrom||hasTo) return true;
+        }
+        // type 1 explicitly means package tour in ittour API
+        if(ot===1) return true;
         return false;
     }
+
+    function offerMinNights(offer){ return Number(offer.duration||offer.hnight||0); }
 
     function cardFromOffer(offer, win){
         return {
@@ -212,61 +229,38 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
     var cardsCache    = new Map();
     var errorCache    = new Map();
     var fetchPromises = new Map();
-    var CARDS_PER = 4;
+    var CARDS_PER  = 4;
+    var MIN_NIGHTS = 5;
 
-    async function fetchShowcaseFilters(){
-        return api('showcase/hot-offers/filters', { showcase_number:'1' });
+    function addDays(d, n){ var r=new Date(d); r.setDate(r.getDate()+n); return r; }
+
+    // Builds rolling date windows starting from today+14 days, each 14 days wide, 4 windows
+    function buildSearchWindows(){
+        var base = new Date(); base.setHours(12,0,0,0);
+        var windows = [];
+        for(var offset=14; offset<=70; offset+=14){
+            var from = addDays(base, offset);
+            var till = addDays(from, 13);
+            windows.push({ date_from: formatApiDate(from), date_till: formatApiDate(till) });
+        }
+        return windows;
     }
 
-    async function fetchCountryFromCityId(countryId){
-        try {
-            var data = await fetchShowcaseFilters();
-            var rows = Array.isArray(data && data.from_cities) ? data.from_cities : [];
-            var hit = rows.find(function(row){ return String(row.country_id||'') === String(countryId||''); }) || rows[0];
-            return hit && hit.id != null ? String(hit.id) : '';
-        } catch (error) {
-            return '';
-        }
-    }
-
-    function showcaseQueries(countryId, fromCityId){
-        var queries = [];
-        var push = function(query){ queries.push(query); };
-        push({
-            showcase_number:'1',
-            country:String(countryId),
-            hotel_rating:'3:78',
-            night_from:'3',
-            night_till:'14',
-            page:'1',
-            items_per_page:'18',
-            hotel_image:'1',
-            from_city: fromCityId || ''
-        });
-        push({
-            showcase_number:'1',
-            country:String(countryId),
-            hotel_rating:'3:78:79',
-            night_from:'1',
-            night_till:'21',
-            page:'1',
-            items_per_page:'18',
-            hotel_image:'1',
-            from_city: fromCityId || ''
-        });
-        if (fromCityId) {
-            push({
-                showcase_number:'1',
-                country:String(countryId),
-                hotel_rating:'3:78',
-                night_from:'3',
-                night_till:'14',
-                page:'1',
-                items_per_page:'18',
-                hotel_image:'1'
-            });
-        }
-        return queries;
+    function buildSearchQuery(countryId, win, wider){
+        return {
+            type: '1',           // package tours with transport only
+            country: String(countryId),
+            date_from: win.date_from,
+            date_till: win.date_till,
+            night_from: String(MIN_NIGHTS),
+            night_till: wider ? '21' : '14',
+            adult_amount: '2',
+            child_amount: '0',
+            hotel_rating: wider ? '1:78:79' : '3:78',
+            hotel_image: '1',
+            items_per_page: '18',
+            page: '1',
+        };
     }
 
     function fetchCards(country){
@@ -275,16 +269,29 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
         var p = (async function(){
             var lastError = null;
             try{
-                var fromCityId = await fetchCountryFromCityId(country.id);
-                var queries = showcaseQueries(country.id, fromCityId);
-                for(var i=0;i<queries.length;i++){
-                    var data = await api('showcase/hot-offers/search', queries[i]);
-                    var offers = dedupeHotels(sortHotels(data.offers||[])).filter(function(offer){ return offerHasTransport(offer); });
-                    if(offers.length>0){
-                        var pseudoWindow = { date_from: String(offers[0].date_from||''), date_till: String(offers[0].date_till||offers[0].date_from||'') };
-                        var cards=offers.slice(0,CARDS_PER).map(function(o){ return cardFromOffer(o,pseudoWindow); });
+                var windows = buildSearchWindows();
+                // First pass: strict (3+ stars, 5–14 nights)
+                for(var i=0;i<windows.length;i++){
+                    var data = await api('module/search-list', buildSearchQuery(country.id, windows[i], false));
+                    var offers = dedupeHotels(sortHotels(data.offers||[])).filter(function(offer){
+                        return offerHasTransport(offer) && offerMinNights(offer) >= MIN_NIGHTS;
+                    });
+                    if(offers.length>=CARDS_PER){
+                        var cards=offers.slice(0,CARDS_PER).map(function(o){ return cardFromOffer(o,windows[i]); });
                         cardsCache.set(country.id,cards); errorCache.set(country.id,null);
                         return {cards:cards, error:null};
+                    }
+                }
+                // Second pass: wider (any stars, 5–21 nights)
+                for(var j=0;j<windows.length;j++){
+                    var data2 = await api('module/search-list', buildSearchQuery(country.id, windows[j], true));
+                    var offers2 = dedupeHotels(sortHotels(data2.offers||[])).filter(function(offer){
+                        return offerHasTransport(offer) && offerMinNights(offer) >= MIN_NIGHTS;
+                    });
+                    if(offers2.length>0){
+                        var cards2=offers2.slice(0,CARDS_PER).map(function(o){ return cardFromOffer(o,windows[j]); });
+                        cardsCache.set(country.id,cards2); errorCache.set(country.id,null);
+                        return {cards:cards2, error:null};
                     }
                 }
             } catch(e){ lastError = e.message || String(e); }
