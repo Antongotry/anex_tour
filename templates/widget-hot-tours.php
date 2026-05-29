@@ -234,13 +234,13 @@ $hotel_detail_nav_url = function_exists('anex_get_hotel_detail_nav_base_url')
 
     function addDays(d, n){ var r=new Date(d); r.setDate(r.getDate()+n); return r; }
 
-    // Builds rolling date windows starting from today+14 days, each 14 days wide, 4 windows
+    // Builds rolling date windows starting from today+7 days, each 11 days wide (API max=12)
     function buildSearchWindows(){
         var base = new Date(); base.setHours(12,0,0,0);
         var windows = [];
-        for(var offset=14; offset<=70; offset+=14){
+        for(var offset=7; offset<=84; offset+=11){
             var from = addDays(base, offset);
-            var till = addDays(from, 13);
+            var till = addDays(from, 11);
             windows.push({ date_from: formatApiDate(from), date_till: formatApiDate(till) });
         }
         return windows;
